@@ -66,7 +66,7 @@ export default function PlaceListPanel({
             animate={{ y: 0 }}
             exit={{ y: "100%" }}
             transition={{ type: "spring", damping: 30, stiffness: 260 }}
-            className="fixed inset-x-0 bottom-0 top-[112px] sm:top-14 sm:left-auto sm:right-auto sm:w-[390px] sm:h-[calc(100vh-56px)] bg-[#0f0f0f] border-t sm:border-t-0 sm:border-r border-white/5 rounded-t-[28px] sm:rounded-none overflow-hidden flex flex-col"
+            className="fixed inset-x-0 bottom-0 top-14 sm:top-14 sm:left-auto sm:right-auto sm:w-[390px] sm:h-[calc(100vh-56px)] bg-[#0f0f0f] border-t sm:border-t-0 sm:border-r border-white/5 rounded-t-[28px] sm:rounded-none overflow-hidden flex flex-col"
             style={{ zIndex: ZINDEX.MAP_CONTROLS }}
           >
             <div className="px-4 pt-3 pb-3 border-b border-white/5 bg-[#101010]">
@@ -74,7 +74,7 @@ export default function PlaceListPanel({
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <p className="text-base font-semibold text-white">Comparar spots</p>
-                  <p className="mt-1 text-xs text-stone-500">Compara precio, rating y valor antes de entrar en detalle.</p>
+                  <p className="mt-1 text-xs text-stone-500">Compara precio, rating y planes antes de abrir un spot.</p>
                 </div>
                 <div className="flex items-center gap-2">
                   <button

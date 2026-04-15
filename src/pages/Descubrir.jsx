@@ -1,9 +1,9 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion, useAnimationControls, useMotionTemplate, useMotionValue, useTransform } from "framer-motion";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Check, Heart, MapPin, Users, X } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { createPageUrl } from "@/utils";
-import { Check, Heart, MapPin, X } from "lucide-react";
 import { formatPrice, getHangoutVibe } from "@/lib/place-helpers";
 
 function avatarLabel(user) {
@@ -40,118 +40,120 @@ function enrich(quedadas, places, users, intereses, currentEmail) {
 function SwipeCard({ hangout, nextHangout, onDecision, disabled }) {
   const controls = useAnimationControls();
   const x = useMotionValue(0);
-  const rotate = useTransform(x, [-220, 0, 220], [-11, 0, 11]);
-  const rightProgress = useTransform(x, [0, 50, 180], [0, 0.35, 1]);
-  const leftProgress = useTransform(x, [-180, -50, 0], [1, 0.35, 0]);
-  const joinScale = useTransform(x, [0, 140], [0.92, 1.05]);
-  const nopeScale = useTransform(x, [-140, 0], [1.05, 0.92]);
-  const borderAlpha = useTransform(x, [-180, -50, 0, 50, 180], [0.9, 0.45, 0.08, 0.45, 0.9]);
-  const borderColor = useTransform(x, [-180, -50, 0, 50, 180], [
-    'rgba(248,113,113,0.95)',
-    'rgba(248,113,113,0.5)',
-    'rgba(255,255,255,0.08)',
-    'rgba(52,211,153,0.5)',
-    'rgba(52,211,153,0.95)'
+  const rotate = useTransform(x, [-260, 0, 260], [-12, 0, 12]);
+  const rightProgress = useTransform(x, [0, 60, 220], [0, 0.35, 1]);
+  const leftProgress = useTransform(x, [-220, -60, 0], [1, 0.35, 0]);
+  const leftScale = useTransform(leftProgress, [0, 1], [0.78, 1]);
+  const rightScale = useTransform(rightProgress, [0, 1], [0.78, 1]);
+  const borderColor = useTransform(x, [-220, -70, 0, 70, 220], [
+    "rgba(248,113,113,0.96)",
+    "rgba(248,113,113,0.38)",
+    "rgba(255,255,255,0.08)",
+    "rgba(34,197,94,0.38)",
+    "rgba(34,197,94,0.96)",
   ]);
-  const glow = useMotionTemplate`0 28px 70px rgba(0,0,0,0.68), 0 0 0 1px ${borderColor}, 0 0 40px rgba(0,0,0,0.12)`;
-
+  const cardScale = useTransform(x, [-220, 0, 220], [0.985, 1, 0.985]);
+  const glow = useMotionTemplate`0 28px 80px rgba(0,0,0,0.72), 0 0 0 1px ${borderColor}`;
   const spotsLeft = Math.max((hangout.max_participantes || 0) - hangout.joined_count, 0);
 
-  const finishVote = async (decision) => {
+  async function finishVote(decision) {
     if (disabled) return;
-    const travel = typeof window !== "undefined" ? Math.max(window.innerWidth, 480) : 520;
+    const travel = typeof window !== "undefined" ? Math.max(window.innerWidth, 540) : 560;
     await controls.start({
       x: decision === "like" ? travel : -travel,
-      rotate: decision === "like" ? 16 : -16,
+      rotate: decision === "like" ? 17 : -17,
       opacity: 0,
-      transition: { duration: 0.26, ease: [0.22, 1, 0.36, 1] },
+      scale: 0.96,
+      transition: { duration: 0.28, ease: [0.22, 1, 0.36, 1] },
     });
     x.set(0);
-    controls.set({ x: 0, rotate: 0, opacity: 1 });
+    controls.set({ x: 0, rotate: 0, opacity: 1, scale: 1 });
     onDecision(hangout.id, decision);
-  };
+  }
 
   return (
     <div className="mx-auto flex h-full w-full max-w-md flex-col">
-      <div className="relative min-h-0 flex-1 overflow-hidden pb-4">
+      <div className="relative flex-1 overflow-hidden">
         {nextHangout ? (
-          <motion.div
-            aria-hidden
-            className="absolute inset-x-4 bottom-12 top-6 rounded-[34px] border border-white/8 bg-[linear-gradient(180deg,#111_0%,#080808_100%)] opacity-65"
-            style={{ rotate: useTransform(x, [-180, 0, 180], [-2.6, 0, 2.6]) }}
-          />
+          <>
+            <motion.div
+              aria-hidden
+              className="absolute inset-x-5 bottom-[116px] top-10 rounded-[34px] border border-white/7 bg-[#0b0b0b] opacity-35"
+              style={{ rotate: useTransform(x, [-220, 0, 220], [-3, 0, 3]) }}
+            />
+            <motion.div
+              aria-hidden
+              className="absolute inset-x-4 bottom-[108px] top-7 rounded-[34px] border border-white/7 bg-[linear-gradient(180deg,#0f0f0f_0%,#080808_100%)] opacity-55"
+              style={{ rotate: useTransform(x, [-220, 0, 220], [-1.6, 0, 1.6]) }}
+            />
+          </>
         ) : null}
 
         <motion.div
           drag={disabled ? false : "x"}
           dragConstraints={{ left: 0, right: 0 }}
-          dragElastic={0.18}
-          style={{ x, rotate, boxShadow: glow }}
+          dragElastic={0.16}
+          style={{ x, rotate, boxShadow: glow, scale: cardScale }}
           animate={controls}
           onDragEnd={async (_, info) => {
             if (disabled) return;
-            if (info.offset.x > 115) {
-              await finishVote("like");
-            } else if (info.offset.x < -115) {
-              await finishVote("dislike");
-            } else {
-              controls.start({ x: 0, rotate: 0, transition: { type: "spring", stiffness: 360, damping: 28 } });
-            }
+            if (info.offset.x > 118) await finishVote("like");
+            else if (info.offset.x < -118) await finishVote("dislike");
+            else controls.start({ x: 0, rotate: 0, scale: 1, transition: { type: "spring", stiffness: 360, damping: 28 } });
           }}
-          className="relative z-10 h-full overflow-hidden rounded-[34px] border border-white/10 bg-[radial-gradient(circle_at_top,rgba(220,38,38,0.24),transparent_24%),linear-gradient(180deg,#151515_0%,#080808_100%)]"
+          className="relative z-10 h-[calc(100%-108px)] overflow-hidden rounded-[34px] border border-white/10 bg-[radial-gradient(circle_at_top,rgba(220,38,38,0.22),transparent_24%),linear-gradient(180deg,#121212_0%,#060606_100%)]"
         >
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_bottom_right,rgba(255,255,255,0.07),transparent_22%)]" />
-          <motion.div style={{ opacity: leftProgress }} className="absolute inset-0 bg-gradient-to-br from-red-500/26 via-transparent to-transparent" />
-          <motion.div style={{ opacity: rightProgress }} className="absolute inset-0 bg-gradient-to-bl from-emerald-500/26 via-transparent to-transparent" />
-          <motion.div style={{ opacity: leftProgress, scale: nopeScale }} className="absolute left-5 top-6 z-20 rounded-2xl border-2 border-red-400/80 bg-red-500/12 px-4 py-2 text-[15px] font-black uppercase tracking-[0.2em] text-red-200 shadow-[0_0_24px_rgba(239,68,68,0.2)]">
-            Nope
-          </motion.div>
-          <motion.div style={{ opacity: rightProgress, scale: joinScale }} className="absolute right-5 top-6 z-20 rounded-2xl border-2 border-emerald-400/80 bg-emerald-500/12 px-4 py-2 text-[15px] font-black uppercase tracking-[0.2em] text-emerald-200 shadow-[0_0_24px_rgba(16,185,129,0.2)]">
-            Join
-          </motion.div>
+          <motion.div style={{ opacity: leftProgress }} className="absolute inset-0 bg-gradient-to-br from-red-500/32 via-red-500/8 to-transparent" />
+          <motion.div style={{ opacity: rightProgress }} className="absolute inset-0 bg-gradient-to-bl from-emerald-500/30 via-emerald-500/7 to-transparent" />
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_bottom_right,rgba(255,255,255,0.08),transparent_20%)]" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent" />
 
-          <div className="absolute inset-0 bg-gradient-to-t from-black via-black/52 to-transparent" />
+          <motion.div style={{ opacity: leftProgress, scale: leftScale }} className="absolute left-5 top-5 z-20 rounded-2xl border-2 border-red-400/90 bg-red-500/14 px-4 py-2 text-[14px] font-black uppercase tracking-[0.22em] text-red-100">NOPE</motion.div>
+          <motion.div style={{ opacity: rightProgress, scale: rightScale }} className="absolute right-5 top-5 z-20 rounded-2xl border-2 border-emerald-400/90 bg-emerald-500/14 px-4 py-2 text-[14px] font-black uppercase tracking-[0.22em] text-emerald-100">JOIN</motion.div>
 
-          <div className="relative flex h-full flex-col justify-end p-5">
-            <div className="mb-3 flex items-center justify-between gap-3 text-[11px] font-bold uppercase tracking-[0.14em] text-white/80">
-              <span className="rounded-full bg-violet-500/20 px-3 py-1 text-violet-100">
-                {new Date(hangout.fecha_hora).toLocaleDateString([], { month: "short", day: "numeric" })} · {new Date(hangout.fecha_hora).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-              </span>
-              <span className="rounded-full bg-emerald-500/20 px-3 py-1 text-emerald-100">{spotsLeft} plazas libres</span>
+          <div className="relative flex h-full flex-col justify-between p-5">
+            <div className="flex items-center justify-between gap-3 text-[11px] font-bold uppercase tracking-[0.16em] text-white/90">
+              <span className="rounded-full bg-violet-500/22 px-3 py-1 text-violet-100">{new Date(hangout.fecha_hora).toLocaleDateString([], { month: "short", day: "numeric" })} · {new Date(hangout.fecha_hora).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
+              <span className="rounded-full bg-emerald-500/18 px-3 py-1 text-emerald-100">{spotsLeft} plazas libres</span>
             </div>
 
-            <div className="rounded-[28px] border border-white/10 bg-black/40 p-5 backdrop-blur-md">
-              <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.14em]">
-                <span className="rounded-full border border-white/10 bg-white/10 px-3 py-1 text-white/90">{hangout.vibe}</span>
-                <span className="rounded-full border border-red-400/15 bg-red-500 px-2.5 py-1 text-white">{hangout.priceLabel}</span>
+            <div className="rounded-[30px] border border-white/10 bg-black/40 p-5 backdrop-blur-md">
+              <div className="flex flex-wrap items-center gap-2 text-[11px] font-bold uppercase tracking-[0.14em]">
+                <span className="rounded-full border border-white/10 bg-white/8 px-3 py-1 text-white/88">{hangout.vibe}</span>
+                <span className="rounded-full border border-red-400/15 bg-red-500 px-3 py-1 text-white">{hangout.priceLabel}</span>
               </div>
 
-              <h1 className="mt-4 text-[2.7rem] font-black leading-[0.92] tracking-tight text-white">{hangout.titulo}</h1>
+              <h1 className="mt-4 text-[2.9rem] font-black leading-[0.93] tracking-[-0.04em] text-white">{hangout.titulo}</h1>
               <div className="mt-3 flex flex-wrap items-center gap-2 text-sm text-stone-200">
                 <span className="font-semibold">{hangout.pizzeria_nombre}</span>
-                <span className="inline-flex items-center gap-1 text-stone-300"><MapPin className="h-3.5 w-3.5" />{hangout.place?.neighborhood || "NYC"}</span>
+                <span className="inline-flex items-center gap-1 text-stone-400"><MapPin className="h-3.5 w-3.5" />{hangout.place?.neighborhood || "NYC"}</span>
               </div>
-              <p className="mt-3 line-clamp-3 text-[15px] leading-7 text-stone-200/88">{hangout.descripcion}</p>
+              <p className="mt-4 text-[16px] leading-8 text-stone-200/90">{hangout.descripcion}</p>
+            </div>
 
-              <div className="mt-4 flex items-center justify-between gap-4">
-                <div className="flex min-w-0 items-center gap-3">
-                  <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-white/10 bg-gradient-to-br ${hangout.host?.avatar_color || "from-red-500 to-orange-500"} text-sm font-bold text-white`}>
-                    {avatarLabel(hangout.host)}
+            <div className="space-y-3">
+              <div className="rounded-[24px] border border-white/8 bg-white/[0.03] px-4 py-3">
+                <div className="text-xs text-stone-400">Creado por</div>
+                <div className="mt-2 flex items-center justify-between gap-3">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-white/10 bg-gradient-to-br ${hangout.host?.avatar_color || "from-red-500 to-orange-500"} text-sm font-bold text-white`}>{avatarLabel(hangout.host)}</div>
+                    <div className="min-w-0">
+                      <div className="truncate font-bold text-white">{hangout.host?.full_name || hangout.creador_nombre}</div>
+                      <div className="truncate text-sm text-stone-400">{hangout.place?.borough || "New York"}</div>
+                    </div>
                   </div>
-                  <div className="min-w-0">
-                    <div className="text-xs text-stone-400">Creado por</div>
-                    <div className="truncate font-bold text-white">{hangout.host?.full_name || hangout.creador_nombre}</div>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <div className="flex justify-end -space-x-2">
+                  <div className="flex -space-x-2">
                     {hangout.participants.slice(0, 4).map((person) => (
-                      <div key={person.email} className={`flex h-8 w-8 items-center justify-center rounded-full border border-black/40 bg-gradient-to-br ${person.avatar_color || "from-stone-500 to-stone-700"} text-[11px] font-bold text-white`}>
-                        {avatarLabel(person)}
-                      </div>
+                      <div key={person.email} className={`flex h-9 w-9 items-center justify-center rounded-full border border-black/40 bg-gradient-to-br ${person.avatar_color || "from-stone-500 to-stone-700"} text-[11px] font-bold text-white`}>{avatarLabel(person)}</div>
                     ))}
                   </div>
-                  <div className="mt-1 text-sm text-stone-300">{hangout.joined_count} van</div>
+                </div>
+              </div>
+
+              <div className="rounded-[24px] border border-white/8 bg-white/[0.03] px-4 py-3">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="inline-flex items-center gap-2 text-stone-200"><Users className="h-4 w-4 text-stone-400" /><span className="font-semibold">{hangout.joined_count} / {hangout.max_participantes || hangout.joined_count} going</span></div>
+                  <div className="text-sm text-stone-400">Swipe or tap a button</div>
                 </div>
               </div>
             </div>
@@ -159,23 +161,15 @@ function SwipeCard({ hangout, nextHangout, onDecision, disabled }) {
         </motion.div>
       </div>
 
-      <div className="relative z-20 flex shrink-0 items-center justify-center gap-10 pb-2 pt-1">
-        <button
-          type="button"
-          disabled={disabled}
-          onClick={() => finishVote("dislike")}
-          className="grid h-[68px] w-[68px] place-items-center rounded-full border border-white/12 bg-black/75 text-stone-300 shadow-[0_12px_30px_rgba(0,0,0,0.45)] backdrop-blur-md transition hover:border-red-400/40 hover:text-red-200 disabled:opacity-60"
-        >
-          <X className="h-8 w-8" />
-        </button>
-        <button
-          type="button"
-          disabled={disabled}
-          onClick={() => finishVote("like")}
-          className="grid h-[74px] w-[74px] place-items-center rounded-full bg-red-600 text-white shadow-[0_18px_38px_rgba(220,38,38,0.4)] transition hover:scale-[1.02] hover:bg-red-500 disabled:opacity-60"
-        >
-          <Heart className="h-8 w-8 fill-current" />
-        </button>
+      <div className="relative z-20 flex shrink-0 items-center justify-center gap-10 pt-2">
+        <div className="flex flex-col items-center gap-2">
+          <button type="button" disabled={disabled} onClick={() => finishVote("dislike")} className="grid h-[74px] w-[74px] place-items-center rounded-full border border-white/12 bg-[#101010] text-stone-300 shadow-[0_16px_34px_rgba(0,0,0,0.48)] backdrop-blur-md transition hover:border-red-400/45 hover:text-red-200 disabled:opacity-60"><X className="h-8 w-8" /></button>
+          <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-stone-500">Skip</span>
+        </div>
+        <div className="flex flex-col items-center gap-2">
+          <button type="button" disabled={disabled} onClick={() => finishVote("like")} className="grid h-[82px] w-[82px] place-items-center rounded-full bg-red-600 text-white shadow-[0_18px_44px_rgba(220,38,38,0.42)] transition hover:scale-[1.02] hover:bg-red-500 disabled:opacity-60"><Heart className="h-9 w-9 fill-current" /></button>
+          <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-stone-500">Join</span>
+        </div>
       </div>
     </div>
   );
@@ -184,6 +178,7 @@ function SwipeCard({ hangout, nextHangout, onDecision, disabled }) {
 export default function Descubrir() {
   const [user, setUser] = useState(null);
   const [joinedToast, setJoinedToast] = useState(null);
+  const [pendingDecisionIds, setPendingDecisionIds] = useState([]);
   const queryClient = useQueryClient();
 
   useEffect(() => {
@@ -191,7 +186,7 @@ export default function Descubrir() {
   }, []);
 
   const { data: hangouts = [], isLoading } = useQuery({
-    queryKey: ["discover-hangouts-v4", user?.email],
+    queryKey: ["discover-hangouts-v5", user?.email],
     enabled: !!user,
     queryFn: async () => {
       const [quedadas, places, users, intereses] = await Promise.all([
@@ -204,20 +199,24 @@ export default function Descubrir() {
     },
   });
 
-  const visible = useMemo(() => hangouts.filter((item) => !item.skipped && !item.joined), [hangouts]);
+  const visible = useMemo(() => hangouts.filter((item) => !item.skipped && !item.joined && !pendingDecisionIds.includes(item.id)), [hangouts, pendingDecisionIds]);
   const current = visible[0];
   const next = visible[1];
 
   const mutate = useMutation({
     mutationFn: async ({ id, decision }) => base44.functions.invoke("recordarInteres", { quedada_id: id, tipo_interes: decision }),
+    onMutate: ({ id }) => setPendingDecisionIds((currentIds) => [...currentIds, id]),
+    onError: (_, vars) => setPendingDecisionIds((currentIds) => currentIds.filter((id) => id !== vars.id)),
     onSuccess: (_, vars) => {
-      queryClient.invalidateQueries({ queryKey: ["discover-hangouts-v4", user?.email] });
+      queryClient.invalidateQueries({ queryKey: ["discover-hangouts-v5", user?.email] });
       queryClient.invalidateQueries({ queryKey: ["my-groups-v4", user?.email] });
+      queryClient.invalidateQueries({ queryKey: ["active-hangouts"] });
       if (vars.decision === "like") {
-        const joined = visible.find((item) => item.id === vars.id);
+        const joined = hangouts.find((item) => item.id === vars.id);
         setJoinedToast(joined);
-        setTimeout(() => setJoinedToast(null), 2200);
+        window.setTimeout(() => setJoinedToast(null), 2200);
       }
+      setPendingDecisionIds((currentIds) => currentIds.filter((id) => id !== vars.id));
     },
   });
 
@@ -228,7 +227,7 @@ export default function Descubrir() {
       <div className="min-h-[calc(100vh-64px)] bg-[#060606] px-4 py-8">
         <div className="mx-auto max-w-md rounded-[30px] border border-white/10 bg-[#111] p-8 text-center">
           <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-[28px] bg-white/[0.04] text-4xl">🍕</div>
-          <h1 className="mt-6 text-3xl font-black">No hay más planes por ahora</h1>
+          <h1 className="mt-6 text-3xl font-black text-white">No hay más planes por ahora</h1>
           <p className="mt-3 text-sm leading-7 text-stone-400">Cuando alguien proponga un plan en una pizzería aparecerá aquí para que puedas deslizar sí o no.</p>
           <div className="mt-6 grid gap-3">
             <a href={createPageUrl("CrearQuedada")} className="inline-flex h-12 items-center justify-center rounded-2xl bg-red-600 text-sm font-bold text-white">Crear un plan</a>
@@ -242,9 +241,9 @@ export default function Descubrir() {
   return (
     <div className="h-[calc(100vh-64px)] overflow-hidden bg-[#060606] px-4 py-4">
       <div className="mx-auto flex h-full max-w-md flex-col">
-        <div className="mb-3 shrink-0 text-center">
-          <div className="text-[11px] font-bold uppercase tracking-[0.18em] text-red-300">Descubrir planes</div>
-          <p className="mt-1 text-sm text-stone-400">Desliza para unirte al grupo o pasar al siguiente plan.</p>
+        <div className="mb-3 text-center">
+          <div className="text-[12px] font-black uppercase tracking-[0.22em] text-red-300/95">Discover plans</div>
+          <div className="mt-1 text-sm text-stone-400">Swipe right to join. Swipe left to skip.</div>
         </div>
 
         <div className="min-h-0 flex-1">
@@ -258,12 +257,9 @@ export default function Descubrir() {
             <div className="flex items-center justify-between gap-3">
               <div className="flex min-w-0 items-center gap-3">
                 <div className="rounded-full bg-white/14 p-2"><Check className="h-5 w-5" /></div>
-                <div className="min-w-0">
-                  <div className="font-bold">Te has unido al grupo</div>
-                  <div className="truncate text-sm text-emerald-50/90">{joinedToast.titulo}</div>
-                </div>
+                <div className="min-w-0"><div className="font-bold">You joined the group</div><div className="truncate text-sm text-emerald-50/90">{joinedToast.titulo}</div></div>
               </div>
-              <a href={createPageUrl("MisMatches")} className="text-sm font-bold text-white/95">Ver</a>
+              <a href={createPageUrl("MisMatches")} className="text-sm font-bold text-white/95">Open</a>
             </div>
           </motion.div>
         ) : null}
