@@ -1,43 +1,39 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
-import { Navigation, Share2, MessageCircle, MapPin } from "lucide-react";
-import { formatHangoutDate, formatPrice, getGoogleMapsUrl, getHangoutVibe } from "@/lib/place-helpers";
+import { MapPin, MessageCircle, Navigation, Share2 } from "lucide-react";
+import { formatHangoutDate, formatPrice, getGoogleMapsUrl } from "@/lib/place-helpers";
 
-function avatar(person) {
-  return person?.full_name?.slice(0, 1)?.toUpperCase() || "?";
-}
+const avatar = (user) => user?.full_name?.slice(0, 1)?.toUpperCase() || "?";
 
-function enrich(quedadas, places, users, intereses, messages, currentEmail) {
-  const placesById = Object.fromEntries(places.map((place) => [place.id, place]));
-  const usersById = Object.fromEntries(users.map((person) => [person.id, person]));
-  const usersByEmail = Object.fromEntries(users.map((person) => [person.email, person]));
+function enrichGroups(quedadas, intereses, places, users, messages, currentUserEmail) {
+  const likedIds = new Set(intereses.filter((item) => item.usuario_id === currentUserEmail && item.tipo_interes === "like").map((item) => item.quedada_id));
+  const placeById = Object.fromEntries(places.map((place) => [place.id, place]));
+  const userById = Object.fromEntries(users.map((person) => [person.id, person]));
+  const userByEmail = Object.fromEntries(users.map((person) => [person.email, person]));
 
   return quedadas
+    .filter((hangout) => likedIds.has(hangout.id))
     .map((hangout) => {
       const likes = intereses.filter((item) => item.quedada_id === hangout.id && item.tipo_interes === "like");
-      const joined = likes.some((item) => item.usuario_id === currentEmail);
-      const participants = likes.map((item) => usersByEmail[item.usuario_id]).filter(Boolean);
-      const messageList = messages.filter((item) => item.quedada_id === hangout.id);
+      const participants = likes.map((like) => userByEmail[like.usuario_id]).filter(Boolean);
+      const messageList = messages.filter((message) => message.quedada_id === hangout.id).sort((a, b) => new Date(a.created_date) - new Date(b.created_date));
       return {
         ...hangout,
-        joined,
-        place: placesById[hangout.pizzeria_id],
-        host: usersById[hangout.creador_id],
+        place: placeById[hangout.pizzeria_id],
+        host: userById[hangout.creador_id],
         participants,
         messageList,
         lastMessage: messageList[messageList.length - 1],
-        vibe: getHangoutVibe(hangout),
       };
     })
-    .filter((hangout) => hangout.joined)
     .sort((a, b) => new Date(a.fecha_hora) - new Date(b.fecha_hora));
 }
 
 export default function MisMatches() {
   const [user, setUser] = useState(null);
-  const [tab, setTab] = useState("upcoming");
   const [selectedId, setSelectedId] = useState(null);
+  const [tab, setTab] = useState("upcoming");
 
   useEffect(() => {
     base44.auth.me().then(setUser).catch(() => null);
@@ -47,14 +43,14 @@ export default function MisMatches() {
     queryKey: ["my-groups-v3", user?.email],
     enabled: !!user,
     queryFn: async () => {
-      const [quedadas, places, users, intereses, messages] = await Promise.all([
+      const [quedadas, intereses, places, users, messages] = await Promise.all([
         base44.entities.Quedada.list("fecha_hora", 100),
-        base44.entities.PizzaPlace.list("standard_slice_price", 100),
-        base44.asServiceRole.entities.User.list("full_name", 100),
         base44.asServiceRole.entities.Interes.list("created_date", 1000),
+        base44.entities.PizzaPlace.list("name", 100),
+        base44.asServiceRole.entities.User.list("full_name", 100),
         base44.entities.Message.list("created_date", 1000),
       ]);
-      return enrich(quedadas, places, users, intereses, messages, user?.email || "");
+      return enrichGroups(quedadas, intereses, places, users, messages, user.email);
     },
   });
 
@@ -100,7 +96,7 @@ export default function MisMatches() {
             <button onClick={() => setTab("history")} className={`rounded-full px-4 py-2 text-sm font-semibold ${tab === "history" ? "bg-red-600 text-white" : "border border-white/10 bg-white/[0.04] text-stone-300"}`}>Historial</button>
           </div>
 
-          <div className="mt-5 space-y-3 max-h-[calc(100vh-240px)] overflow-auto pr-1">
+          <div className="mt-5 space-y-3 lg:max-h-[calc(100vh-240px)] lg:overflow-auto lg:pr-1">
             {visible.map((hangout) => {
               const active = selected?.id === hangout.id;
               const spotsLeft = Math.max((hangout.max_participantes || 0) - hangout.participants.length, 0);
@@ -126,7 +122,7 @@ export default function MisMatches() {
                       </div>
                       <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs font-semibold text-stone-200">{hangout.vibe}</span>
                     </div>
-                    {hangout.lastMessage ? <div className="mt-3 text-sm text-stone-500">Último mensaje: “{hangout.lastMessage.texto.slice(0, 32)}...”</div> : null}
+                    {hangout.lastMessage ? <div className="mt-3 text-sm text-stone-500">Último mensaje: “{hangout.lastMessage.texto.slice(0, 44)}...”</div> : null}
                   </div>
                 </button>
               );
@@ -141,7 +137,7 @@ export default function MisMatches() {
                 <span className="rounded-full bg-violet-500/20 px-3 py-1 text-violet-200">{new Date(selected.fecha_hora) <= new Date(Date.now() + 86400000) ? "Hoy" : formatHangoutDate(selected.fecha_hora)}</span>
                 <span className="rounded-full bg-emerald-500/20 px-3 py-1 text-emerald-200">{Math.max((selected.max_participantes || 0) - selected.participants.length, 0)} plazas libres</span>
               </div>
-              <h2 className="mt-4 text-[2.3rem] font-black tracking-tight leading-[0.96]">{selected.titulo}</h2>
+              <h2 className="mt-4 text-[2rem] sm:text-[2.3rem] font-black tracking-tight leading-[0.96]">{selected.titulo}</h2>
               <div className="mt-3 flex flex-wrap items-center gap-3 text-sm text-stone-300">
                 <span className="inline-flex items-center gap-1"><MapPin className="h-4 w-4" />{selected.pizzeria_nombre}</span>
                 <span className="text-red-400 font-bold">{formatPrice(selected.place?.standard_slice_price)}</span>

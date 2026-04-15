@@ -163,7 +163,7 @@ export default function Home() {
           }}
         />
 
-        {mapSettings.showOverview && !selectedPlace && !previewPlace && (
+        {false && mapSettings.showOverview && !selectedPlace && !previewPlace && (
           <div className="absolute top-[106px] left-4 right-4 sm:left-auto sm:right-4 sm:w-[300px] z-[560] pointer-events-none">
             <div className="pointer-events-auto rounded-3xl border border-white/10 bg-[#0d0d0d]/84 backdrop-blur-xl shadow-2xl shadow-black/50 p-4 text-white hidden sm:block">
               <div className="flex items-start justify-between gap-3 mb-3">

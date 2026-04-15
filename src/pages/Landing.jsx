@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Map, Users, MessageCircle, ChevronLeft, ChevronRight } from "lucide-react";
+import { ArrowRight, Map, MessageCircle, ChevronLeft, ChevronRight } from "lucide-react";
 
 const slides = [
   {
@@ -41,15 +41,15 @@ export default function Landing() {
   const slide = useMemo(() => slides[index], [index]);
 
   return (
-    <div className="min-h-screen bg-[#050505] text-white">
-      <div className="relative mx-auto flex h-screen max-w-md flex-col overflow-hidden px-5 pb-6 pt-8 sm:max-w-lg">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(220,38,38,0.18),transparent_28%),radial-gradient(circle_at_bottom_right,rgba(255,255,255,0.06),transparent_24%)]" />
+    <div className="min-h-screen bg-[#050505] text-white overflow-y-auto">
+      <div className="relative mx-auto min-h-screen max-w-md px-5 pb-6 pt-7 sm:max-w-lg">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(220,38,38,0.18),transparent_28%),radial-gradient(circle_at_bottom_right,rgba(255,255,255,0.06),transparent_24%)] pointer-events-none" />
 
         <div className="relative flex items-center justify-between">
           <div className="flex min-w-0 items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-red-600 shadow-lg shadow-red-900/30">🍕</div>
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-red-600 shadow-lg shadow-red-900/30">🍕</div>
             <div className="min-w-0">
-              <div className="truncate text-[2rem] font-black tracking-tight leading-none">Pizzapolis</div>
+              <div className="truncate text-[1.9rem] font-black tracking-tight leading-none">Pizzapolis</div>
               <div className="text-sm text-stone-400">Planes de pizza. Gente nueva.</div>
             </div>
           </div>
@@ -60,50 +60,48 @@ export default function Landing() {
           ) : <div className="h-11 w-11" />}
         </div>
 
-        <div className={`relative mt-6 flex-1 rounded-[34px] border border-white/10 bg-gradient-to-b ${slide.accent} p-6 shadow-[0_30px_90px_rgba(0,0,0,0.45)]`}>
-          <div className="absolute inset-x-0 bottom-0 h-36 bg-gradient-to-t from-black via-black/70 to-transparent" />
-          <div className="relative flex h-full flex-col justify-between overflow-hidden">
-            <div>
+        <div className={`relative mt-5 rounded-[30px] border border-white/10 bg-gradient-to-b ${slide.accent} p-5 shadow-[0_30px_90px_rgba(0,0,0,0.45)]`}>
+          <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black via-black/70 to-transparent pointer-events-none" />
+
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={index}
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.2 }}
+              className="relative"
+            >
               <div className="inline-flex items-center rounded-full border border-white/10 bg-black/30 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-red-300">
                 {slide.eyebrow}
               </div>
-              <div className="mt-6 flex h-16 w-16 items-center justify-center rounded-[24px] border border-white/10 bg-black/30 text-3xl backdrop-blur-sm">
+
+              <div className="mt-5 flex h-14 w-14 items-center justify-center rounded-[20px] border border-white/10 bg-black/30 text-2xl backdrop-blur-sm">
                 {slide.icon}
               </div>
-            </div>
 
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -12 }}
-                transition={{ duration: 0.22 }}
-                className="relative"
-              >
-                <h1 className="text-[2.7rem] font-black tracking-tight leading-[0.92]">{slide.title}</h1>
-                <div className="mt-1 text-[1.1rem] font-semibold text-stone-100">{slide.subtitle}</div>
-                <p className="mt-4 text-[15px] leading-7 text-stone-300">{slide.body}</p>
+              <h1 className="mt-5 text-[2.6rem] font-black tracking-tight leading-[0.92]">{slide.title}</h1>
+              <div className="mt-1 text-[1.05rem] font-semibold text-stone-100">{slide.subtitle}</div>
+              <p className="mt-4 text-[15px] leading-7 text-stone-300">{slide.body}</p>
 
-                {slide.points ? (
-                  <div className="mt-5 space-y-3">
-                    {slide.points.map((point) => {
-                      const Icon = point.icon;
-                      return (
-                        <div key={point.title} className="flex gap-3 rounded-2xl border border-white/10 bg-black/35 p-4 backdrop-blur-sm">
-                          <div className="mt-0.5 flex h-10 w-10 items-center justify-center rounded-2xl bg-red-600/20 text-red-300"><Icon className="h-5 w-5" /></div>
-                          <div>
-                            <div className="font-bold text-white">{point.title}</div>
-                            <div className="mt-1 text-sm leading-6 text-stone-400">{point.text}</div>
-                          </div>
+              {slide.points ? (
+                <div className="mt-5 space-y-3">
+                  {slide.points.map((point) => {
+                    const Icon = point.icon;
+                    return (
+                      <div key={point.title} className="flex gap-3 rounded-2xl border border-white/10 bg-black/35 p-4 backdrop-blur-sm">
+                        <div className="mt-0.5 flex h-10 w-10 items-center justify-center rounded-2xl bg-red-600/20 text-red-300"><Icon className="h-5 w-5" /></div>
+                        <div>
+                          <div className="font-bold text-white">{point.title}</div>
+                          <div className="mt-1 text-sm leading-6 text-stone-400">{point.text}</div>
                         </div>
-                      );
-                    })}
-                  </div>
-                ) : null}
-              </motion.div>
-            </AnimatePresence>
-          </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : null}
+            </motion.div>
+          </AnimatePresence>
         </div>
 
         <div className="relative mt-4 flex items-center justify-center gap-2">
@@ -116,7 +114,7 @@ export default function Landing() {
           ))}
         </div>
 
-        <div className="relative mt-4 grid gap-3">
+        <div className="relative mt-4 grid gap-3 sticky bottom-0 bg-gradient-to-t from-[#050505] via-[#050505] to-transparent pt-3">
           {index < slides.length - 1 ? (
             <Button onClick={() => setIndex((prev) => Math.min(slides.length - 1, prev + 1))} className="h-14 rounded-2xl bg-red-600 text-base font-bold hover:bg-red-500">
               Continuar

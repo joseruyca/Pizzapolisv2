@@ -16,19 +16,15 @@ export default function PlaceListPanel({ places, open, onToggle, onSelectPlace, 
   const sortedPlaces = useMemo(() => {
     const copy = [...places];
     const directionFactor = sortDirection === "desc" ? -1 : 1;
-    if (sortMode === "price") {
-      copy.sort((a, b) => (Number(a.standard_slice_price || 0) - Number(b.standard_slice_price || 0)) * directionFactor);
-    } else if (sortMode === "rating") {
-      copy.sort((a, b) => (Number(a.average_rating || 0) - Number(b.average_rating || 0)) * -directionFactor);
-    } else if (sortMode === "hangouts") {
-      copy.sort((a, b) => (Number(a.active_hangouts_count || 0) - Number(b.active_hangouts_count || 0)) * -directionFactor);
-    } else {
+    if (sortMode === "price") copy.sort((a, b) => (Number(a.standard_slice_price || 0) - Number(b.standard_slice_price || 0)) * directionFactor);
+    else if (sortMode === "rating") copy.sort((a, b) => (Number(a.average_rating || 0) - Number(b.average_rating || 0)) * -directionFactor);
+    else if (sortMode === "hangouts") copy.sort((a, b) => (Number(a.active_hangouts_count || 0) - Number(b.active_hangouts_count || 0)) * -directionFactor);
+    else {
       const order = ["Steal", "Best budget", "Worth it", "Good value", "Premium", "Overpriced"];
       copy.sort((a, b) => {
         const av = order.indexOf(getValueLabel(a));
         const bv = order.indexOf(getValueLabel(b));
-        const base = av - bv || Number(a.standard_slice_price || 0) - Number(b.standard_slice_price || 0);
-        return base * directionFactor;
+        return (av - bv || Number(a.standard_slice_price || 0) - Number(b.standard_slice_price || 0)) * directionFactor;
       });
     }
     return copy;
@@ -53,7 +49,7 @@ export default function PlaceListPanel({ places, open, onToggle, onSelectPlace, 
             animate={{ y: 0 }}
             exit={{ y: "100%" }}
             transition={{ type: "spring", damping: 30, stiffness: 300 }}
-            className="fixed bottom-0 left-0 right-0 h-[52vh] sm:top-14 sm:bottom-auto sm:left-auto sm:right-auto sm:w-[380px] sm:h-[calc(100vh-56px)] bg-[#0f0f0f] border-t sm:border-t-0 sm:border-r border-white/5 rounded-t-[28px] sm:rounded-none overflow-hidden flex flex-col"
+            className="fixed bottom-0 left-0 right-0 h-[44vh] sm:top-14 sm:bottom-auto sm:left-auto sm:right-auto sm:w-[360px] sm:h-[calc(100vh-56px)] bg-[#0f0f0f] border-t sm:border-t-0 sm:border-r border-white/5 rounded-t-[28px] sm:rounded-none overflow-hidden flex flex-col"
             style={{ zIndex: ZINDEX.MAP_CONTROLS }}
           >
             <div className="px-4 pt-3 pb-3 border-b border-white/5 bg-[#101010]">
@@ -77,18 +73,18 @@ export default function PlaceListPanel({ places, open, onToggle, onSelectPlace, 
               </div>
             </div>
 
-            <div className="overflow-y-auto flex-1 p-2">
+            <div className="overflow-y-auto flex-1 p-2.5">
               {sortedPlaces.map((place) => (
                 <button key={place.id} onClick={() => onSelectPlace(place)} className={`w-full text-left p-3 rounded-2xl transition-colors mb-2 ${selectedId === place.id ? "bg-red-600/10 border border-red-500/20" : "hover:bg-white/5 border border-white/5"}`}>
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <p className="font-semibold text-sm text-stone-100 truncate">{place.name}</p>
+                        <p className="truncate font-semibold text-sm text-stone-100">{place.name}</p>
                         <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold border ${getValueTone(place)}`}>{getValueLabel(place)}</span>
                       </div>
-                      <p className="text-xs text-stone-500 mt-1 flex items-center gap-1"><MapPin className="w-3 h-3" />{place.neighborhood || place.borough}</p>
+                      <p className="mt-1 flex items-center gap-1 text-xs text-stone-500"><MapPin className="w-3 h-3" />{place.neighborhood || place.borough}</p>
                       <div className="mt-2 flex items-center gap-3 text-[11px] text-stone-500 flex-wrap">
-                        {Number(place.active_hangouts_count || 0) > 0 && <span className="inline-flex items-center gap-1 text-red-400"><Users className="w-3.5 h-3.5" />{place.active_hangouts_count} plan</span>}
+                        {Number(place.active_hangouts_count || 0) > 0 ? <span className="inline-flex items-center gap-1 text-red-400"><Users className="w-3.5 h-3.5" />{place.active_hangouts_count} plan</span> : null}
                       </div>
                     </div>
                     <div className="shrink-0 text-right">
