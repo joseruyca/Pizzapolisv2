@@ -1,0 +1,128 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: 0 0% 4%;
+  --foreground: 40 6% 95%;
+  --card: 0 0% 8%;
+  --card-foreground: 40 6% 95%;
+  --popover: 0 0% 8%;
+  --popover-foreground: 40 6% 95%;
+  --primary: 0 72% 51%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 0 0% 12%;
+  --secondary-foreground: 40 6% 90%;
+  --muted: 0 0% 15%;
+  --muted-foreground: 0 0% 55%;
+  --accent: 0 0% 15%;
+  --accent-foreground: 40 6% 95%;
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 0 0% 16%;
+  --input: 0 0% 16%;
+  --ring: 0 72% 51%;
+  --radius: 0.75rem;
+}
+
+* {
+  border-color: hsl(var(--border));
+}
+
+body {
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Leaflet overrides for dark theme */
+.leaflet-container {
+  background: #0a0a0a !important;
+}
+
+.leaflet-tile-pane {
+  filter: brightness(0.7) contrast(1.1) saturate(0.3);
+}
+
+.leaflet-control-zoom a {
+  background: #1a1a1a !important;
+  color: #fafaf9 !important;
+  border-color: #262626 !important;
+}
+
+.leaflet-control-attribution {
+  background: rgba(10,10,10,0.8) !important;
+  color: #737373 !important;
+  font-size: 10px !important;
+}
+
+.leaflet-control-attribution a {
+  color: #a3a3a3 !important;
+}
+
+.pizza-marker {
+  background: none;
+  border: none;
+}
+
+.pizza-marker-dot {
+  width: 32px;
+  height: 32px;
+  background: #dc2626;
+  border-radius: 50%;
+  border: 3px solid #fafaf9;
+  box-shadow: 0 2px 12px rgba(220, 38, 38, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.pizza-marker-dot:hover,
+.pizza-marker-dot.active {
+  transform: scale(1.25);
+  box-shadow: 0 4px 20px rgba(220, 38, 38, 0.7);
+}
+
+.pizza-marker-featured .pizza-marker-dot {
+  width: 38px;
+  height: 38px;
+  background: linear-gradient(135deg, #dc2626, #f97316);
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #0a0a0a;
+}
+::-webkit-scrollbar-thumb {
+  background: #262626;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #404040;
+}
+
+/* Hide leaflet default focus outlines */
+.leaflet-interactive:focus {
+  outline: none;
+}
+.leaflet-control-container {
+  display: none !important;
+}
+
+.map-ui-hidden .leaflet-control-container,
+.map-ui-hidden .leaflet-pane {
+  pointer-events: none;
+}
+
+.map-ui-hidden .leaflet-marker-pane,
+.map-ui-hidden .leaflet-overlay-pane {
+  pointer-events: auto;
+}
