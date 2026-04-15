@@ -18,7 +18,7 @@ export default function Home() {
   const { user } = useAuth();
   const [selectedPlace, setSelectedPlace] = useState(null);
   const [previewPlace, setPreviewPlace] = useState(null);
-  const [listOpen, setListOpen] = useState(true);
+  const [listOpen, setListOpen] = useState(false);
   const [sheetSort, setSheetSort] = useState("value");
   const [sheetSortDirection, setSheetSortDirection] = useState("asc");
   const [addPinOpen, setAddPinOpen] = useState(false);
@@ -131,7 +131,7 @@ export default function Home() {
           savedPlaceIds={favoriteIds}
           onSelectPlace={(place) => {
             setPreviewPlace(place);
-            setListOpen(true);
+            setListOpen(false);
           }}
           onMapReady={setMapInstance}
           onBoundsChange={setMapBounds}
@@ -150,7 +150,7 @@ export default function Home() {
               navigator.geolocation.getCurrentPosition((position) => {
                 const { latitude, longitude } = position.coords;
                 setUserLocation({ lat: latitude, lng: longitude });
-                setListOpen(true);
+                setListOpen(false);
               });
             }
           }}
@@ -195,6 +195,14 @@ export default function Home() {
           </div>
         )}
 
+        <button
+          onClick={handleAddPin}
+          className="absolute right-4 bottom-28 z-[650] flex h-14 w-14 items-center justify-center rounded-full bg-red-600 text-white shadow-[0_14px_34px_rgba(220,38,38,0.45)] hover:bg-red-500"
+          aria-label="Añadir spot"
+        >
+          <MapPin className="h-6 w-6" />
+        </button>
+
         <MapBottomNav onAddPin={handleAddPin} />
 
         <PlaceListPanel
@@ -204,7 +212,7 @@ export default function Home() {
           onSelectPlace={(place) => {
             setSelectedPlace(place);
             setPreviewPlace(null);
-            setListOpen(true);
+            setListOpen(false);
           }}
           selectedId={selectedPlace?.id}
           sortMode={sheetSort}

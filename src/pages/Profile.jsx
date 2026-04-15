@@ -1,4 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
+import { createPageUrl } from "@/utils";
 import { useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { Bell, Bookmark, CircleHelp, Settings, Star, Users } from "lucide-react";
@@ -45,11 +47,11 @@ export default function Profile() {
   if (!user) return <div className="min-h-[calc(100vh-64px)] bg-[#060606]" />;
 
   const items = [
-    { icon: Bell, label: "Actividad reciente", accent: true },
-    { icon: Bookmark, label: "Plan guardados" },
-    { icon: Users, label: "Amigos" },
-    { icon: Settings, label: "Ajustes" },
-    { icon: CircleHelp, label: "Ayuda y soporte" },
+    { icon: Bell, label: "Actividad reciente", page: "RecentActivity" },
+    { icon: Bookmark, label: "Plan guardados", page: "SavedPlans" },
+    { icon: Users, label: "Amigos", page: "FriendsPage" },
+    { icon: Settings, label: "Ajustes", page: "SettingsPage" },
+    { icon: CircleHelp, label: "Ayuda y soporte", page: "SupportPage" },
   ];
 
   return (
@@ -68,7 +70,7 @@ export default function Profile() {
           </div>
           <div className="flex items-center gap-2">
             <button className="flex h-10 w-10 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] text-stone-200"><Bell className="h-4 w-4" /></button>
-            <button className="flex h-10 w-10 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] text-stone-200"><Settings className="h-4 w-4" /></button>
+            <Link to={createPageUrl("SettingsPage")} className="flex h-10 w-10 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] text-stone-200"><Settings className="h-4 w-4" /></Link>
           </div>
         </div>
 
@@ -90,7 +92,7 @@ export default function Profile() {
         <div className="mt-8">
           <div className="flex items-center justify-between">
             <div className="text-sm font-bold uppercase tracking-[0.16em] text-stone-500">Actividad reciente</div>
-            <button className="text-sm font-semibold text-red-400">Ver todo</button>
+            <Link to={createPageUrl("RecentActivity")} className="text-sm font-semibold text-red-400">Ver todo</Link>
           </div>
           <div className="mt-4 space-y-3 rounded-[26px] border border-white/8 bg-white/[0.03] p-4">
             <div className="flex items-center gap-3 text-sm text-stone-300"><div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-white/[0.04]"><Users className="h-4 w-4 text-red-400" /></div><span>Te uniste a NYC Cheap Slice Run</span></div>
@@ -103,10 +105,10 @@ export default function Profile() {
           {items.map((item) => {
             const Icon = item.icon;
             return (
-              <button key={item.label} className="flex w-full items-center gap-3 rounded-2xl border border-white/8 bg-white/[0.03] px-4 py-3.5 text-left text-stone-200 transition hover:bg-white/[0.05]">
+              <Link key={item.label} to={createPageUrl(item.page)} className="flex w-full items-center gap-3 rounded-2xl border border-white/8 bg-white/[0.03] px-4 py-3.5 text-left text-stone-200 transition hover:bg-white/[0.05]">
                 <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white/[0.04]"><Icon className="h-4 w-4 text-red-400" /></div>
                 <span className="font-medium">{item.label}</span>
-              </button>
+              </Link>
             );
           })}
         </div>

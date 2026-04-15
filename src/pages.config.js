@@ -53,6 +53,11 @@ import Descubrir from './pages/Descubrir';
 import CrearQuedada from './pages/CrearQuedada';
 import MisMatches from './pages/MisMatches';
 import Profile from './pages/Profile';
+import RecentActivity from './pages/RecentActivity';
+import SavedPlans from './pages/SavedPlans';
+import FriendsPage from './pages/FriendsPage';
+import SettingsPage from './pages/SettingsPage';
+import SupportPage from './pages/SupportPage';
 import __Layout from './Layout.jsx';
 
 
@@ -63,6 +68,11 @@ export const PAGES = {
     "CrearQuedada": CrearQuedada,
     "MisMatches": MisMatches,
     "Profile": Profile,
+    "RecentActivity": RecentActivity,
+    "SavedPlans": SavedPlans,
+    "FriendsPage": FriendsPage,
+    "SettingsPage": SettingsPage,
+    "SupportPage": SupportPage,
 }
 
 export const pagesConfig = {

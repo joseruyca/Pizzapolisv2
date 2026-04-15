@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { AnimatePresence, motion, useAnimationControls, useMotionValue, useTransform } from "framer-motion";
+import { AnimatePresence, motion, useAnimationControls, useMotionTemplate, useMotionValue, useTransform } from "framer-motion";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { createPageUrl } from "@/utils";
@@ -37,156 +37,144 @@ function enrich(quedadas, places, users, intereses, currentEmail) {
     .sort((a, b) => new Date(a.fecha_hora) - new Date(b.fecha_hora));
 }
 
-function SwipeCard({ hangout, nextHangout, onDecision }) {
-  const x = useMotionValue(0);
+function SwipeCard({ hangout, nextHangout, onDecision, disabled }) {
   const controls = useAnimationControls();
-  const [isAnimatingOut, setIsAnimatingOut] = useState(false);
+  const x = useMotionValue(0);
+  const rotate = useTransform(x, [-220, 0, 220], [-11, 0, 11]);
+  const rightProgress = useTransform(x, [0, 50, 180], [0, 0.35, 1]);
+  const leftProgress = useTransform(x, [-180, -50, 0], [1, 0.35, 0]);
+  const joinScale = useTransform(x, [0, 140], [0.92, 1.05]);
+  const nopeScale = useTransform(x, [-140, 0], [1.05, 0.92]);
+  const borderAlpha = useTransform(x, [-180, -50, 0, 50, 180], [0.9, 0.45, 0.08, 0.45, 0.9]);
+  const borderColor = useTransform(x, [-180, -50, 0, 50, 180], [
+    'rgba(248,113,113,0.95)',
+    'rgba(248,113,113,0.5)',
+    'rgba(255,255,255,0.08)',
+    'rgba(52,211,153,0.5)',
+    'rgba(52,211,153,0.95)'
+  ]);
+  const glow = useMotionTemplate`0 28px 70px rgba(0,0,0,0.68), 0 0 0 1px ${borderColor}, 0 0 40px rgba(0,0,0,0.12)`;
 
-  const rotate = useTransform(x, [-220, 0, 220], [-12, 0, 12]);
-  const likeOpacity = useTransform(x, [20, 90, 170], [0, 0.45, 1]);
-  const nopeOpacity = useTransform(x, [-170, -90, -20], [1, 0.45, 0]);
-  const acceptScale = useTransform(x, [0, 180], [0.9, 1.05]);
-  const rejectScale = useTransform(x, [-180, 0], [1.05, 0.9]);
-  const greenGlow = useTransform(x, [0, 150], [0, 0.65]);
-  const redGlow = useTransform(x, [-150, 0], [0.65, 0]);
   const spotsLeft = Math.max((hangout.max_participantes || 0) - hangout.joined_count, 0);
 
-  useEffect(() => {
-    x.set(0);
-    controls.set({ x: 0, rotate: 0, opacity: 1, scale: 1 });
-    setIsAnimatingOut(false);
-  }, [hangout?.id, x, controls]);
-
-  const triggerDecision = async (decision) => {
-    if (isAnimatingOut) return;
-    setIsAnimatingOut(true);
-    const direction = decision === "like" ? 1 : -1;
+  const finishVote = async (decision) => {
+    if (disabled) return;
+    const travel = typeof window !== "undefined" ? Math.max(window.innerWidth, 480) : 520;
     await controls.start({
-      x: direction * 520,
-      rotate: direction * 18,
+      x: decision === "like" ? travel : -travel,
+      rotate: decision === "like" ? 16 : -16,
       opacity: 0,
-      scale: 0.96,
       transition: { duration: 0.26, ease: [0.22, 1, 0.36, 1] },
     });
+    x.set(0);
+    controls.set({ x: 0, rotate: 0, opacity: 1 });
     onDecision(hangout.id, decision);
   };
 
   return (
-    <div className="relative flex h-[calc(100vh-56px)] flex-col overflow-hidden bg-[#060606] px-4 pb-[max(16px,env(safe-area-inset-bottom))] pt-3">
-      <div className="flex-1 overflow-hidden">
-        <div className="relative mx-auto h-full w-full max-w-md">
-          {nextHangout ? (
-            <div className="absolute inset-x-3 top-6 bottom-28 rounded-[34px] border border-white/8 bg-[linear-gradient(180deg,#111_0%,#070707_100%)] opacity-70 scale-[0.965]" />
-          ) : null}
-
+    <div className="mx-auto flex h-full w-full max-w-md flex-col">
+      <div className="relative min-h-0 flex-1 overflow-hidden pb-4">
+        {nextHangout ? (
           <motion.div
-            drag={isAnimatingOut ? false : "x"}
-            dragConstraints={{ left: 0, right: 0 }}
-            dragElastic={0.14}
-            style={{ x, rotate }}
-            animate={controls}
-            onDragEnd={(_, info) => {
-              if (info.offset.x > 120) {
-                triggerDecision("like");
-              } else if (info.offset.x < -120) {
-                triggerDecision("dislike");
-              } else {
-                controls.start({ x: 0, rotate: 0, transition: { type: "spring", stiffness: 380, damping: 28 } });
-              }
-            }}
-            className="absolute inset-x-0 top-0 bottom-24 overflow-hidden rounded-[34px] border border-white/10 bg-[radial-gradient(circle_at_top,rgba(220,38,38,0.16),transparent_26%),linear-gradient(180deg,#141414_0%,#070707_100%)] shadow-[0_28px_70px_rgba(0,0,0,0.56)]"
-          >
-            <motion.div
-              style={{ opacity: greenGlow }}
-              className="pointer-events-none absolute inset-0 border-[3px] border-emerald-400/90 rounded-[34px] shadow-[0_0_0_1px_rgba(16,185,129,0.2),0_0_30px_rgba(16,185,129,0.28)]"
-            />
-            <motion.div
-              style={{ opacity: redGlow }}
-              className="pointer-events-none absolute inset-0 border-[3px] border-rose-400/90 rounded-[34px] shadow-[0_0_0_1px_rgba(244,63,94,0.18),0_0_30px_rgba(244,63,94,0.24)]"
-            />
+            aria-hidden
+            className="absolute inset-x-4 bottom-12 top-6 rounded-[34px] border border-white/8 bg-[linear-gradient(180deg,#111_0%,#080808_100%)] opacity-65"
+            style={{ rotate: useTransform(x, [-180, 0, 180], [-2.6, 0, 2.6]) }}
+          />
+        ) : null}
 
-            <motion.div
-              style={{ opacity: nopeOpacity, scale: rejectScale }}
-              className="absolute left-5 top-5 z-20 rounded-2xl border-2 border-rose-300 bg-rose-500/12 px-4 py-2 text-base font-black uppercase tracking-[0.16em] text-rose-200 shadow-lg shadow-rose-900/20"
-            >
-              <div className="flex items-center gap-2"><X className="h-5 w-5" />Nope</div>
-            </motion.div>
-            <motion.div
-              style={{ opacity: likeOpacity, scale: acceptScale }}
-              className="absolute right-5 top-5 z-20 rounded-2xl border-2 border-emerald-300 bg-emerald-500/14 px-4 py-2 text-base font-black uppercase tracking-[0.16em] text-emerald-200 shadow-lg shadow-emerald-900/20"
-            >
-              <div className="flex items-center gap-2"><Check className="h-5 w-5" />Join</div>
-            </motion.div>
+        <motion.div
+          drag={disabled ? false : "x"}
+          dragConstraints={{ left: 0, right: 0 }}
+          dragElastic={0.18}
+          style={{ x, rotate, boxShadow: glow }}
+          animate={controls}
+          onDragEnd={async (_, info) => {
+            if (disabled) return;
+            if (info.offset.x > 115) {
+              await finishVote("like");
+            } else if (info.offset.x < -115) {
+              await finishVote("dislike");
+            } else {
+              controls.start({ x: 0, rotate: 0, transition: { type: "spring", stiffness: 360, damping: 28 } });
+            }
+          }}
+          className="relative z-10 h-full overflow-hidden rounded-[34px] border border-white/10 bg-[radial-gradient(circle_at_top,rgba(220,38,38,0.24),transparent_24%),linear-gradient(180deg,#151515_0%,#080808_100%)]"
+        >
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_bottom_right,rgba(255,255,255,0.07),transparent_22%)]" />
+          <motion.div style={{ opacity: leftProgress }} className="absolute inset-0 bg-gradient-to-br from-red-500/26 via-transparent to-transparent" />
+          <motion.div style={{ opacity: rightProgress }} className="absolute inset-0 bg-gradient-to-bl from-emerald-500/26 via-transparent to-transparent" />
+          <motion.div style={{ opacity: leftProgress, scale: nopeScale }} className="absolute left-5 top-6 z-20 rounded-2xl border-2 border-red-400/80 bg-red-500/12 px-4 py-2 text-[15px] font-black uppercase tracking-[0.2em] text-red-200 shadow-[0_0_24px_rgba(239,68,68,0.2)]">
+            Nope
+          </motion.div>
+          <motion.div style={{ opacity: rightProgress, scale: joinScale }} className="absolute right-5 top-6 z-20 rounded-2xl border-2 border-emerald-400/80 bg-emerald-500/12 px-4 py-2 text-[15px] font-black uppercase tracking-[0.2em] text-emerald-200 shadow-[0_0_24px_rgba(16,185,129,0.2)]">
+            Join
+          </motion.div>
 
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_bottom_right,rgba(255,255,255,0.07),transparent_18%)]" />
-            <div className="absolute inset-x-0 bottom-0 h-80 bg-gradient-to-t from-black via-black/70 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black via-black/52 to-transparent" />
 
-            <div className="relative flex h-full flex-col justify-end p-4">
-              <div className="rounded-[30px] border border-white/10 bg-black/28 p-5 backdrop-blur-md">
-                <div className="flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="rounded-full bg-violet-500/20 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.12em] text-violet-100">
-                      {new Date(hangout.fecha_hora).toLocaleDateString([], { day: "2-digit", month: "short" }).replace(".", "").toUpperCase()} · {new Date(hangout.fecha_hora).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                    </span>
-                    <span className="rounded-full bg-emerald-500/20 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.12em] text-emerald-200">{spotsLeft} plazas libres</span>
+          <div className="relative flex h-full flex-col justify-end p-5">
+            <div className="mb-3 flex items-center justify-between gap-3 text-[11px] font-bold uppercase tracking-[0.14em] text-white/80">
+              <span className="rounded-full bg-violet-500/20 px-3 py-1 text-violet-100">
+                {new Date(hangout.fecha_hora).toLocaleDateString([], { month: "short", day: "numeric" })} · {new Date(hangout.fecha_hora).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+              </span>
+              <span className="rounded-full bg-emerald-500/20 px-3 py-1 text-emerald-100">{spotsLeft} plazas libres</span>
+            </div>
+
+            <div className="rounded-[28px] border border-white/10 bg-black/40 p-5 backdrop-blur-md">
+              <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.14em]">
+                <span className="rounded-full border border-white/10 bg-white/10 px-3 py-1 text-white/90">{hangout.vibe}</span>
+                <span className="rounded-full border border-red-400/15 bg-red-500 px-2.5 py-1 text-white">{hangout.priceLabel}</span>
+              </div>
+
+              <h1 className="mt-4 text-[2.7rem] font-black leading-[0.92] tracking-tight text-white">{hangout.titulo}</h1>
+              <div className="mt-3 flex flex-wrap items-center gap-2 text-sm text-stone-200">
+                <span className="font-semibold">{hangout.pizzeria_nombre}</span>
+                <span className="inline-flex items-center gap-1 text-stone-300"><MapPin className="h-3.5 w-3.5" />{hangout.place?.neighborhood || "NYC"}</span>
+              </div>
+              <p className="mt-3 line-clamp-3 text-[15px] leading-7 text-stone-200/88">{hangout.descripcion}</p>
+
+              <div className="mt-4 flex items-center justify-between gap-4">
+                <div className="flex min-w-0 items-center gap-3">
+                  <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-white/10 bg-gradient-to-br ${hangout.host?.avatar_color || "from-red-500 to-orange-500"} text-sm font-bold text-white`}>
+                    {avatarLabel(hangout.host)}
+                  </div>
+                  <div className="min-w-0">
+                    <div className="text-xs text-stone-400">Creado por</div>
+                    <div className="truncate font-bold text-white">{hangout.host?.full_name || hangout.creador_nombre}</div>
                   </div>
                 </div>
-
-                <div className="mt-5 flex flex-wrap items-center gap-2">
-                  <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[11px] font-bold uppercase tracking-[0.12em] text-stone-200">
-                    {hangout.vibe}
-                  </span>
-                  <span className="rounded-full bg-red-600 px-3 py-1 text-[11px] font-black text-white">{hangout.priceLabel}</span>
-                </div>
-
-                <h1 className="mt-4 text-[2.75rem] font-black leading-[0.92] tracking-tight text-white">{hangout.titulo}</h1>
-
-                <div className="mt-3 flex flex-wrap items-center gap-2 text-sm text-stone-200">
-                  <span className="font-semibold">{hangout.pizzeria_nombre}</span>
-                  <span className="inline-flex items-center gap-1 text-stone-300"><MapPin className="h-3.5 w-3.5" />{hangout.place?.neighborhood || "NYC"}</span>
-                </div>
-
-                <p className="mt-4 text-[15px] leading-7 text-stone-200/92">{hangout.descripcion}</p>
-
-                <div className="mt-5 flex items-end justify-between gap-4">
-                  <div className="flex min-w-0 items-center gap-3">
-                    <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-white/10 bg-gradient-to-br ${hangout.host?.avatar_color || "from-red-500 to-orange-500"} text-sm font-bold text-white`}>
-                      {avatarLabel(hangout.host)}
-                    </div>
-                    <div className="min-w-0">
-                      <div className="text-xs text-stone-400">Creado por</div>
-                      <div className="truncate font-bold text-white">{hangout.host?.full_name || hangout.creador_nombre}</div>
-                    </div>
+                <div className="text-right">
+                  <div className="flex justify-end -space-x-2">
+                    {hangout.participants.slice(0, 4).map((person) => (
+                      <div key={person.email} className={`flex h-8 w-8 items-center justify-center rounded-full border border-black/40 bg-gradient-to-br ${person.avatar_color || "from-stone-500 to-stone-700"} text-[11px] font-bold text-white`}>
+                        {avatarLabel(person)}
+                      </div>
+                    ))}
                   </div>
-                  <div className="shrink-0 text-right">
-                    <div className="flex items-center justify-end -space-x-2">
-                      {hangout.participants.slice(0, 3).map((person) => (
-                        <div key={person.email} className={`flex h-9 w-9 items-center justify-center rounded-full border border-black/40 bg-gradient-to-br ${person.avatar_color || "from-stone-500 to-stone-700"} text-[11px] font-bold text-white`}>
-                          {avatarLabel(person)}
-                        </div>
-                      ))}
-                    </div>
-                    <div className="mt-1 text-sm text-stone-300">{hangout.joined_count} van</div>
-                  </div>
+                  <div className="mt-1 text-sm text-stone-300">{hangout.joined_count} van</div>
                 </div>
               </div>
             </div>
-          </motion.div>
-        </div>
+          </div>
+        </motion.div>
       </div>
 
-      <div className="relative z-20 flex items-center justify-center gap-7 pb-2 pt-1">
+      <div className="relative z-20 flex shrink-0 items-center justify-center gap-10 pb-2 pt-1">
         <button
-          className="flex h-16 w-16 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-stone-300 shadow-lg shadow-black/30 transition hover:bg-white/[0.08] hover:text-white"
-          onClick={() => triggerDecision("dislike")}
+          type="button"
+          disabled={disabled}
+          onClick={() => finishVote("dislike")}
+          className="grid h-[68px] w-[68px] place-items-center rounded-full border border-white/12 bg-black/75 text-stone-300 shadow-[0_12px_30px_rgba(0,0,0,0.45)] backdrop-blur-md transition hover:border-red-400/40 hover:text-red-200 disabled:opacity-60"
         >
           <X className="h-8 w-8" />
         </button>
         <button
-          className="flex h-18 w-18 items-center justify-center rounded-full bg-red-600 text-white shadow-[0_18px_40px_rgba(220,38,38,0.35)] transition hover:bg-red-500"
-          onClick={() => triggerDecision("like")}
+          type="button"
+          disabled={disabled}
+          onClick={() => finishVote("like")}
+          className="grid h-[74px] w-[74px] place-items-center rounded-full bg-red-600 text-white shadow-[0_18px_38px_rgba(220,38,38,0.4)] transition hover:scale-[1.02] hover:bg-red-500 disabled:opacity-60"
         >
-          <Heart className="h-9 w-9 fill-current" />
+          <Heart className="h-8 w-8 fill-current" />
         </button>
       </div>
     </div>
@@ -203,7 +191,7 @@ export default function Descubrir() {
   }, []);
 
   const { data: hangouts = [], isLoading } = useQuery({
-    queryKey: ["discover-hangouts-v5", user?.email],
+    queryKey: ["discover-hangouts-v4", user?.email],
     enabled: !!user,
     queryFn: async () => {
       const [quedadas, places, users, intereses] = await Promise.all([
@@ -223,7 +211,7 @@ export default function Descubrir() {
   const mutate = useMutation({
     mutationFn: async ({ id, decision }) => base44.functions.invoke("recordarInteres", { quedada_id: id, tipo_interes: decision }),
     onSuccess: (_, vars) => {
-      queryClient.invalidateQueries({ queryKey: ["discover-hangouts-v5", user?.email] });
+      queryClient.invalidateQueries({ queryKey: ["discover-hangouts-v4", user?.email] });
       queryClient.invalidateQueries({ queryKey: ["my-groups-v4", user?.email] });
       if (vars.decision === "like") {
         const joined = visible.find((item) => item.id === vars.id);
@@ -233,11 +221,11 @@ export default function Descubrir() {
     },
   });
 
-  if (!user || isLoading) return <div className="flex h-[calc(100vh-56px)] items-center justify-center bg-[#060606] text-white">Cargando…</div>;
+  if (!user || isLoading) return <div className="flex min-h-[calc(100vh-64px)] items-center justify-center bg-[#060606] text-white">Cargando…</div>;
 
   if (!current) {
     return (
-      <div className="flex h-[calc(100vh-56px)] items-center justify-center bg-[#060606] px-4">
+      <div className="min-h-[calc(100vh-64px)] bg-[#060606] px-4 py-8">
         <div className="mx-auto max-w-md rounded-[30px] border border-white/10 bg-[#111] p-8 text-center">
           <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-[28px] bg-white/[0.04] text-4xl">🍕</div>
           <h1 className="mt-6 text-3xl font-black">No hay más planes por ahora</h1>
@@ -252,12 +240,31 @@ export default function Descubrir() {
   }
 
   return (
-    <div className="h-[calc(100vh-56px)] overflow-hidden bg-[#060606]">
-      <SwipeCard hangout={current} nextHangout={next} onDecision={(id, decision) => mutate.mutate({ id, decision })} />
+    <div className="h-[calc(100vh-64px)] overflow-hidden bg-[#060606] px-4 py-4">
+      <div className="mx-auto flex h-full max-w-md flex-col">
+        <div className="mb-3 shrink-0 text-center">
+          <div className="text-[11px] font-bold uppercase tracking-[0.18em] text-red-300">Descubrir planes</div>
+          <p className="mt-1 text-sm text-stone-400">Desliza para unirte al grupo o pasar al siguiente plan.</p>
+        </div>
+
+        <div className="min-h-0 flex-1">
+          <SwipeCard hangout={current} nextHangout={next} disabled={mutate.isPending} onDecision={(id, decision) => mutate.mutate({ id, decision })} />
+        </div>
+      </div>
+
       <AnimatePresence>
         {joinedToast ? (
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }} className="fixed inset-x-4 bottom-24 z-[1300] mx-auto max-w-sm rounded-2xl bg-emerald-500 px-4 py-3 text-sm font-bold text-white shadow-lg">
-            Te has unido a {joinedToast.titulo}
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }} className="fixed inset-x-4 bottom-24 z-[1300] mx-auto max-w-md rounded-2xl border border-emerald-500/30 bg-emerald-600 px-4 py-3 text-white shadow-xl">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex min-w-0 items-center gap-3">
+                <div className="rounded-full bg-white/14 p-2"><Check className="h-5 w-5" /></div>
+                <div className="min-w-0">
+                  <div className="font-bold">Te has unido al grupo</div>
+                  <div className="truncate text-sm text-emerald-50/90">{joinedToast.titulo}</div>
+                </div>
+              </div>
+              <a href={createPageUrl("MisMatches")} className="text-sm font-bold text-white/95">Ver</a>
+            </div>
           </motion.div>
         ) : null}
       </AnimatePresence>
