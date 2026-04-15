@@ -1,7 +1,7 @@
-import React, { useEffect, useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
-import { MapPin, MessageCircle, Navigation, Share2 } from "lucide-react";
+import { ArrowLeft, Info, MapPin, Navigation, Send, Users, X } from "lucide-react";
 import { formatHangoutDate, formatPrice, getGoogleMapsUrl } from "@/lib/place-helpers";
 
 const avatar = (user) => user?.full_name?.slice(0, 1)?.toUpperCase() || "?";
@@ -30,17 +30,83 @@ function enrichGroups(quedadas, intereses, places, users, messages, currentUserE
     .sort((a, b) => new Date(a.fecha_hora) - new Date(b.fecha_hora));
 }
 
+function GroupInfoSheet({ group, open, onClose }) {
+  if (!group || !open) return null;
+  return (
+    <div className="fixed inset-0 z-[1400] bg-black/55 backdrop-blur-sm" onClick={onClose}>
+      <div className="absolute inset-x-0 bottom-0 mx-auto max-w-lg rounded-t-[30px] border border-white/10 bg-[#101010] p-5 text-white shadow-2xl" onClick={(e) => e.stopPropagation()}>
+        <div className="mx-auto mb-4 h-1.5 w-12 rounded-full bg-white/15" />
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <div className="text-[11px] font-bold uppercase tracking-[0.16em] text-stone-500">Info del grupo</div>
+            <h3 className="mt-2 text-2xl font-black leading-tight">{group.titulo}</h3>
+            <div className="mt-2 text-sm text-stone-400">{group.pizzeria_nombre} · {group.place?.neighborhood}</div>
+          </div>
+          <button onClick={onClose} className="grid h-10 w-10 place-items-center rounded-full border border-white/10 bg-white/[0.04] text-stone-300"><X className="h-4 w-4" /></button>
+        </div>
+
+        <div className="mt-5 grid grid-cols-2 gap-3">
+          <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+            <div className="text-[11px] font-bold uppercase tracking-[0.14em] text-stone-500">Cuándo</div>
+            <div className="mt-2 text-sm font-bold">{formatHangoutDate(group.fecha_hora)}</div>
+          </div>
+          <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+            <div className="text-[11px] font-bold uppercase tracking-[0.14em] text-stone-500">Slice</div>
+            <div className="mt-2 text-sm font-bold">{formatPrice(group.place?.standard_slice_price)}</div>
+          </div>
+        </div>
+
+        <div className="mt-4 rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-sm leading-7 text-stone-300">{group.descripcion}</div>
+
+        <div className="mt-4 flex flex-wrap gap-2">
+          {group.participants.map((person) => (
+            <div key={person.email} className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-stone-200">
+              <div className={`grid h-7 w-7 place-items-center rounded-full bg-gradient-to-br ${person.avatar_color || "from-stone-500 to-stone-700"} text-[11px] font-bold text-white`}>{avatar(person)}</div>
+              {person.full_name}
+            </div>
+          ))}
+        </div>
+
+        <div className="mt-5 grid gap-3 sm:grid-cols-2">
+          <a href={getGoogleMapsUrl(group.place)} target="_blank" rel="noreferrer" className="inline-flex h-12 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] text-sm font-bold text-white">
+            <Navigation className="mr-2 h-4 w-4" />Abrir en Google Maps
+          </a>
+          <button onClick={onClose} className="inline-flex h-12 items-center justify-center rounded-2xl bg-red-600 text-sm font-bold text-white">Volver al chat</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MessageRow({ message, currentUser, usersByEmail }) {
+  const own = message.sender_id === currentUser.email;
+  const sender = usersByEmail[message.sender_id];
+  return (
+    <div className={`flex ${own ? "justify-end" : "justify-start"}`}>
+      <div className={`max-w-[78%] rounded-[22px] px-4 py-3 ${own ? "bg-red-600 text-white rounded-br-md" : "bg-[#171717] text-stone-100 rounded-bl-md border border-white/6"}`}>
+        {!own ? <div className="mb-1 text-[11px] font-bold uppercase tracking-[0.12em] text-stone-500">{sender?.full_name || "User"}</div> : null}
+        <div className="text-sm leading-6">{message.texto}</div>
+      </div>
+    </div>
+  );
+}
+
 export default function MisMatches() {
   const [user, setUser] = useState(null);
   const [selectedId, setSelectedId] = useState(null);
   const [tab, setTab] = useState("upcoming");
+  const [showInfo, setShowInfo] = useState(false);
+  const [mobileChatOpen, setMobileChatOpen] = useState(false);
+  const [messageText, setMessageText] = useState("");
+  const queryClient = useQueryClient();
+  const messagesEndRef = useRef(null);
 
   useEffect(() => {
     base44.auth.me().then(setUser).catch(() => null);
   }, []);
 
-  const { data: groups = [], isLoading } = useQuery({
-    queryKey: ["my-groups-v3", user?.email],
+  const { data: queryData, isLoading } = useQuery({
+    queryKey: ["my-groups-v4", user?.email],
     enabled: !!user,
     queryFn: async () => {
       const [quedadas, intereses, places, users, messages] = await Promise.all([
@@ -50,19 +116,50 @@ export default function MisMatches() {
         base44.asServiceRole.entities.User.list("full_name", 100),
         base44.entities.Message.list("created_date", 1000),
       ]);
-      return enrichGroups(quedadas, intereses, places, users, messages, user.email);
+      return {
+        groups: enrichGroups(quedadas, intereses, places, users, messages, user.email),
+        users,
+      };
     },
+    refetchInterval: 2000,
   });
 
+  const groups = queryData?.groups || [];
+  const users = queryData?.users || [];
+  const usersByEmail = useMemo(() => Object.fromEntries(users.map((person) => [person.email, person])), [users]);
+
   const now = new Date();
-  const upcoming = useMemo(() => groups.filter((item) => new Date(item.fecha_hora) >= now), [groups]);
-  const history = useMemo(() => groups.filter((item) => new Date(item.fecha_hora) < now), [groups]);
+  const upcoming = useMemo(() => groups.filter((item) => new Date(item.fecha_hora) >= now), [groups, now]);
+  const history = useMemo(() => groups.filter((item) => new Date(item.fecha_hora) < now), [groups, now]);
   const visible = tab === "upcoming" ? upcoming : history;
   const selected = visible.find((item) => item.id === selectedId) || visible[0];
 
   useEffect(() => {
     if (!selectedId && visible[0]) setSelectedId(visible[0].id);
   }, [selectedId, visible]);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [selected?.messageList?.length]);
+
+  const sendMutation = useMutation({
+    mutationFn: async (text) => base44.entities.Message.create({
+      quedada_id: selected.id,
+      sender_id: user.email,
+      receiver_id: "group",
+      texto: text,
+      leido: false,
+    }),
+    onSuccess: () => {
+      setMessageText("");
+      queryClient.invalidateQueries({ queryKey: ["my-groups-v4", user?.email] });
+    },
+  });
+
+  const handleSend = () => {
+    if (!messageText.trim() || !selected) return;
+    sendMutation.mutate(messageText.trim());
+  };
 
   if (!user || isLoading) return <div className="flex min-h-[calc(100vh-64px)] items-center justify-center bg-[#060606] text-white">Cargando…</div>;
 
@@ -80,115 +177,96 @@ export default function MisMatches() {
   }
 
   return (
-    <div className="min-h-[calc(100vh-64px)] bg-[#060606] px-4 py-4">
-      <div className="mx-auto max-w-6xl grid gap-4 lg:grid-cols-[0.92fr,1.08fr]">
-        <div className="rounded-[30px] border border-white/10 bg-[#101010] p-4 lg:p-5">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <h1 className="text-[2rem] font-black tracking-tight">Mis grupos</h1>
-              <p className="mt-1 text-sm text-stone-400">Planes a los que te has unido</p>
+    <>
+      <div className="h-[calc(100vh-64px)] overflow-hidden bg-[#070707]">
+        <div className="mx-auto grid h-full max-w-6xl lg:grid-cols-[360px,1fr]">
+          <div className={`${mobileChatOpen ? "hidden lg:flex" : "flex"} min-h-0 flex-col border-r border-white/6 bg-[#0f0f0f]`}>
+            <div className="border-b border-white/6 px-4 py-4">
+              <h1 className="text-[2rem] font-black tracking-tight text-white">Mis grupos</h1>
+              <p className="mt-1 text-sm text-stone-400">Entra y habla como en un grupo real.</p>
+              <div className="mt-4 flex gap-2">
+                <button onClick={() => setTab("upcoming")} className={`rounded-full px-4 py-2 text-sm font-semibold ${tab === "upcoming" ? "bg-red-600 text-white" : "border border-white/10 bg-white/[0.04] text-stone-300"}`}>Próximos</button>
+                <button onClick={() => setTab("history")} className={`rounded-full px-4 py-2 text-sm font-semibold ${tab === "history" ? "bg-red-600 text-white" : "border border-white/10 bg-white/[0.04] text-stone-300"}`}>Historial</button>
+              </div>
             </div>
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] text-stone-200">{upcoming.length}</div>
-          </div>
-
-          <div className="mt-5 flex gap-2">
-            <button onClick={() => setTab("upcoming")} className={`rounded-full px-4 py-2 text-sm font-semibold ${tab === "upcoming" ? "bg-red-600 text-white" : "border border-white/10 bg-white/[0.04] text-stone-300"}`}>Próximos {upcoming.length}</button>
-            <button onClick={() => setTab("history")} className={`rounded-full px-4 py-2 text-sm font-semibold ${tab === "history" ? "bg-red-600 text-white" : "border border-white/10 bg-white/[0.04] text-stone-300"}`}>Historial</button>
-          </div>
-
-          <div className="mt-5 space-y-3 lg:max-h-[calc(100vh-240px)] lg:overflow-auto lg:pr-1">
-            {visible.map((hangout) => {
-              const active = selected?.id === hangout.id;
-              const spotsLeft = Math.max((hangout.max_participantes || 0) - hangout.participants.length, 0);
-              return (
-                <button key={hangout.id} onClick={() => setSelectedId(hangout.id)} className={`w-full overflow-hidden rounded-[28px] border text-left transition ${active ? "border-red-500/25 bg-[radial-gradient(circle_at_top,rgba(220,38,38,0.18),transparent_32%),#131313]" : "border-white/10 bg-white/[0.02] hover:bg-white/[0.04]"}`}>
-                  <div className="p-4">
-                    <div className="flex items-center justify-between gap-3">
-                      <span className="rounded-full bg-violet-500/20 px-3 py-1 text-[11px] font-bold text-violet-200">{new Date(hangout.fecha_hora).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
-                      <span className="rounded-full bg-emerald-500/20 px-3 py-1 text-[11px] font-bold text-emerald-200">{spotsLeft} libres</span>
-                    </div>
-                    <h2 className="mt-4 text-[2rem] font-black leading-[0.95] text-white">{hangout.titulo}</h2>
-                    <div className="mt-2 text-sm text-stone-400">{hangout.pizzeria_nombre} · {hangout.place?.neighborhood}</div>
-                    <div className="mt-4 flex items-center justify-between gap-3">
-                      <div className="flex items-center gap-3 text-sm text-stone-300">
-                        <div className="flex -space-x-2">
-                          {hangout.participants.slice(0, 4).map((person) => (
-                            <div key={person.email} className={`flex h-8 w-8 items-center justify-center rounded-full border border-black/40 bg-gradient-to-br ${person.avatar_color || "from-stone-500 to-stone-700"} text-[10px] font-bold text-white`}>
-                              {avatar(person)}
-                            </div>
-                          ))}
+            <div className="min-h-0 flex-1 overflow-y-auto px-2 py-2">
+              {visible.map((hangout) => {
+                const active = selected?.id === hangout.id;
+                return (
+                  <button
+                    key={hangout.id}
+                    onClick={() => {
+                      setSelectedId(hangout.id);
+                      setMobileChatOpen(true);
+                    }}
+                    className={`mb-2 w-full rounded-[22px] border px-3 py-3 text-left transition ${active ? "border-red-500/25 bg-red-500/8" : "border-transparent bg-transparent hover:bg-white/[0.03]"}`}
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className={`grid h-12 w-12 shrink-0 place-items-center rounded-full bg-gradient-to-br ${hangout.host?.avatar_color || "from-red-500 to-orange-500"} text-sm font-black text-white`}>
+                        {avatar(hangout.host)}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="truncate font-bold text-white">{hangout.titulo}</div>
+                          <div className="text-[11px] text-stone-500">{new Date(hangout.fecha_hora).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</div>
                         </div>
-                        <span>{hangout.participants.length} van</span>
+                        <div className="mt-1 truncate text-sm text-stone-400">{hangout.pizzeria_nombre} · {hangout.place?.neighborhood}</div>
+                        <div className="mt-2 truncate text-sm text-stone-300">{hangout.lastMessage?.texto || "Todavía no hay mensajes"}</div>
                       </div>
-                      <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs font-semibold text-stone-200">{hangout.vibe}</span>
                     </div>
-                    {hangout.lastMessage ? <div className="mt-3 text-sm text-stone-500">Último mensaje: “{hangout.lastMessage.texto.slice(0, 44)}...”</div> : null}
-                  </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {selected ? (
+            <div className={`${mobileChatOpen ? "flex" : "hidden lg:flex"} min-h-0 flex-col bg-[#0b0b0b]`}>
+              <div className="flex items-center gap-3 border-b border-white/6 px-4 py-3">
+                <button onClick={() => setMobileChatOpen(false)} className="grid h-10 w-10 place-items-center rounded-full border border-white/10 bg-white/[0.04] text-stone-300 lg:hidden"><ArrowLeft className="h-4 w-4" /></button>
+                <button onClick={() => setShowInfo(true)} className="min-w-0 flex-1 text-left">
+                  <div className="truncate text-base font-black text-white">{selected.titulo}</div>
+                  <div className="truncate text-sm text-stone-400">{selected.pizzeria_nombre} · {selected.place?.neighborhood}</div>
                 </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {selected ? (
-          <div className="overflow-hidden rounded-[30px] border border-white/10 bg-[#101010]">
-            <div className="relative border-b border-white/8 bg-[radial-gradient(circle_at_top,rgba(220,38,38,0.24),transparent_32%),linear-gradient(180deg,#141414_0%,#101010_100%)] p-5">
-              <div className="flex flex-wrap items-center gap-2 text-[11px] font-bold uppercase tracking-[0.14em]">
-                <span className="rounded-full bg-violet-500/20 px-3 py-1 text-violet-200">{new Date(selected.fecha_hora) <= new Date(Date.now() + 86400000) ? "Hoy" : formatHangoutDate(selected.fecha_hora)}</span>
-                <span className="rounded-full bg-emerald-500/20 px-3 py-1 text-emerald-200">{Math.max((selected.max_participantes || 0) - selected.participants.length, 0)} plazas libres</span>
-              </div>
-              <h2 className="mt-4 text-[2rem] sm:text-[2.3rem] font-black tracking-tight leading-[0.96]">{selected.titulo}</h2>
-              <div className="mt-3 flex flex-wrap items-center gap-3 text-sm text-stone-300">
-                <span className="inline-flex items-center gap-1"><MapPin className="h-4 w-4" />{selected.pizzeria_nombre}</span>
-                <span className="text-red-400 font-bold">{formatPrice(selected.place?.standard_slice_price)}</span>
-                <span>{selected.place?.neighborhood}</span>
-              </div>
-              <p className="mt-4 max-w-2xl text-sm leading-7 text-stone-300">{selected.descripcion}</p>
-            </div>
-
-            <div className="p-5">
-              <div className="flex items-center justify-between">
-                <div className="text-sm font-bold uppercase tracking-[0.14em] text-stone-500">Asistentes {selected.participants.length}/{selected.max_participantes}</div>
-                <button className="text-sm font-semibold text-red-400">Ver todos</button>
-              </div>
-              <div className="mt-4 flex flex-wrap gap-4">
-                {selected.participants.map((person) => (
-                  <div key={person.email} className="text-center">
-                    <div className={`mx-auto flex h-14 w-14 items-center justify-center rounded-full border border-white/10 bg-gradient-to-br ${person.avatar_color || "from-stone-500 to-stone-700"} text-sm font-bold text-white`}>{avatar(person)}</div>
-                    <div className="mt-2 text-sm font-semibold text-white">{person.full_name}</div>
-                    <div className="text-xs text-stone-500">{person.email === selected.host?.email ? "Host" : "Miembro"}</div>
-                  </div>
-                ))}
+                <button onClick={() => setShowInfo(true)} className="grid h-10 w-10 place-items-center rounded-full border border-white/10 bg-white/[0.04] text-stone-300"><Info className="h-4 w-4" /></button>
               </div>
 
-              <div className="mt-8 text-sm font-bold uppercase tracking-[0.14em] text-stone-500">Chat</div>
-              <div className="mt-4 space-y-4 max-h-[320px] overflow-auto pr-1">
-                {selected.messageList.map((message) => {
-                  const mine = message.sender_id === user.email;
-                  const sender = groups.flatMap((g) => g.participants).find((p) => p.email === message.sender_id) || selected.host;
-                  return (
-                    <div key={message.id} className={`flex gap-3 ${mine ? "justify-end" : "justify-start"}`}>
-                      {!mine ? <div className={`flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br ${sender?.avatar_color || "from-stone-500 to-stone-700"} text-xs font-bold text-white`}>{avatar(sender)}</div> : null}
-                      <div className={`max-w-[78%] rounded-[22px] px-4 py-3 ${mine ? "bg-red-600 text-white" : "bg-white/[0.05] text-stone-200"}`}>
-                        {!mine ? <div className="mb-1 text-xs font-semibold text-stone-400">{sender?.full_name}</div> : null}
-                        <div className="text-sm leading-6">{message.texto}</div>
-                      </div>
+              <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
+                <div className="mb-4 flex flex-wrap gap-2">
+                  {selected.participants.map((person) => (
+                    <div key={person.email} className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-2 text-xs text-stone-200">
+                      <div className={`grid h-6 w-6 place-items-center rounded-full bg-gradient-to-br ${person.avatar_color || "from-stone-500 to-stone-700"} text-[10px] font-bold text-white`}>{avatar(person)}</div>
+                      {person.full_name}
                     </div>
-                  );
-                })}
+                  ))}
+                </div>
+                <div className="space-y-3 pb-2">
+                  {selected.messageList.map((message) => <MessageRow key={message.id} message={message} currentUser={user} usersByEmail={usersByEmail} />)}
+                  <div ref={messagesEndRef} />
+                </div>
               </div>
 
-              <div className="mt-8 grid gap-3 sm:grid-cols-3">
-                <a href={getGoogleMapsUrl(selected.place)} target="_blank" rel="noreferrer" className="inline-flex h-12 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] px-4 text-sm font-semibold text-stone-200">
-                  <Navigation className="mr-2 h-4 w-4" />Ver en el mapa
-                </a>
-                <button className="inline-flex h-12 items-center justify-center rounded-2xl bg-red-600 px-4 text-sm font-semibold text-white"><Share2 className="mr-2 h-4 w-4" />Invitar amigos</button>
-                <button className="inline-flex h-12 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] px-4 text-sm font-semibold text-stone-200"><MessageCircle className="mr-2 h-4 w-4" />Abrir chat</button>
+              <div className="border-t border-white/6 px-4 py-3" style={{ paddingBottom: "max(0.9rem, env(safe-area-inset-bottom))" }}>
+                <div className="flex items-center gap-2 rounded-[24px] border border-white/10 bg-[#121212] p-2">
+                  <input
+                    value={messageText}
+                    onChange={(e) => setMessageText(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") handleSend();
+                    }}
+                    placeholder="Escribe un mensaje..."
+                    className="h-11 flex-1 bg-transparent px-3 text-sm text-white outline-none placeholder:text-stone-500"
+                  />
+                  <button onClick={handleSend} className="grid h-11 w-11 place-items-center rounded-full bg-red-600 text-white disabled:opacity-50" disabled={!messageText.trim() || sendMutation.isPending}>
+                    <Send className="h-4 w-4" />
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
-        ) : null}
+          ) : null}
+        </div>
       </div>
-    </div>
+      <GroupInfoSheet group={selected} open={showInfo} onClose={() => setShowInfo(false)} />
+    </>
   );
 }
