@@ -130,7 +130,11 @@ export default function AddPinModal({ open, onClose, user }) {
         last_price_update: new Date().toISOString().slice(0, 10),
         submitted_by: user.email,
       });
-      await queryClient.invalidateQueries({ queryKey: ["places"] });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["places"] }),
+        queryClient.invalidateQueries({ queryKey: ["places-for-panel"] }),
+        queryClient.invalidateQueries({ queryKey: ["create-plan-places-v4"] }),
+      ]);
       setDone(true);
     } finally {
       setSubmitting(false);

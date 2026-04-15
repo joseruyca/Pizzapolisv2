@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { Link, useSearchParams } from "react-router-dom";
 import { AnimatePresence, motion, useAnimationControls, useMotionTemplate, useMotionValue, useTransform } from "framer-motion";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Check, Heart, MapPin, Users, X } from "lucide-react";
@@ -180,6 +181,7 @@ export default function Descubrir() {
   const [joinedToast, setJoinedToast] = useState(null);
   const [pendingDecisionIds, setPendingDecisionIds] = useState([]);
   const queryClient = useQueryClient();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   useEffect(() => {
     base44.auth.me().then(setUser).catch(() => null);
@@ -200,8 +202,15 @@ export default function Descubrir() {
   });
 
   const visible = useMemo(() => hangouts.filter((item) => !item.skipped && !item.joined && !pendingDecisionIds.includes(item.id)), [hangouts, pendingDecisionIds]);
-  const current = visible[0];
-  const next = visible[1];
+  const focusId = searchParams.get("focus");
+  const orderedVisible = useMemo(() => {
+    if (!focusId) return visible;
+    const focused = visible.find((item) => item.id === focusId);
+    if (!focused) return visible;
+    return [focused, ...visible.filter((item) => item.id !== focusId)];
+  }, [visible, focusId]);
+  const current = orderedVisible[0];
+  const next = orderedVisible[1];
 
   const mutate = useMutation({
     mutationFn: async ({ id, decision }) => base44.functions.invoke("recordarInteres", { quedada_id: id, tipo_interes: decision }),
@@ -209,12 +218,19 @@ export default function Descubrir() {
     onError: (_, vars) => setPendingDecisionIds((currentIds) => currentIds.filter((id) => id !== vars.id)),
     onSuccess: (_, vars) => {
       queryClient.invalidateQueries({ queryKey: ["discover-hangouts-v5", user?.email] });
-      queryClient.invalidateQueries({ queryKey: ["my-groups-v4", user?.email] });
+      queryClient.invalidateQueries({ queryKey: ["my-groups-v6", user?.email] });
       queryClient.invalidateQueries({ queryKey: ["active-hangouts"] });
       if (vars.decision === "like") {
         const joined = hangouts.find((item) => item.id === vars.id);
         setJoinedToast(joined);
         window.setTimeout(() => setJoinedToast(null), 2200);
+      }
+      if (focusId === vars.id) {
+        setSearchParams((params) => {
+          const next = new URLSearchParams(params);
+          next.delete("focus");
+          return next;
+        }, { replace: true });
       }
       setPendingDecisionIds((currentIds) => currentIds.filter((id) => id !== vars.id));
     },
@@ -230,8 +246,8 @@ export default function Descubrir() {
           <h1 className="mt-6 text-3xl font-black text-white">No hay más planes por ahora</h1>
           <p className="mt-3 text-sm leading-7 text-stone-400">Cuando alguien proponga un plan en una pizzería aparecerá aquí para que puedas deslizar sí o no.</p>
           <div className="mt-6 grid gap-3">
-            <a href={createPageUrl("CrearQuedada")} className="inline-flex h-12 items-center justify-center rounded-2xl bg-red-600 text-sm font-bold text-white">Crear un plan</a>
-            <a href={createPageUrl("MisMatches")} className="inline-flex h-12 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] text-sm font-bold text-stone-200">Ver mis grupos</a>
+            <Link to={createPageUrl("CrearQuedada")} className="inline-flex h-12 items-center justify-center rounded-2xl bg-red-600 text-sm font-bold text-white">Crear un plan</Link>
+            <Link to={createPageUrl("MisMatches") + (joinedToast ? `?focus=${joinedToast.id}` : "") } className="inline-flex h-12 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] text-sm font-bold text-stone-200">Ver mis grupos</Link>
           </div>
         </div>
       </div>
@@ -259,7 +275,7 @@ export default function Descubrir() {
                 <div className="rounded-full bg-white/14 p-2"><Check className="h-5 w-5" /></div>
                 <div className="min-w-0"><div className="font-bold">You joined the group</div><div className="truncate text-sm text-emerald-50/90">{joinedToast.titulo}</div></div>
               </div>
-              <a href={createPageUrl("MisMatches")} className="text-sm font-bold text-white/95">Open</a>
+              <Link to={createPageUrl("MisMatches")} className="text-sm font-bold text-white/95">Open</Link>
             </div>
           </motion.div>
         ) : null}

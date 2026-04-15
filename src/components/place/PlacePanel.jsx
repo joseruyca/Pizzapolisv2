@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
-import { MapPin, Clock, ChevronLeft, Heart, Share2, Coins, Users, MessageCircle, CalendarDays, Sparkles, Star, ArrowUpRight, Navigation } from "lucide-react";
+import { MapPin, Clock, ChevronLeft, Heart, Share2, Coins, Users, MessageCircle, CalendarDays, Sparkles, Star, ArrowUpRight, Navigation, Plus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import StarRating from "../shared/StarRating";
@@ -239,7 +239,7 @@ export default function PlacePanel({ place, onClose, user }) {
               <p className="mt-2 text-sm leading-6 text-stone-300">{quickTake}</p>
             </div>
 
-            <div className="mt-4 flex gap-2">
+            <div className="mt-4 grid gap-2 sm:grid-cols-2">
               <Button
                 onClick={handleToggleFavorite}
                 variant="outline"
@@ -360,7 +360,7 @@ export default function PlacePanel({ place, onClose, user }) {
                   <div className="text-sm font-medium text-stone-300">Rate this spot</div>
                   <div className="mt-1 text-xs text-stone-500">Keep it simple: good value or not.</div>
                 </div>
-                <StarRating value={userRating} onChange={handleRate} />
+                <StarRating rating={userRating} onRate={handleRate} interactive />
               </div>
             </section>
 
@@ -406,13 +406,21 @@ export default function PlacePanel({ place, onClose, user }) {
                   <div className="mb-3 text-[11px] font-bold uppercase tracking-[0.16em] text-stone-500">Price context</div>
                   <p className="text-sm leading-6 text-stone-300">Pizzapolis treats the standard slice price as the main comparison point. This makes it easier to compare cheap spots, premium stops and places that only make sense for a planned visit.</p>
                 </div>
-                <a href={googleMapsUrl} target="_blank" rel="noreferrer" className="block">
-                  <Button className="h-12 w-full rounded-2xl bg-white text-black font-semibold hover:bg-stone-200">
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <a href={`/CrearQuedada?place=${place.id}`} className="block">
+                    <Button className="h-12 w-full rounded-2xl bg-red-600 text-white font-semibold hover:bg-red-500">
+                      <Plus className="mr-2 h-4 w-4" />
+                      Create hangout here
+                    </Button>
+                  </a>
+                  <a href={googleMapsUrl} target="_blank" rel="noreferrer" className="block">
+                    <Button className="h-12 w-full rounded-2xl bg-white text-black font-semibold hover:bg-stone-200">
                     <Navigation className="mr-2 h-4 w-4" />
                     Open in Google Maps
                     <ArrowUpRight className="ml-2 h-4 w-4" />
                   </Button>
-                </a>
+                  </a>
+                </div>
               </section>
             ) : null}
 
