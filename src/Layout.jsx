@@ -33,7 +33,8 @@ export default function Layout({ children, currentPageName }) {
   }, []);
 
   const handleLogout = () => base44.auth.logout();
-  const hideHeader = currentPageName === "Landing";
+  const hideHeader = currentPageName === "Landing" || currentPageName === "Descubrir";
+  const hideBottomNav = currentPageName === "Descubrir";
 
   return (
     <div className="min-h-screen bg-[#070707] text-white">
@@ -123,7 +124,7 @@ export default function Layout({ children, currentPageName }) {
 
       <main className={hideHeader ? "" : "pt-[60px] pb-24 md:pb-8"}>{children}</main>
 
-      {!hideHeader && (
+      {!hideHeader && !hideBottomNav && (
         <nav className="fixed inset-x-0 bottom-0 z-[1800] border-t border-white/8 bg-[#090909] md:hidden">
           <div className="grid h-[78px] grid-cols-5 px-2">
             {navItems.map((item) => {

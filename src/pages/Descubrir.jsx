@@ -1,8 +1,26 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
-import { AnimatePresence, motion, useAnimationControls, useMotionTemplate, useMotionValue, useTransform } from "framer-motion";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import {
+  AnimatePresence,
+  motion,
+  useAnimationControls,
+  useMotionTemplate,
+  useMotionValue,
+  useTransform,
+} from "framer-motion";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Check, Heart, MapPin, Settings2, SlidersHorizontal, Users, X } from "lucide-react";
+import {
+  Check,
+  ChevronLeft,
+  Clock3,
+  DollarSign,
+  MapPin,
+  Settings2,
+  Users,
+  X,
+  Moon,
+  Sparkles,
+} from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { createPageUrl } from "@/utils";
 import { formatPrice, getHangoutVibe } from "@/lib/place-helpers";
@@ -38,6 +56,28 @@ function enrich(quedadas, places, users, intereses, currentEmail) {
     .sort((a, b) => new Date(a.fecha_hora) - new Date(b.fecha_hora));
 }
 
+function imageForVibe(vibe) {
+  const v = (vibe || "").toLowerCase();
+  if (v.includes("late")) return "https://images.unsplash.com/photo-1513104890138-7c749659a591?q=80&w=1200&auto=format&fit=crop";
+  if (v.includes("budget")) return "https://images.unsplash.com/photo-1528137871618-79d2761e3fd5?q=80&w=1200&auto=format&fit=crop";
+  if (v.includes("premium") || v.includes("foodie")) return "https://images.unsplash.com/photo-1541745537411-b8046dc6d66c?q=80&w=1200&auto=format&fit=crop";
+  return "https://images.unsplash.com/photo-1513104890138-7c749659a591?q=80&w=1200&auto=format&fit=crop";
+}
+
+function FilterChip({ active, children, onClick }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`rounded-full px-4 py-2.5 text-sm font-semibold transition ${
+        active ? "bg-red-500 text-white shadow-[0_0_24px_rgba(239,68,68,0.45)]" : "bg-white/[0.06] text-stone-300"
+      }`}
+    >
+      {children}
+    </button>
+  );
+}
+
 function FilterSheet({ open, filters, setFilters, onClose }) {
   if (!open) return null;
 
@@ -49,82 +89,113 @@ function FilterSheet({ open, filters, setFilters, onClose }) {
     setFilters((current) => ({ ...current, vibe: current.vibe === value ? "all" : value }));
   };
 
+  const vibes = [
+    ["Casual", "🍕"],
+    ["Foodie Crew", "🧑‍🍳"],
+    ["Adventure Mode", "🗺️"],
+    ["Low-Key Hangout", "✨"],
+  ];
+
   return (
     <AnimatePresence>
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 z-[1500] bg-black/60 backdrop-blur-sm"
+        className="fixed inset-0 z-[1600] bg-black/72 backdrop-blur-sm"
         onClick={onClose}
       >
         <motion.div
-          initial={{ opacity: 0, y: 24, scale: 0.98 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, y: 24, scale: 0.98 }}
-          transition={{ type: "spring", stiffness: 320, damping: 28 }}
-          className="absolute inset-x-4 top-24 mx-auto max-w-md rounded-[30px] border border-white/10 bg-[#101010] p-5 shadow-[0_24px_80px_rgba(0,0,0,0.56)]"
-          onClick={(event) => event.stopPropagation()}
+          initial={{ y: 16, opacity: 0.8 }}
+          animate={{ y: 0, opacity: 1 }}
+          exit={{ y: 16, opacity: 0.8 }}
+          transition={{ type: "spring", stiffness: 280, damping: 28 }}
+          className="absolute inset-x-4 top-6 bottom-6 mx-auto max-w-md overflow-hidden rounded-[28px] border border-white/10 bg-[#151515] shadow-[0_30px_90px_rgba(0,0,0,0.62)]"
+          onClick={(e) => e.stopPropagation()}
         >
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <div className="text-[12px] font-black uppercase tracking-[0.22em] text-red-300">Plan filters</div>
-              <div className="mt-1 text-sm text-stone-400">Tune what you want to swipe on.</div>
+          <div className="flex h-full flex-col">
+            <div className="flex items-center justify-between border-b border-white/8 px-5 py-5 shrink-0">
+              <h2 className="text-2xl font-black text-white">Filters</h2>
+              <button type="button" onClick={onClose} className="text-stone-400 transition hover:text-white">
+                <X className="h-5 w-5" />
+              </button>
             </div>
-            <button onClick={onClose} className="grid h-11 w-11 place-items-center rounded-full border border-white/10 bg-white/[0.04] text-stone-300">
-              <X className="h-5 w-5" />
-            </button>
-          </div>
 
-          <div className="mt-5 space-y-5">
-            <div>
-              <div className="mb-2 text-xs font-bold uppercase tracking-[0.18em] text-stone-500">Max slice price</div>
-              <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
-                <input
-                  type="range"
-                  min="2"
-                  max="8"
-                  step="0.5"
-                  value={filters.maxPrice}
-                  onChange={(event) => setFilters((current) => ({ ...current, maxPrice: Number(event.target.value) }))}
-                  className="w-full accent-red-500"
-                />
-                <div className="mt-2 text-sm font-semibold text-white">Up to ${filters.maxPrice.toFixed(2)}</div>
+            <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4 space-y-7">
+              <div>
+                <div className="mb-4 flex items-center gap-2 text-sm font-bold text-white"><DollarSign className="h-4 w-4 text-red-400" />Max Slice Price</div>
+                <div className="px-1">
+                  <input
+                    type="range"
+                    min="3"
+                    max="15"
+                    step="0.5"
+                    value={filters.maxPrice}
+                    onChange={(event) => setFilters((current) => ({ ...current, maxPrice: Number(event.target.value) }))}
+                    className="w-full accent-red-500"
+                  />
+                  <div className="mt-3 flex items-center justify-between text-sm text-stone-500">
+                    <span>$3</span>
+                    <span className="text-lg font-black text-white">${filters.maxPrice.toFixed(0)}</span>
+                    <span>$15</span>
+                  </div>
+                </div>
               </div>
-            </div>
 
-            <div>
-              <div className="mb-2 text-xs font-bold uppercase tracking-[0.18em] text-stone-500">When</div>
-              <div className="flex flex-wrap gap-2">
-                {[
-                  ["today", "Today"],
-                  ["week", "This week"],
-                  ["night", "Late night"],
-                ].map(([value, label]) => (
+              <div>
+                <div className="mb-4 flex items-center gap-2 text-sm font-bold text-white"><Clock3 className="h-4 w-4 text-red-400" />When</div>
+                <div className="flex flex-wrap gap-3">
+                  <FilterChip active={filters.when === "today"} onClick={() => toggleWhen("today")}>Today</FilterChip>
+                  <FilterChip active={filters.when === "tomorrow"} onClick={() => toggleWhen("tomorrow")}>Tomorrow</FilterChip>
+                  <FilterChip active={filters.when === "week"} onClick={() => toggleWhen("week")}>This Week</FilterChip>
+                </div>
+              </div>
+
+              <div className="rounded-[22px] border border-white/8 bg-white/[0.03] px-4 py-4">
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <div className="flex items-center gap-2 text-base font-bold text-white"><Moon className="h-4 w-4 text-stone-300" />Late Night Only</div>
+                    <div className="mt-1 text-sm text-stone-400">After 9 PM</div>
+                  </div>
                   <button
-                    key={value}
-                    onClick={() => toggleWhen(value)}
-                    className={`rounded-full border px-4 py-2 text-sm font-semibold transition ${filters.when === value ? "border-red-400/30 bg-red-500 text-white" : "border-white/10 bg-white/[0.04] text-stone-300"}`}
+                    type="button"
+                    onClick={() => setFilters((current) => ({ ...current, lateNightOnly: !current.lateNightOnly }))}
+                    className={`relative h-7 w-12 rounded-full transition ${filters.lateNightOnly ? "bg-red-500" : "bg-white/12"}`}
                   >
-                    {label}
+                    <span className={`absolute top-1 h-5 w-5 rounded-full bg-white transition ${filters.lateNightOnly ? "left-6" : "left-1"}`} />
                   </button>
-                ))}
+                </div>
+              </div>
+
+              <div>
+                <div className="mb-4 flex items-center gap-2 text-sm font-bold text-white"><Sparkles className="h-4 w-4 text-red-400" />Vibes</div>
+                <div className="grid grid-cols-2 gap-3">
+                  {vibes.map(([value, icon]) => (
+                    <button
+                      key={value}
+                      type="button"
+                      onClick={() => toggleVibe(value)}
+                      className={`rounded-[20px] border px-4 py-5 text-left transition ${filters.vibe === value ? "border-red-500/30 bg-red-500/10" : "border-white/8 bg-white/[0.03]"}`}
+                    >
+                      <div className="text-2xl">{icon}</div>
+                      <div className="mt-3 text-base font-semibold text-white">{value}</div>
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
 
-            <div>
-              <div className="mb-2 text-xs font-bold uppercase tracking-[0.18em] text-stone-500">Vibe</div>
-              <div className="flex flex-wrap gap-2">
-                {["Budget run", "Late-night", "Small group", "Slice crawl", "Casual"].map((value) => (
-                  <button
-                    key={value}
-                    onClick={() => toggleVibe(value)}
-                    className={`rounded-full border px-4 py-2 text-sm font-semibold transition ${filters.vibe === value ? "border-emerald-400/30 bg-emerald-500 text-white" : "border-white/10 bg-white/[0.04] text-stone-300"}`}
-                  >
-                    {value}
-                  </button>
-                ))}
-              </div>
+            <div className="grid grid-cols-2 gap-3 border-t border-white/8 px-5 py-4 shrink-0 bg-[#151515]">
+              <button
+                type="button"
+                onClick={() => setFilters({ maxPrice: 10, when: "all", vibe: "all", lateNightOnly: false })}
+                className="h-14 rounded-2xl bg-white/[0.06] text-base font-bold text-stone-300"
+              >
+                Reset
+              </button>
+              <button type="button" onClick={onClose} className="h-14 rounded-2xl bg-red-500 text-base font-bold text-white shadow-[0_0_28px_rgba(239,68,68,0.38)]">
+                Apply Filters
+              </button>
             </div>
           </div>
         </motion.div>
@@ -133,123 +204,138 @@ function FilterSheet({ open, filters, setFilters, onClose }) {
   );
 }
 
-function SwipeCard({ hangout, nextHangout, onDecision, disabled }) {
+
+function normalizeHangout(hangout) {
+  const dateValue = hangout.fecha_hora || (hangout.fecha && hangout.hora ? `${hangout.fecha}T${hangout.hora}` : null);
+  const when = dateValue ? new Date(dateValue) : new Date();
+  const maxParticipants = hangout.max_participantes || hangout.max_personas || 0;
+  const joinedCount = hangout.joined_count || hangout.asistentes_count || hangout.participants?.length || 0;
+  const placeName = hangout.pizzeria_nombre || hangout.pizza_place_name || hangout.place?.name || hangout.pizza_place?.name || 'Pizza spot';
+  const neighborhood = hangout.place?.neighborhood || hangout.neighborhood || hangout.barrio || 'NYC';
+  const title = hangout.titulo || hangout.title || 'Pizza plan';
+  const description = hangout.descripcion || hangout.description || 'Casual slice plan with good pizza and easy vibes.';
+  const hostName = hangout.host?.full_name || hangout.creador_nombre || hangout.host_name || 'Host';
+  const vibe = hangout.vibe || 'Chill & Social';
+  return {
+    ...hangout,
+    when,
+    maxParticipants,
+    joinedCount,
+    spotsLeft: Math.max(maxParticipants - joinedCount, 0),
+    placeName,
+    neighborhood,
+    title,
+    description,
+    hostName,
+    vibe,
+    cover: hangout.foto_url || hangout.coverImage || imageForVibe(vibe),
+    priceLabel: hangout.priceLabel || formatPrice(hangout.place?.standard_slice_price || hangout.standard_slice_price || 4.5),
+  };
+}
+
+function SwipeCard({ hangout, onDecision, disabled }) {
+  const item = normalizeHangout(hangout);
   const controls = useAnimationControls();
   const x = useMotionValue(0);
-  const rotate = useTransform(x, [-280, 0, 280], [-12, 0, 12]);
-  const rightProgress = useTransform(x, [0, 55, 220], [0, 0.35, 1]);
-  const leftProgress = useTransform(x, [-220, -55, 0], [1, 0.35, 0]);
-  const leftScale = useTransform(leftProgress, [0, 1], [0.82, 1]);
-  const rightScale = useTransform(rightProgress, [0, 1], [0.82, 1]);
-  const borderColor = useTransform(x, [-220, -70, 0, 70, 220], [
-    "rgba(248,113,113,0.96)",
-    "rgba(248,113,113,0.38)",
-    "rgba(255,255,255,0.08)",
-    "rgba(34,197,94,0.38)",
-    "rgba(34,197,94,0.96)",
+  const rotate = useTransform(x, [-220, 0, 220], [-6, 0, 6]);
+  const joinOpacity = useTransform(x, [0, 60, 160], [0, 0.45, 1]);
+  const nopeOpacity = useTransform(x, [-160, -60, 0], [1, 0.45, 0]);
+  const joinScale = useTransform(x, [0, 160], [0.86, 1]);
+  const nopeScale = useTransform(x, [-160, 0], [1, 0.86]);
+  const overlay = useMotionTemplate`linear-gradient(180deg, rgba(0,0,0,0.06) 0%, rgba(0,0,0,0.18) 100%), linear-gradient(135deg, rgba(239,68,68,${nopeOpacity}) 0%, rgba(239,68,68,0.14) 40%, rgba(0,0,0,0) 75%), linear-gradient(225deg, rgba(16,185,129,${joinOpacity}) 0%, rgba(16,185,129,0.14) 40%, rgba(0,0,0,0) 75%)`;
+  const borderColor = useTransform(x, [-180, -60, 0, 60, 180], [
+    'rgba(239,68,68,0.9)',
+    'rgba(239,68,68,0.28)',
+    'rgba(255,255,255,0.12)',
+    'rgba(16,185,129,0.28)',
+    'rgba(16,185,129,0.9)',
   ]);
-  const cardScale = useTransform(x, [-220, 0, 220], [0.985, 1, 0.985]);
-  const glow = useMotionTemplate`0 30px 80px rgba(0,0,0,0.72), 0 0 0 1px ${borderColor}`;
-  const spotsLeft = Math.max((hangout.max_participantes || 0) - hangout.joined_count, 0);
+  const cardShadow = useMotionTemplate`0 24px 70px rgba(0,0,0,0.52), 0 0 0 1px ${borderColor}`;
 
   async function finishVote(decision) {
     if (disabled) return;
-    const travel = typeof window !== "undefined" ? Math.max(window.innerWidth, 540) : 560;
+    const travel = typeof window !== 'undefined' ? Math.max(window.innerWidth, 540) : 540;
     await controls.start({
-      x: decision === "like" ? travel : -travel,
-      rotate: decision === "like" ? 17 : -17,
+      x: decision === 'like' ? travel : -travel,
+      rotate: decision === 'like' ? 8 : -8,
       opacity: 0,
-      scale: 0.96,
-      transition: { duration: 0.28, ease: [0.22, 1, 0.36, 1] },
+      transition: { duration: 0.24, ease: 'easeIn' },
     });
+    onDecision(item.id, decision);
     x.set(0);
-    controls.set({ x: 0, rotate: 0, opacity: 1, scale: 1 });
-    onDecision(hangout.id, decision);
+    controls.set({ x: 0, rotate: 0, opacity: 1 });
   }
 
   return (
-    <div className="mx-auto flex h-full w-full max-w-md flex-col">
-      <div className="relative flex-1 overflow-hidden">
-        {nextHangout ? (
-          <>
-            <motion.div
-              aria-hidden
-              className="absolute inset-x-5 bottom-[106px] top-10 rounded-[34px] border border-white/7 bg-[#0b0b0b] opacity-35"
-              style={{ rotate: useTransform(x, [-220, 0, 220], [-3, 0, 3]) }}
-            />
-            <motion.div
-              aria-hidden
-              className="absolute inset-x-4 bottom-[98px] top-7 rounded-[34px] border border-white/7 bg-[linear-gradient(180deg,#0f0f0f_0%,#080808_100%)] opacity-55"
-              style={{ rotate: useTransform(x, [-220, 0, 220], [-1.6, 0, 1.6]) }}
-            />
-          </>
-        ) : null}
+    <div className="flex h-full flex-col overflow-hidden">
+      <div className="relative flex-1 min-h-0">
+        <motion.div className="pointer-events-none absolute left-5 top-5 z-20 rounded-2xl border border-red-400/70 bg-red-500/14 px-4 py-2 text-sm font-black uppercase tracking-[0.22em] text-red-200" style={{ opacity: nopeOpacity, scale: nopeScale }}>NOPE</motion.div>
+        <motion.div className="pointer-events-none absolute right-5 top-5 z-20 rounded-2xl border border-emerald-400/70 bg-emerald-500/14 px-4 py-2 text-sm font-black uppercase tracking-[0.22em] text-emerald-200" style={{ opacity: joinOpacity, scale: joinScale }}>JOIN</motion.div>
 
         <motion.div
-          drag={disabled ? false : "x"}
+          drag={disabled ? false : 'x'}
           dragConstraints={{ left: 0, right: 0 }}
-          dragElastic={0.18}
-          style={{ x, rotate, boxShadow: glow, scale: cardScale }}
+          dragElastic={0.1}
+          style={{ x, rotate, boxShadow: cardShadow }}
           animate={controls}
           onDragEnd={async (_, info) => {
             if (disabled) return;
-            if (info.offset.x > 118) await finishVote("like");
-            else if (info.offset.x < -118) await finishVote("dislike");
-            else controls.start({ x: 0, rotate: 0, scale: 1, transition: { type: "spring", stiffness: 360, damping: 28 } });
+            if (info.offset.x > 120) return finishVote('like');
+            if (info.offset.x < -120) return finishVote('dislike');
+            controls.start({ x: 0, rotate: 0, transition: { type: 'spring', stiffness: 360, damping: 30 } });
           }}
-          className="relative z-10 h-[calc(100%-96px)] overflow-hidden rounded-[34px] border border-white/10 bg-[radial-gradient(circle_at_top,rgba(220,38,38,0.22),transparent_24%),linear-gradient(180deg,#121212_0%,#060606_100%)]"
+          className="relative h-full overflow-hidden rounded-[34px] border border-white/10 bg-[#121212]"
         >
-          <motion.div style={{ opacity: leftProgress }} className="absolute inset-0 bg-gradient-to-br from-red-500/36 via-red-500/10 to-transparent" />
-          <motion.div style={{ opacity: rightProgress }} className="absolute inset-0 bg-gradient-to-bl from-emerald-500/34 via-emerald-500/9 to-transparent" />
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_bottom_right,rgba(255,255,255,0.08),transparent_20%)]" />
-          <div className="absolute inset-0 bg-gradient-to-t from-black via-black/42 to-transparent" />
-
-          <motion.div style={{ opacity: leftProgress, scale: leftScale }} className="absolute left-5 top-5 z-20 rounded-2xl border-2 border-red-400/90 bg-red-500/14 px-4 py-2 text-[14px] font-black uppercase tracking-[0.22em] text-red-100">NOPE</motion.div>
-          <motion.div style={{ opacity: rightProgress, scale: rightScale }} className="absolute right-5 top-5 z-20 rounded-2xl border-2 border-emerald-400/90 bg-emerald-500/14 px-4 py-2 text-[14px] font-black uppercase tracking-[0.22em] text-emerald-100">JOIN</motion.div>
-
-          <div className="relative flex h-full flex-col p-5 pb-4">
-            <div className="flex items-center justify-between gap-3 text-[11px] font-bold uppercase tracking-[0.16em] text-white/90">
-              <span className="rounded-full bg-violet-500/22 px-3 py-1 text-violet-100">{new Date(hangout.fecha_hora).toLocaleDateString([], { month: "short", day: "numeric" })} · {new Date(hangout.fecha_hora).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
-              <span className="rounded-full bg-emerald-500/18 px-3 py-1 text-emerald-100">{spotsLeft} spots left</span>
+          <motion.div className="absolute inset-0 z-0" style={{ background: overlay }} />
+          <div className="relative z-10 flex h-full flex-col overflow-hidden">
+            <div className="relative h-[38%] min-h-[170px] w-full shrink-0 overflow-hidden">
+              <img src={item.cover} alt={item.placeName} className="h-full w-full object-cover" />
+              <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/45" />
+              <div className="absolute left-4 top-4 inline-flex max-w-[74%] items-center gap-2 rounded-full bg-[#2a2a2a]/94 px-4 py-2 text-sm font-bold text-white shadow-lg">
+                <span>{item.vibeEmoji || '🌙'}</span>
+                <span className="truncate">{item.vibe}</span>
+              </div>
             </div>
 
-            <div className="mt-4 rounded-[30px] border border-white/10 bg-black/42 p-5 backdrop-blur-md">
-              <div className="flex flex-wrap items-center gap-2 text-[11px] font-bold uppercase tracking-[0.14em]">
-                <span className="rounded-full border border-white/10 bg-white/8 px-3 py-1 text-white/88">{hangout.vibe}</span>
-                <span className="rounded-full border border-red-400/15 bg-red-500 px-3 py-1 text-white">{hangout.priceLabel}</span>
+            <div className="flex min-h-0 flex-1 flex-col px-5 py-4">
+              <div className="grid grid-cols-2 gap-4 text-[13px] font-black uppercase tracking-[0.24em] text-stone-100">
+                <div className="leading-5">{item.when.toLocaleDateString([], { day: '2-digit', month: 'short' }).toUpperCase()} · {item.when.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                <div className="text-right leading-5 text-emerald-200">{item.spotsLeft} spots left</div>
               </div>
 
-              <h1 className="mt-4 text-[clamp(2.6rem,8vw,4rem)] font-black leading-[0.92] tracking-[-0.05em] text-white">{hangout.titulo}</h1>
-              <div className="mt-3 flex flex-wrap items-center gap-2 text-sm text-stone-200">
-                <span className="font-semibold">{hangout.pizzeria_nombre}</span>
-                <span className="inline-flex items-center gap-1 text-stone-400"><MapPin className="h-3.5 w-3.5" />{hangout.place?.neighborhood || "NYC"}</span>
+              <div className="mt-3 flex flex-wrap gap-3">
+                <span className="rounded-full bg-white/[0.06] px-4 py-2 text-sm font-bold uppercase tracking-[0.18em] text-white">{item.vibe.toUpperCase()}</span>
+                <span className="rounded-full bg-red-500 px-4 py-2 text-sm font-black text-white">{item.priceLabel}</span>
               </div>
-              <p className="mt-4 line-clamp-3 text-[15px] leading-7 text-stone-200/90">{hangout.descripcion}</p>
-            </div>
 
-            <div className="mt-4 grid gap-3">
-              <div className="rounded-[22px] border border-white/8 bg-white/[0.03] px-4 py-3">
-                <div className="text-xs text-stone-400">Hosted by</div>
-                <div className="mt-2 flex items-center justify-between gap-3">
-                  <div className="flex min-w-0 items-center gap-3">
-                    <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-white/10 bg-gradient-to-br ${hangout.host?.avatar_color || "from-red-500 to-orange-500"} text-sm font-bold text-white`}>{avatarLabel(hangout.host)}</div>
-                    <div className="min-w-0">
-                      <div className="truncate font-bold text-white">{hangout.host?.full_name || hangout.creador_nombre}</div>
-                      <div className="truncate text-sm text-stone-400">{hangout.place?.borough || "New York"}</div>
-                    </div>
-                  </div>
-                  <div className="flex -space-x-2">
-                    {hangout.participants.slice(0, 3).map((person) => (
-                      <div key={person.email} className={`flex h-9 w-9 items-center justify-center rounded-full border border-black/40 bg-gradient-to-br ${person.avatar_color || "from-stone-500 to-stone-700"} text-[11px] font-bold text-white`}>{avatarLabel(person)}</div>
-                    ))}
+              <h1 className="mt-4 line-clamp-2 text-[clamp(1.8rem,5vw,2.5rem)] font-black leading-[0.94] tracking-[-0.055em] text-white">{item.title}</h1>
+
+              <div className="mt-3">
+                <div className="flex items-start gap-2 text-[17px] font-semibold text-white">
+                  <MapPin className="mt-1 h-4 w-4 shrink-0 text-red-400" />
+                  <div className="min-w-0">
+                    <div className="truncate">{item.placeName}</div>
+                    <div className="truncate text-sm font-medium text-stone-400">{item.neighborhood}</div>
                   </div>
                 </div>
               </div>
 
-              <div className="rounded-[22px] border border-white/8 bg-white/[0.03] px-4 py-3">
-                <div className="flex items-center justify-between gap-3">
-                  <div className="inline-flex items-center gap-2 text-stone-200"><Users className="h-4 w-4 text-stone-400" /><span className="font-semibold">{hangout.joined_count} / {hangout.max_participantes || hangout.joined_count} going</span></div>
-                  <div className="text-sm text-stone-400">Swipe or tap</div>
+              <div className="mt-3 grid grid-cols-2 gap-3 text-[15px] leading-6 text-stone-100">
+                <div className="flex items-center gap-2 truncate"><Clock3 className="h-4 w-4 shrink-0 text-stone-500" /><span className="truncate">{item.when.toLocaleDateString([], { weekday: 'long' }).replace(/^./, c => c.toUpperCase())} at {item.when.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</span></div>
+                <div className="flex items-center gap-2"><Users className="h-4 w-4 shrink-0 text-stone-500" />{item.joinedCount} / {item.maxParticipants || item.joinedCount} going</div>
+              </div>
+
+              <p className="mt-3 line-clamp-3 text-[15px] leading-6 text-stone-200">“{item.description}”</p>
+
+              <div className="mt-auto border-t border-white/10 pt-4">
+                <div className="flex items-center gap-3">
+                  <div className={`flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-br ${item.host?.avatar_color || 'from-orange-500 to-red-500'} text-sm font-bold text-white shadow-lg`}>
+                    {avatarLabel(item.host) || avatarLabel({full_name:item.hostName})}
+                  </div>
+                  <div className="min-w-0">
+                    <div className="text-xs text-stone-500">Hosted by</div>
+                    <div className="truncate font-bold text-white">{item.hostName}</div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -257,28 +343,38 @@ function SwipeCard({ hangout, nextHangout, onDecision, disabled }) {
         </motion.div>
       </div>
 
-      <div className="relative z-20 flex shrink-0 items-center justify-center gap-10 pt-1">
-        <div className="flex flex-col items-center gap-2">
-          <button type="button" disabled={disabled} onClick={() => finishVote("dislike")} className="grid h-[70px] w-[70px] place-items-center rounded-full border border-white/12 bg-[#101010] text-stone-300 shadow-[0_16px_34px_rgba(0,0,0,0.48)] backdrop-blur-md transition hover:border-red-400/45 hover:text-red-200 disabled:opacity-60"><X className="h-8 w-8" /></button>
-          <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-stone-500">Skip</span>
-        </div>
-        <div className="flex flex-col items-center gap-2">
-          <button type="button" disabled={disabled} onClick={() => finishVote("like")} className="grid h-[82px] w-[82px] place-items-center rounded-full bg-red-600 text-white shadow-[0_18px_44px_rgba(220,38,38,0.42)] transition hover:scale-[1.02] hover:bg-red-500 disabled:opacity-60"><Heart className="h-9 w-9 fill-current" /></button>
-          <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-stone-500">Join</span>
-        </div>
+      <div className="pointer-events-auto mt-4 flex shrink-0 items-center justify-center gap-4 pb-2 pl-16 pr-0">
+        <button
+          type="button"
+          disabled={disabled}
+          onClick={() => finishVote('dislike')}
+          className="grid h-[58px] w-[58px] place-items-center rounded-full border border-white/10 bg-white/[0.04] text-stone-300 transition hover:border-red-400/40 hover:text-red-200 disabled:opacity-60"
+        >
+          <X className="h-7 w-7" />
+        </button>
+        <button
+          type="button"
+          disabled={disabled}
+          onClick={() => finishVote('like')}
+          className="grid h-[76px] w-[76px] place-items-center rounded-full bg-emerald-500 text-white shadow-[0_0_40px_rgba(16,185,129,0.36)] transition hover:scale-[1.02] disabled:opacity-60"
+        >
+          <Check className="h-9 w-9" />
+        </button>
       </div>
     </div>
   );
 }
+
 
 export default function Descubrir() {
   const [user, setUser] = useState(null);
   const [joinedToast, setJoinedToast] = useState(null);
   const [pendingDecisionIds, setPendingDecisionIds] = useState([]);
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const [filters, setFilters] = useState({ maxPrice: 6.5, when: "all", vibe: "all" });
+  const [filters, setFilters] = useState({ maxPrice: 10, when: "all", vibe: "all", lateNightOnly: false });
   const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
 
   useEffect(() => {
     base44.auth.me().then(setUser).catch(() => null);
@@ -300,23 +396,22 @@ export default function Descubrir() {
 
   const focusId = searchParams.get("focus");
   const visible = useMemo(() => {
+    const now = new Date();
     const base = hangouts.filter((item) => !item.skipped && !item.joined && !pendingDecisionIds.includes(item.id));
     return base.filter((item) => {
       const price = Number(item.place?.standard_slice_price || 0);
       if (price > filters.maxPrice) return false;
       if (filters.vibe !== "all" && item.vibe !== filters.vibe) return false;
-      if (filters.when === "today") {
-        const now = new Date();
-        const date = new Date(item.fecha_hora);
-        if (date.toDateString() !== now.toDateString()) return false;
+      const date = new Date(item.fecha_hora);
+      if (filters.when === "today" && date.toDateString() !== now.toDateString()) return false;
+      if (filters.when === "tomorrow") {
+        const tomorrow = new Date(now);
+        tomorrow.setDate(now.getDate() + 1);
+        if (date.toDateString() !== tomorrow.toDateString()) return false;
       }
-      if (filters.when === "week") {
-        const now = new Date();
-        const date = new Date(item.fecha_hora);
-        if ((date - now) / (1000 * 60 * 60 * 24) > 7) return false;
-      }
-      if (filters.when === "night") {
-        const hour = new Date(item.fecha_hora).getHours();
+      if (filters.when === "week" && (date - now) / (1000 * 60 * 60 * 24) > 7) return false;
+      if (filters.lateNightOnly) {
+        const hour = date.getHours();
         if (hour < 21 && hour > 3) return false;
       }
       return true;
@@ -329,8 +424,8 @@ export default function Descubrir() {
     if (!focused) return visible;
     return [focused, ...visible.filter((item) => item.id !== focusId)];
   }, [visible, focusId]);
+
   const current = orderedVisible[0];
-  const next = orderedVisible[1];
 
   const mutate = useMutation({
     mutationFn: async ({ id, decision }) => base44.functions.invoke("recordarInteres", { quedada_id: id, tipo_interes: decision }),
@@ -356,18 +451,27 @@ export default function Descubrir() {
     },
   });
 
-  if (!user || isLoading) return <div className="flex min-h-[calc(100vh-64px)] items-center justify-center bg-[#060606] text-white">Cargando…</div>;
+  if (!user || isLoading) return <div className="flex min-h-screen items-center justify-center bg-[#060606] text-white">Loading…</div>;
 
   if (!current) {
     return (
-      <div className="min-h-[calc(100vh-64px)] bg-[#060606] px-4 py-8">
-        <div className="mx-auto max-w-md rounded-[30px] border border-white/10 bg-[#111] p-8 text-center">
-          <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-[28px] bg-white/[0.04] text-4xl">🍕</div>
-          <h1 className="mt-6 text-3xl font-black text-white">No more plans right now</h1>
-          <p className="mt-3 text-sm leading-7 text-stone-400">When someone proposes a pizza meetup, it will show up here for you to join or skip.</p>
-          <div className="mt-6 grid gap-3">
-            <Link to={createPageUrl("CrearQuedada")} className="inline-flex h-12 items-center justify-center rounded-2xl bg-red-600 text-sm font-bold text-white">Create a plan</Link>
-            <Link to={createPageUrl("MisMatches") + (joinedToast ? `?focus=${joinedToast.id}` : "") } className="inline-flex h-12 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] text-sm font-bold text-stone-200">See my groups</Link>
+      <div className="h-[100dvh] overflow-hidden bg-[#060606] px-5 py-6">
+        <div className="mx-auto flex h-[calc(100dvh-48px)] max-w-md flex-col rounded-[34px] bg-[#070707] p-6 overflow-hidden">
+          <div className="mb-6 flex items-center justify-between">
+            <div>
+              <div className="text-3xl font-black text-white">Pizzapolis</div>
+              <div className="mt-1 text-sm text-stone-400">Discover Plans</div>
+            </div>
+            <button type="button" onClick={() => navigate(-1)} className="grid h-11 w-11 place-items-center rounded-full border border-white/10 bg-white/[0.04] text-stone-200"><ChevronLeft className="h-5 w-5" /></button>
+          </div>
+          <div className="flex flex-1 flex-col items-center justify-center rounded-[30px] border border-white/10 bg-[#111] p-8 text-center">
+            <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-[28px] bg-white/[0.04] text-4xl">🍕</div>
+            <h1 className="mt-6 text-3xl font-black text-white">No more plans right now</h1>
+            <p className="mt-3 text-sm leading-7 text-stone-400">When someone proposes a pizza meetup, it will show up here for you to join or skip.</p>
+            <div className="mt-6 grid w-full gap-3">
+              <Link to={createPageUrl("CrearQuedada")} className="inline-flex h-12 items-center justify-center rounded-2xl bg-red-600 text-sm font-bold text-white">Create a plan</Link>
+              <Link to={createPageUrl("MisMatches") + (joinedToast ? `?focus=${joinedToast.id}` : "")} className="inline-flex h-12 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] text-sm font-bold text-stone-200">See my groups</Link>
+            </div>
           </div>
         </div>
       </div>
@@ -376,40 +480,40 @@ export default function Descubrir() {
 
   return (
     <>
-      <div className="h-[calc(100vh-64px)] overflow-hidden bg-[#060606] px-4 py-3">
-        <div className="mx-auto flex h-full max-w-md flex-col">
-          <div className="mb-3 flex items-center justify-between gap-3">
+      <div className="h-[100dvh] overflow-hidden bg-[#060606] px-5 py-6">
+        <div className="mx-auto flex h-[calc(100dvh-48px)] max-w-md flex-col rounded-[34px] bg-[#070707] px-4 pb-5 pt-5 overflow-hidden relative">
+          <div className="shrink-0 flex items-start justify-between gap-4 pb-4">
             <div>
-              <div className="text-[11px] font-black uppercase tracking-[0.22em] text-red-300/95">Discover plans</div>
-              <div className="mt-1 text-sm text-stone-400">Swipe right to join. Left to skip.</div>
+              <div className="text-[2.15rem] font-black leading-none tracking-tight text-white">Pizzapolis</div>
+              <p className="mt-1 text-[14px] font-medium text-stone-400">Discover Plans</p>
             </div>
-            <button
-              type="button"
-              onClick={() => setFiltersOpen(true)}
-              className="grid h-12 w-12 place-items-center rounded-full border border-white/10 bg-white/[0.04] text-stone-200"
-            >
-              <SlidersHorizontal className="h-5 w-5" />
+            <button type="button" onClick={() => setFiltersOpen(true)} className="grid h-12 w-12 place-items-center rounded-full border border-white/10 bg-white/[0.04] text-stone-200 shrink-0">
+              <Settings2 className="h-5 w-5" />
             </button>
           </div>
 
-          <div className="min-h-0 flex-1 pb-1">
-            <SwipeCard hangout={current} nextHangout={next} disabled={mutate.isPending} onDecision={(id, decision) => mutate.mutate({ id, decision })} />
+          <div className="min-h-0 flex-1 overflow-hidden pb-0">
+            <SwipeCard hangout={current} disabled={mutate.isPending} onDecision={(id, decision) => mutate.mutate({ id, decision })} />
           </div>
-        </div>
 
-        <AnimatePresence>
-          {joinedToast ? (
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }} className="fixed inset-x-4 bottom-24 z-[1300] mx-auto max-w-md rounded-2xl border border-emerald-500/30 bg-emerald-600 px-4 py-3 text-white shadow-xl">
-              <div className="flex items-center justify-between gap-3">
-                <div className="flex min-w-0 items-center gap-3">
-                  <div className="rounded-full bg-white/14 p-2"><Check className="h-5 w-5" /></div>
-                  <div className="min-w-0"><div className="font-bold">You joined the group</div><div className="truncate text-sm text-emerald-50/90">{joinedToast.titulo}</div></div>
+          <button type="button" onClick={() => navigate(-1)} className="absolute bottom-7 left-4 z-30 grid h-12 w-12 place-items-center rounded-full border border-white/10 bg-white/[0.06] text-white shadow-[0_12px_40px_rgba(0,0,0,0.4)]">
+            <ChevronLeft className="h-5 w-5" />
+          </button>
+
+          <AnimatePresence>
+            {joinedToast ? (
+              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }} className="absolute inset-x-4 bottom-24 z-[1300] rounded-2xl border border-emerald-500/30 bg-emerald-600 px-4 py-3 text-white shadow-xl">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <div className="rounded-full bg-white/14 p-2"><Check className="h-5 w-5" /></div>
+                    <div className="min-w-0"><div className="font-bold">You joined the group</div><div className="truncate text-sm text-emerald-50/90">{joinedToast.titulo}</div></div>
+                  </div>
+                  <Link to={createPageUrl("MisMatches")} className="text-sm font-bold text-white/95">Open</Link>
                 </div>
-                <Link to={createPageUrl("MisMatches")} className="text-sm font-bold text-white/95">Open</Link>
-              </div>
-            </motion.div>
-          ) : null}
-        </AnimatePresence>
+              </motion.div>
+            ) : null}
+          </AnimatePresence>
+        </div>
       </div>
 
       <FilterSheet open={filtersOpen} filters={filters} setFilters={setFilters} onClose={() => setFiltersOpen(false)} />
