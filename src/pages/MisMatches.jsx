@@ -3,6 +3,7 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, ExternalLink, Info, MapPin, Send, X } from "lucide-react";
 import { base44 } from "@/api/base44Client";
+import { useAuth } from "@/lib/AuthContext";
 import { formatHangoutDate, formatPrice, getGoogleMapsUrl } from "@/lib/place-helpers";
 
 const avatar = (user) => user?.full_name?.slice(0, 1)?.toUpperCase() || "?";
@@ -119,7 +120,7 @@ function GroupListItem({ group, active, onSelect }) {
 }
 
 export default function MisMatches() {
-  const [user, setUser] = useState(null);
+  const { user } = useAuth();
   const [selectedId, setSelectedId] = useState(null);
   const [tab, setTab] = useState("upcoming");
   const [showInfo, setShowInfo] = useState(false);
@@ -130,9 +131,6 @@ export default function MisMatches() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
-  useEffect(() => {
-    base44.auth.me().then(setUser).catch(() => null);
-  }, []);
 
   const { data: queryData, isLoading } = useQuery({
     queryKey: ["my-groups-v6", user?.email],

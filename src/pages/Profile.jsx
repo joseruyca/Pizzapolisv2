@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
+import { useAuth } from "@/lib/AuthContext";
 import { Bell, Bookmark, CircleHelp, Settings, Star, Users } from "lucide-react";
 
 function avatarLabel(name) {
@@ -10,11 +11,8 @@ function avatarLabel(name) {
 }
 
 export default function Profile() {
-  const [user, setUser] = useState(null);
+  const { user } = useAuth();
 
-  useEffect(() => {
-    base44.auth.me().then(setUser).catch(() => null);
-  }, []);
 
   const { data: groups = [] } = useQuery({
     queryKey: ["profile-groups-count", user?.email],

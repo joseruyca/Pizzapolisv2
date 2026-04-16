@@ -5,7 +5,6 @@ import { pagesConfig } from './pages.config';
 import { BrowserRouter as Router, Route, Routes, Navigate, useLocation } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
-import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import AuthPage from './pages/Auth';
 import Favorites from './pages/Favorites';
 import Trending from './pages/Trending';
@@ -32,11 +31,10 @@ function LoadingScreen() {
 }
 
 function ProtectedRoute({ children }) {
-  const { isLoadingAuth, isAuthenticated, authError } = useAuth();
+  const { isLoadingAuth, isAuthenticated } = useAuth();
   const location = useLocation();
 
   if (isLoadingAuth) return <LoadingScreen />;
-  if (authError?.type === 'user_not_registered') return <UserNotRegisteredError />;
   if (!isAuthenticated) {
     const next = encodeURIComponent(location.pathname + location.search);
     return <Navigate to={`/auth?next=${next}`} replace />;
@@ -47,7 +45,8 @@ function ProtectedRoute({ children }) {
 const PUBLIC_PAGES = new Set(['Landing', 'Home', 'Descubrir']);
 
 function AdminRoute({ children }) {
-  const { role } = useAuth();
+  const { role, isLoadingAuth } = useAuth();
+  if (isLoadingAuth) return <LoadingScreen />;
   if (role !== 'admin') return <Navigate to="/Home" replace />;
   return children;
 }

@@ -24,8 +24,11 @@ async function ensureProfile(user) {
     role: 'user',
   };
   const { data, error } = await supabase.from('profiles').insert(insertPayload).select('*').single();
-  if (error) throw error;
-  return data;
+  if (error) {
+    console.error('Error creating profile:', error);
+    return insertPayload;
+  }
+  return data || insertPayload;
 }
 
 function bridgeUser(user, profile) {

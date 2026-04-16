@@ -11,8 +11,6 @@ function bootstrap() {
   if (typeof window === "undefined") return;
   const existing = localStorage.getItem(DB_KEY);
   if (!existing) localStorage.setItem(DB_KEY, JSON.stringify(seedData));
-  const existingUser = localStorage.getItem(USER_KEY);
-  if (!existingUser) localStorage.setItem(USER_KEY, JSON.stringify(seedData.User[0]));
 }
 
 function readDb() {
@@ -216,7 +214,7 @@ async function invoke(name, payload = {}) {
 
 export const base44 = {
   auth: {
-    async isAuthenticated() { await wait(); return true; },
+    async isAuthenticated() { await wait(); return Boolean(getUser()); },
     async me() { await wait(); return clone(getUser()); },
     async updateMe(data) {
       await wait();
@@ -228,7 +226,7 @@ export const base44 = {
       return clone(user);
     },
     logout() {
-      setUser(seedData.User[0]);
+      localStorage.removeItem(USER_KEY);
       window.location.href = "/";
     },
     redirectToLogin() { return Promise.resolve(); },

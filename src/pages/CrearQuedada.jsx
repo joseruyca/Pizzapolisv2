@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
+import { useAuth } from "@/lib/AuthContext";
 import PizzaMap from "@/components/map/PizzaMap";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -76,7 +77,7 @@ function buildSuggestedTitle(place, vibe) {
 }
 
 export default function CrearQuedada() {
-  const [user, setUser] = useState(null);
+  const { user } = useAuth();
   const [done, setDone] = useState(false);
   const [createdId, setCreatedId] = useState(null);
   const [searchParams] = useSearchParams();
@@ -97,9 +98,6 @@ export default function CrearQuedada() {
     publicar: true,
   });
 
-  useEffect(() => {
-    base44.auth.me().then(setUser).catch(() => null);
-  }, []);
 
   const { data: places = [] } = useQuery({
     queryKey: ["create-plan-places-v4"],
