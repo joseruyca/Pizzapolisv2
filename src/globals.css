@@ -126,3 +126,13 @@ body {
 .map-ui-hidden .leaflet-overlay-pane {
   pointer-events: auto;
 }
+
+
+html, body, #root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  overflow-x: hidden;
+}
