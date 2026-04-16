@@ -1,10 +1,11 @@
 import React from "react";
-import { base44 } from "@/api/base44Client";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { LogIn, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 export default function LoginPrompt({ open, onClose, message }) {
+  const navigate = useNavigate();
   if (!open) return null;
 
   return (
@@ -36,7 +37,7 @@ export default function LoginPrompt({ open, onClose, message }) {
             </p>
             <Button
               className="w-full bg-red-600 hover:bg-red-500 text-white font-medium h-11"
-              onClick={() => base44.auth.redirectToLogin(window.location.href)}
+              onClick={() => navigate(`/auth?next=${encodeURIComponent(window.location.pathname + window.location.search)}`)}
             >
               <LogIn className="w-4 h-4 mr-2" />
               Sign In

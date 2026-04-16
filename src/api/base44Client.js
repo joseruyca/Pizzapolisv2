@@ -1,7 +1,7 @@
 import { seedData } from "@/data/seedData";
 
 const DB_KEY = "pizzapolis_local_db";
-const USER_KEY = "pizzapolis_demo_user";
+const USER_KEY = "pizzapolis_current_user";
 
 const clone = (v) => JSON.parse(JSON.stringify(v));
 const wait = (ms = 40) => new Promise((r) => setTimeout(r, ms));
@@ -248,6 +248,5 @@ export const base44 = {
 
 export const resetLocalDb = () => {
   localStorage.removeItem(DB_KEY);
-  localStorage.removeItem(USER_KEY);
   bootstrap();
 };

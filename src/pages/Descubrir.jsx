@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import {
   AnimatePresence,
@@ -22,6 +22,8 @@ import {
   X,
 } from "lucide-react";
 import { base44 } from "@/api/base44Client";
+import LoginPrompt from "@/components/shared/LoginPrompt";
+import { useAuth } from "@/lib/AuthContext";
 import { createPageUrl } from "@/utils";
 import { formatPrice, getHangoutVibe } from "@/lib/place-helpers";
 
@@ -363,22 +365,20 @@ function SwipeCard({ hangout, disabled, onDecision }) {
 }
 
 export default function Descubrir() {
-  const [user, setUser] = useState(null);
+  const { user } = useAuth();
   const [joinedToast, setJoinedToast] = useState(null);
   const [pendingDecisionIds, setPendingDecisionIds] = useState([]);
+  const [loginPrompt, setLoginPrompt] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [filters, setFilters] = useState({ maxPrice: 10, when: "all", vibe: "all", lateNightOnly: false });
   const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
 
-  useEffect(() => {
-    base44.auth.me().then(setUser).catch(() => null);
-  }, []);
 
   const { data: hangouts = [], isLoading } = useQuery({
     queryKey: ["discover-hangouts-v5", user?.email],
-    enabled: !!user,
+    enabled: true,
     queryFn: async () => {
       const [quedadas, places, users, intereses] = await Promise.all([
         base44.entities.Quedada.list("fecha_hora", 100),
@@ -425,9 +425,15 @@ export default function Descubrir() {
   const current = orderedVisible[0];
 
   const mutate = useMutation({
-    mutationFn: async ({ id, decision }) => base44.functions.invoke("recordarInteres", { quedada_id: id, tipo_interes: decision }),
+    mutationFn: async ({ id, decision }) => {
+      if (!user?.email) throw new Error("auth_required");
+      return base44.functions.invoke("recordarInteres", { quedada_id: id, tipo_interes: decision });
+    },
     onMutate: ({ id }) => setPendingDecisionIds((currentIds) => [...currentIds, id]),
-    onError: (_, vars) => setPendingDecisionIds((currentIds) => currentIds.filter((id) => id !== vars.id)),
+    onError: (error, vars) => {
+      setPendingDecisionIds((currentIds) => currentIds.filter((id) => id !== vars.id));
+      if (error?.message === "auth_required") setLoginPrompt(true);
+    },
     onSuccess: (_, vars) => {
       queryClient.invalidateQueries({ queryKey: ["discover-hangouts-v5", user?.email] });
       queryClient.invalidateQueries({ queryKey: ["my-groups-v6", user?.email] });
@@ -448,7 +454,7 @@ export default function Descubrir() {
     },
   });
 
-  if (!user || isLoading) return <div className="flex min-h-screen items-center justify-center bg-[#060606] text-white">Loading…</div>;
+  if (isLoading) return <div className="flex min-h-screen items-center justify-center bg-[#060606] text-white">Loading…</div>;
 
   const pagePaddingBottom = "max(18px, env(safe-area-inset-bottom))";
 
@@ -468,8 +474,8 @@ export default function Descubrir() {
             <h1 className="mt-6 text-3xl font-black text-white">No more plans right now</h1>
             <p className="mt-3 text-sm leading-7 text-stone-400">When someone proposes a pizza meetup, it will show up here for you to join or skip.</p>
             <div className="mt-6 grid w-full gap-3">
-              <Link to={createPageUrl("CrearQuedada")} className="inline-flex h-12 items-center justify-center rounded-2xl bg-red-600 text-sm font-bold text-white">Create a plan</Link>
-              <Link to={createPageUrl("MisMatches") + (joinedToast ? `?focus=${joinedToast.id}` : "")} className="inline-flex h-12 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] text-sm font-bold text-stone-200">See my groups</Link>
+              {user ? <Link to={createPageUrl("CrearQuedada")} className="inline-flex h-12 items-center justify-center rounded-2xl bg-red-600 text-sm font-bold text-white">Create a plan</Link> : <button type="button" onClick={() => setLoginPrompt(true)} className="inline-flex h-12 items-center justify-center rounded-2xl bg-red-600 text-sm font-bold text-white">Create a plan</button>}
+              {user ? <Link to={createPageUrl("MisMatches") + (joinedToast ? `?focus=${joinedToast.id}` : "")} className="inline-flex h-12 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] text-sm font-bold text-stone-200">See my groups</Link> : <button type="button" onClick={() => setLoginPrompt(true)} className="inline-flex h-12 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] text-sm font-bold text-stone-200">Sign in to join plans</button>}
             </div>
           </div>
         </div>
@@ -516,6 +522,7 @@ export default function Descubrir() {
       </div>
 
       <FilterSheet open={filtersOpen} filters={filters} setFilters={setFilters} onClose={() => setFiltersOpen(false)} />
+      <LoginPrompt open={loginPrompt} onClose={() => setLoginPrompt(false)} message="Create an account to join pizza plans, chat with the group and keep your favorites." />
     </>
   );
 }

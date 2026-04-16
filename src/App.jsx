@@ -1,21 +1,12 @@
-import { Toaster } from "@/components/ui/toaster"
-import { QueryClientProvider } from '@tanstack/react-query'
-import { queryClientInstance } from '@/lib/query-client'
-import { pagesConfig } from './pages.config'
-import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import { Toaster } from '@/components/ui/toaster';
+import { QueryClientProvider } from '@tanstack/react-query';
+import { queryClientInstance } from '@/lib/query-client';
+import { pagesConfig } from './pages.config';
+import { BrowserRouter as Router, Route, Routes, Navigate, useLocation } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
-
-const { Pages, Layout, mainPage } = pagesConfig;
-const mainPageKey = mainPage ?? Object.keys(Pages)[0];
-const MainPage = mainPageKey ? Pages[mainPageKey] : <></>;
-
-const LayoutWrapper = ({ children, currentPageName }) => Layout ?
-  <Layout currentPageName={currentPageName}>{children}</Layout>
-  : <>{children}</>;
-
-// Import new pages
+import AuthPage from './pages/Auth';
 import Favorites from './pages/Favorites';
 import Trending from './pages/Trending';
 import Admin from './pages/Admin';
@@ -25,107 +16,115 @@ import Recomendaciones from './pages/Recomendaciones';
 import Leaderboards from './pages/Leaderboards';
 import Guides from './pages/Guides';
 
-const AuthenticatedApp = () => {
-  const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
+const { Pages, Layout, mainPage } = pagesConfig;
+const mainPageKey = mainPage ?? Object.keys(Pages)[0];
+const MainPage = mainPageKey ? Pages[mainPageKey] : () => null;
 
-  // Show loading spinner while checking app public settings or auth
-  if (isLoadingPublicSettings || isLoadingAuth) {
-    return (
-      <div className="fixed inset-0 flex items-center justify-center">
-        <div className="w-8 h-8 border-4 border-slate-200 border-t-slate-800 rounded-full animate-spin"></div>
-      </div>
-    );
-  }
+const LayoutWrapper = ({ children, currentPageName }) =>
+  Layout ? <Layout currentPageName={currentPageName}>{children}</Layout> : <>{children}</>;
 
-  // Handle authentication errors
-  if (authError) {
-    if (authError.type === 'user_not_registered') {
-      return <UserNotRegisteredError />;
-    } else if (authError.type === 'auth_required') {
-      // Redirect to login automatically
-      navigateToLogin();
-      return null;
-    }
-  }
-
-  // Render the main app
+function LoadingScreen() {
   return (
-    <Routes>
-      <Route path="/" element={
-        <LayoutWrapper currentPageName={mainPageKey}>
-          <MainPage />
-        </LayoutWrapper>
-      } />
-      {Object.entries(Pages).map(([path, Page]) => (
-        <Route
-          key={path}
-          path={`/${path}`}
-          element={
+    <div className="fixed inset-0 grid place-items-center bg-[#080808]">
+      <div className="h-8 w-8 animate-spin rounded-full border-4 border-stone-700 border-t-red-500" />
+    </div>
+  );
+}
+
+function ProtectedRoute({ children }) {
+  const { isLoadingAuth, isAuthenticated, authError } = useAuth();
+  const location = useLocation();
+
+  if (isLoadingAuth) return <LoadingScreen />;
+  if (authError?.type === 'user_not_registered') return <UserNotRegisteredError />;
+  if (!isAuthenticated) {
+    const next = encodeURIComponent(location.pathname + location.search);
+    return <Navigate to={`/auth?next=${next}`} replace />;
+  }
+  return children;
+}
+
+const PUBLIC_PAGES = new Set(['Landing', 'Home', 'Descubrir']);
+
+function AdminRoute({ children }) {
+  const { role } = useAuth();
+  if (role !== 'admin') return <Navigate to="/Home" replace />;
+  return children;
+}
+
+function ProtectedPage({ pageName, Component }) {
+  return (
+    <ProtectedRoute>
+      <LayoutWrapper currentPageName={pageName}>
+        <Component />
+      </LayoutWrapper>
+    </ProtectedRoute>
+  );
+}
+
+const AppRoutes = () => (
+  <Routes>
+    <Route path="/auth" element={<AuthPage />} />
+    <Route path="/" element={<Navigate to={`/${mainPageKey}`} replace />} />
+    <Route
+      path={`/${mainPageKey}`}
+      element={
+        PUBLIC_PAGES.has(mainPageKey) ? (
+          <LayoutWrapper currentPageName={mainPageKey}>
+            <MainPage />
+          </LayoutWrapper>
+        ) : (
+          <ProtectedPage pageName={mainPageKey} Component={MainPage} />
+        )
+      }
+    />
+    {Object.entries(Pages).map(([path, Page]) => (
+      <Route
+        key={path}
+        path={`/${path}`}
+        element={
+          PUBLIC_PAGES.has(path) ? (
             <LayoutWrapper currentPageName={path}>
               <Page />
             </LayoutWrapper>
-          }
-        />
-      ))}
-      {/* New routes with layout wrapper */}
-      <Route path="/Favorites" element={
-        <LayoutWrapper currentPageName="Favorites">
-          <Favorites />
-        </LayoutWrapper>
-      } />
-      <Route path="/Trending" element={
-        <LayoutWrapper currentPageName="Trending">
-          <Trending />
-        </LayoutWrapper>
-      } />
-      <Route path="/Admin" element={
-        <LayoutWrapper currentPageName="Admin">
-          <Admin />
-        </LayoutWrapper>
-      } />
-      <Route path="/MyLists" element={
-        <LayoutWrapper currentPageName="MyLists">
-          <MyLists />
-        </LayoutWrapper>
-      } />
-      <Route path="/Stats" element={
-        <LayoutWrapper currentPageName="Stats">
-          <Stats />
-        </LayoutWrapper>
-      } />
-      <Route path="/Recomendaciones" element={
-        <LayoutWrapper currentPageName="Recomendaciones">
-          <Recomendaciones />
-        </LayoutWrapper>
-      } />
-      <Route path="/Leaderboards" element={
-        <LayoutWrapper currentPageName="Leaderboards">
-          <Leaderboards />
-        </LayoutWrapper>
-      } />
-      <Route path="/Guides" element={
-        <LayoutWrapper currentPageName="Guides">
-          <Guides />
-        </LayoutWrapper>
-      } />
-      <Route path="*" element={<PageNotFound />} />
-    </Routes>
-  );
-};
+          ) : (
+            <ProtectedPage pageName={path} Component={Page} />
+          )
+        }
+      />
+    ))}
+    <Route path="/Favorites" element={<ProtectedPage pageName="Favorites" Component={Favorites} />} />
+    <Route path="/Trending" element={<LayoutWrapper currentPageName="Trending"><Trending /></LayoutWrapper>} />
+    <Route
+      path="/Admin"
+      element={
+        <ProtectedRoute>
+          <AdminRoute>
+            <LayoutWrapper currentPageName="Admin">
+              <Admin />
+            </LayoutWrapper>
+          </AdminRoute>
+        </ProtectedRoute>
+      }
+    />
+    <Route path="/MyLists" element={<ProtectedPage pageName="MyLists" Component={MyLists} />} />
+    <Route path="/Stats" element={<ProtectedPage pageName="Stats" Component={Stats} />} />
+    <Route path="/Recomendaciones" element={<LayoutWrapper currentPageName="Recomendaciones"><Recomendaciones /></LayoutWrapper>} />
+    <Route path="/Leaderboards" element={<LayoutWrapper currentPageName="Leaderboards"><Leaderboards /></LayoutWrapper>} />
+    <Route path="/Guides" element={<LayoutWrapper currentPageName="Guides"><Guides /></LayoutWrapper>} />
+    <Route path="*" element={<PageNotFound />} />
+  </Routes>
+);
 
-
-function App() {
-
+export default function App() {
   return (
     <AuthProvider>
       <QueryClientProvider client={queryClientInstance}>
         <Router>
-          <AuthenticatedApp />
+          <AppRoutes />
         </Router>
         <Toaster />
       </QueryClientProvider>
     </AuthProvider>
-  )
+  );
 }
-
-export default App
