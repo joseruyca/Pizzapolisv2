@@ -27,6 +27,13 @@ export default function Layout({ children, currentPageName }) {
   const hideHeader = currentPageName === 'Landing' || currentPageName === 'Descubrir';
   const hideBottomNav = currentPageName === 'Descubrir';
 
+  const publicPages = new Set(['Landing', 'Home', 'Descubrir']);
+
+  const navTarget = (page) => {
+    if (publicPages.has(page) || isAuthenticated) return createPageUrl(page);
+    return `/auth?next=${encodeURIComponent(createPageUrl(page))}`;
+  };
+
   return (
     <div className="app-shell">
       {!hideHeader && (
@@ -47,7 +54,7 @@ export default function Layout({ children, currentPageName }) {
                 return (
                   <Link
                     key={item.page}
-                    to={createPageUrl(item.page)}
+                    to={navTarget(item.page)}
                     className={`inline-flex h-11 items-center gap-2 rounded-2xl px-4 text-sm font-semibold transition ${
                       item.accent
                         ? 'bg-red-600 text-white hover:bg-red-500'
@@ -92,7 +99,7 @@ export default function Layout({ children, currentPageName }) {
                         return (
                           <Link
                             key={item.page}
-                            to={createPageUrl(item.page)}
+                            to={navTarget(item.page)}
                             onClick={() => setMenuOpen(false)}
                             className="flex items-center gap-3 rounded-2xl px-4 py-3 text-stone-300 transition hover:bg-white/5 hover:text-white"
                           >
@@ -136,7 +143,7 @@ export default function Layout({ children, currentPageName }) {
               const Icon = item.icon;
               const active = currentPageName === item.page;
               return (
-                <Link key={item.page} to={createPageUrl(item.page)} className="flex flex-col items-center justify-center gap-1 text-center no-tap-highlight">
+                <Link key={item.page} to={navTarget(item.page)} className="flex flex-col items-center justify-center gap-1 text-center no-tap-highlight">
                   <div className={`flex h-11 w-11 items-center justify-center rounded-2xl ${item.accent ? 'bg-red-600 text-white shadow-lg shadow-red-900/30' : active ? 'bg-white/10 text-white' : 'text-stone-500'}`}>
                     <Icon className="h-5 w-5" />
                   </div>
