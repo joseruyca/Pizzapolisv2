@@ -7,6 +7,7 @@ import { BrowserRouter as Router, Route, Routes, Navigate, useLocation } from 'r
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import AuthPage from './pages/Auth';
+import AuthConfirm from './pages/AuthConfirm';
 import Favorites from './pages/Favorites';
 import Trending from './pages/Trending';
 import Admin from './pages/Admin';
@@ -67,6 +68,7 @@ const lowerAlias = (path) => `/${path.toLowerCase()}`;
 const AppRoutes = () => (
   <Routes>
     <Route path="/auth" element={<AuthPage />} />
+    <Route path="/auth/confirm" element={<AuthConfirm />} />
     <Route path="/" element={<Navigate to={lowerAlias(mainPageKey)} replace />} />
     <Route path={lowerAlias(mainPageKey)} element={PUBLIC_PAGES.has(mainPageKey) ? (<LayoutWrapper currentPageName={mainPageKey}><MainPage /></LayoutWrapper>) : (<ProtectedPage pageName={mainPageKey} Component={MainPage} />)} />
     <Route path={`/${mainPageKey}`} element={<Navigate to={lowerAlias(mainPageKey)} replace />} />

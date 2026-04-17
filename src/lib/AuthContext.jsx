@@ -57,6 +57,13 @@ export const AuthProvider = ({ children }) => {
   const [authError, setAuthError] = useState(null);
   const [appPublicSettings] = useState({ localMode: false });
 
+  useEffect(() => {
+    const timeout = window.setTimeout(() => {
+      setIsLoadingAuth((current) => current ? false : current);
+    }, 7000);
+    return () => window.clearTimeout(timeout);
+  }, []);
+
   const syncSession = useCallback(async (sessionUser) => {
     if (!isSupabaseConfigured || !sessionUser) {
       bridgeUser(null, null);
@@ -121,7 +128,7 @@ export const AuthProvider = ({ children }) => {
     if (!supabase) throw new Error('Supabase no está configurado.');
 
     const baseUrl = import.meta.env.VITE_APP_URL || window.location.origin;
-    const redirectTo = `${baseUrl.replace(/\/$/, '')}/auth`;
+    const redirectTo = `${baseUrl.replace(/\/$/, '')}/auth/confirm`;
 
     const { error } = await supabase.auth.signUp({
       email,

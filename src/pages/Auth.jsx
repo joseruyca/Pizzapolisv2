@@ -28,7 +28,7 @@ export default function AuthPage() {
   if (isLoadingAuth) {
     return <div className="min-h-screen grid place-items-center bg-[#080808]"><Loader2 className="h-8 w-8 animate-spin text-red-500" /></div>;
   }
-  const nextUrl = searchParams.get('next') || '/Home';
+  const nextUrl = searchParams.get('next') || '/home';
   if (isAuthenticated) return <Navigate to={nextUrl} replace />;
 
   const onSubmit = async (e) => {
@@ -41,7 +41,7 @@ export default function AuthPage() {
         await signIn(email, password);
       } else {
         await signUp({ email, password, fullName });
-        setSuccess('Cuenta creada. Revisa tu email y confirma tu cuenta para continuar.');
+        setSuccess('Cuenta creada. Revisa tu email y confirma tu cuenta para continuar. Después volverás a Pizzapolis automáticamente.');
       }
     } catch (error) {
       setLocalError(error.message || 'No se pudo completar la autenticación.');
@@ -86,7 +86,7 @@ export default function AuthPage() {
           </Button>
         </form>
 
-        <Link to="/Home" className="mt-4 inline-flex h-11 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.03] text-sm font-semibold text-stone-200 hover:bg-white/[0.05]">Seguir como visitante</Link>
+        <Link to="/home" className="mt-4 inline-flex h-11 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.03] text-sm font-semibold text-stone-200 hover:bg-white/[0.05]">Seguir como visitante</Link>
       </div>
     </div>
   );
