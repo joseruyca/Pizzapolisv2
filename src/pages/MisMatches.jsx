@@ -156,6 +156,15 @@ export default function MisMatches() {
   const now = new Date();
   const upcoming = useMemo(() => groups.filter((item) => new Date(item.fecha_hora) >= now), [groups]);
   const history = useMemo(() => groups.filter((item) => new Date(item.fecha_hora) < now), [groups]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    window.dispatchEvent(new CustomEvent('pizzapolis:group-chat-state', { detail: { open: Boolean(mobileChatOpen) } }));
+
+    return () => {
+      window.dispatchEvent(new CustomEvent('pizzapolis:group-chat-state', { detail: { open: false } }));
+    };
+  }, [mobileChatOpen]);
   const allVisible = useMemo(() => [...upcoming, ...history], [upcoming, history]);
   const visible = tab === "upcoming" ? upcoming : history;
   const selected = visible.find((item) => item.id === selectedId) || allVisible.find((item) => item.id === selectedId) || visible[0] || null;

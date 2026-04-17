@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { Map, Flame, PlusCircle, Users, User, Menu, LogOut, Bell, ChevronRight, Shield } from 'lucide-react';
@@ -9,7 +9,23 @@ import { useAuth } from '@/lib/AuthContext';
 
 export default function Layout({ children, currentPageName }) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [groupChatOpen, setGroupChatOpen] = useState(false);
   const { user, role, logout, isAuthenticated } = useAuth();
+
+  useEffect(() => {
+    const handleChatState = (event) => {
+      setGroupChatOpen(Boolean(event?.detail?.open));
+    };
+
+    window.addEventListener('pizzapolis:group-chat-state', handleChatState);
+    return () => window.removeEventListener('pizzapolis:group-chat-state', handleChatState);
+  }, []);
+
+  useEffect(() => {
+    if (currentPageName !== 'MisMatches') {
+      setGroupChatOpen(false);
+    }
+  }, [currentPageName]);
 
   const publicNavItems = [
     { label: 'Mapa', page: 'Home', icon: Map },
@@ -25,7 +41,7 @@ export default function Layout({ children, currentPageName }) {
   const navItems = [...publicNavItems, ...privateNavItems];
   const menuItems = role === 'admin' && isAuthenticated ? [...navItems, { label: 'Admin', page: 'Admin', icon: Shield }] : navItems;
   const hideHeader = currentPageName === 'Landing' || currentPageName === 'Descubrir';
-  const hideBottomNav = currentPageName === 'Descubrir' || currentPageName === 'MisMatches';
+  const hideBottomNav = currentPageName === 'Descubrir' || (currentPageName === 'MisMatches' && groupChatOpen);
   const publicPages = new Set(['Landing', 'Home', 'Descubrir']);
   const viewportPages = new Set(['Landing']);
 
