@@ -24,8 +24,8 @@ export default function Home() {
   const [addPinOpen, setAddPinOpen] = useState(false);
   const [loginPrompt, setLoginPrompt] = useState(false);
   const [mapInstance, setMapInstance] = useState(null);
-  const [mapStyle, setMapStyle] = useState("dark");
-  const [mapSettings, setMapSettings] = useState({ showOverview: false, styleId: "dark" });
+  const [mapStyle, setMapStyle] = useState("positron");
+  const [mapSettings, setMapSettings] = useState({ showOverview: false, styleId: "positron" });
   const [mapBounds, setMapBounds] = useState(null);
   const [hasMapMoved, setHasMapMoved] = useState(false);
   const [useMapArea, setUseMapArea] = useState(false);
@@ -197,11 +197,11 @@ export default function Home() {
 
         <button
           onClick={handleAddPin}
-          className="absolute right-4 bottom-28 z-[650] flex h-14 items-center justify-center gap-2 rounded-full bg-red-600 px-5 text-white shadow-[0_14px_34px_rgba(220,38,38,0.45)] hover:bg-red-500"
-          aria-label="Add Site"
+          className="absolute right-4 bottom-28 z-[650] flex h-14 items-center justify-center gap-2 rounded-full bg-[#e25545] px-5 text-white shadow-[0_14px_34px_rgba(226,85,69,0.32)] hover:bg-[#cf493a]"
+          aria-label="Add Spot"
         >
           <MapPin className="h-5 w-5" />
-          <span className="text-sm font-bold">Add Site</span>
+          <span className="text-sm font-bold">Add Spot</span>
         </button>
 
         <MapBottomNav onAddPin={handleAddPin} />

@@ -72,7 +72,7 @@ function FilterChip({ active, children, onClick }) {
       type="button"
       onClick={onClick}
       className={`rounded-full px-4 py-2.5 text-sm font-semibold transition ${
-        active ? "bg-red-500 text-white shadow-[0_0_24px_rgba(239,68,68,0.45)]" : "bg-white/[0.06] text-stone-300"
+        active ? "bg-[#efbf3a] text-[#141414] shadow-[0_10px_26px_rgba(239,191,58,0.22)]" : "bg-white text-[#6d665b] border border-black/8"
       }`}
     >
       {children}
@@ -104,7 +104,7 @@ function FilterSheet({ open, filters, setFilters, onClose }) {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 z-[1600] bg-black/72 backdrop-blur-sm"
+        className="fixed inset-0 z-[1600] bg-[#141414]/28 backdrop-blur-sm"
         onClick={onClose}
       >
         <motion.div
@@ -112,20 +112,20 @@ function FilterSheet({ open, filters, setFilters, onClose }) {
           animate={{ y: 0, opacity: 1 }}
           exit={{ y: 16, opacity: 0.85 }}
           transition={{ type: "spring", stiffness: 280, damping: 28 }}
-          className="absolute inset-x-4 top-5 bottom-5 mx-auto max-w-md overflow-hidden rounded-[28px] border border-white/10 bg-[#151515] shadow-[0_30px_90px_rgba(0,0,0,0.62)]"
+          className="absolute inset-x-4 top-5 bottom-5 mx-auto max-w-md overflow-hidden rounded-[28px] border border-black/8 bg-[#fffaf2] shadow-[0_30px_90px_rgba(39,29,14,0.18)]"
           onClick={(e) => e.stopPropagation()}
         >
           <div className="flex h-full flex-col">
-            <div className="flex items-center justify-between border-b border-white/8 px-5 py-5 shrink-0">
-              <h2 className="text-2xl font-black text-white">Filters</h2>
-              <button type="button" onClick={onClose} className="text-stone-400 transition hover:text-white">
+            <div className="flex items-center justify-between border-b border-black/8 px-5 py-5 shrink-0">
+              <h2 className="text-2xl font-black text-[#141414]">Filters</h2>
+              <button type="button" onClick={onClose} className="text-[#8e8578] transition hover:text-[#141414]">
                 <X className="h-5 w-5" />
               </button>
             </div>
 
             <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4 space-y-7">
               <div>
-                <div className="mb-4 flex items-center gap-2 text-sm font-bold text-white"><DollarSign className="h-4 w-4 text-red-400" />Max Slice Price</div>
+                <div className="mb-4 flex items-center gap-2 text-sm font-bold text-[#141414]"><DollarSign className="h-4 w-4 text-[#dbab23]" />Max Slice Price</div>
                 <div className="px-1">
                   <input
                     type="range"
@@ -136,16 +136,16 @@ function FilterSheet({ open, filters, setFilters, onClose }) {
                     onChange={(event) => setFilters((current) => ({ ...current, maxPrice: Number(event.target.value) }))}
                     className="w-full accent-red-500"
                   />
-                  <div className="mt-3 flex items-center justify-between text-sm text-stone-500">
+                  <div className="mt-3 flex items-center justify-between text-sm text-[#8e8578]">
                     <span>$3</span>
-                    <span className="text-lg font-black text-white">${filters.maxPrice.toFixed(0)}</span>
+                    <span className="text-lg font-black text-[#141414]">${filters.maxPrice.toFixed(0)}</span>
                     <span>$15</span>
                   </div>
                 </div>
               </div>
 
               <div>
-                <div className="mb-4 flex items-center gap-2 text-sm font-bold text-white"><Clock3 className="h-4 w-4 text-red-400" />When</div>
+                <div className="mb-4 flex items-center gap-2 text-sm font-bold text-[#141414]"><Clock3 className="h-4 w-4 text-[#dbab23]" />When</div>
                 <div className="flex flex-wrap gap-3">
                   <FilterChip active={filters.when === "today"} onClick={() => toggleWhen("today")}>Today</FilterChip>
                   <FilterChip active={filters.when === "tomorrow"} onClick={() => toggleWhen("tomorrow")}>Tomorrow</FilterChip>
@@ -153,16 +153,16 @@ function FilterSheet({ open, filters, setFilters, onClose }) {
                 </div>
               </div>
 
-              <div className="rounded-[22px] border border-white/8 bg-white/[0.03] px-4 py-4">
+              <div className="rounded-[22px] border border-black/8 bg-white px-4 py-4">
                 <div className="flex items-center justify-between gap-4">
                   <div>
-                    <div className="flex items-center gap-2 text-base font-bold text-white"><Moon className="h-4 w-4 text-stone-300" />Late Night Only</div>
-                    <div className="mt-1 text-sm text-stone-400">After 9 PM</div>
+                    <div className="flex items-center gap-2 text-base font-bold text-[#141414]"><Moon className="h-4 w-4 text-[#6d665b]" />Late Night Only</div>
+                    <div className="mt-1 text-sm text-[#8e8578]">After 9 PM</div>
                   </div>
                   <button
                     type="button"
                     onClick={() => setFilters((current) => ({ ...current, lateNightOnly: !current.lateNightOnly }))}
-                    className={`relative h-7 w-12 rounded-full transition ${filters.lateNightOnly ? "bg-red-500" : "bg-white/12"}`}
+                    className={`relative h-7 w-12 rounded-full transition ${filters.lateNightOnly ? "bg-[#3e9444]" : "bg-black/10"}`}
                   >
                     <span className={`absolute top-1 h-5 w-5 rounded-full bg-white transition ${filters.lateNightOnly ? "left-6" : "left-1"}`} />
                   </button>
@@ -170,32 +170,32 @@ function FilterSheet({ open, filters, setFilters, onClose }) {
               </div>
 
               <div>
-                <div className="mb-4 flex items-center gap-2 text-sm font-bold text-white"><Sparkles className="h-4 w-4 text-red-400" />Vibes</div>
+                <div className="mb-4 flex items-center gap-2 text-sm font-bold text-[#141414]"><Sparkles className="h-4 w-4 text-[#dbab23]" />Vibes</div>
                 <div className="grid grid-cols-2 gap-3">
                   {vibes.map(([value, icon]) => (
                     <button
                       key={value}
                       type="button"
                       onClick={() => toggleVibe(value)}
-                      className={`rounded-[20px] border px-4 py-5 text-left transition ${filters.vibe === value ? "border-red-500/30 bg-red-500/10" : "border-white/8 bg-white/[0.03]"}`}
+                      className={`rounded-[20px] border px-4 py-5 text-left transition ${filters.vibe === value ? "border-[#f1df9c] bg-[#fff6de]" : "border-black/8 bg-white"}`}
                     >
                       <div className="text-2xl">{icon}</div>
-                      <div className="mt-3 text-base font-semibold text-white">{value}</div>
+                      <div className="mt-3 text-base font-semibold text-[#141414]">{value}</div>
                     </button>
                   ))}
                 </div>
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3 border-t border-white/8 px-5 py-4 shrink-0 bg-[#151515]">
+            <div className="grid grid-cols-2 gap-3 border-t border-black/8 px-5 py-4 shrink-0 bg-[#fffaf2]">
               <button
                 type="button"
                 onClick={() => setFilters({ maxPrice: 10, when: "all", vibe: "all", lateNightOnly: false })}
-                className="h-14 rounded-2xl bg-white/[0.06] text-base font-bold text-stone-300"
+                className="h-14 rounded-2xl border border-black/8 bg-white text-base font-bold text-[#6d665b]"
               >
                 Reset
               </button>
-              <button type="button" onClick={onClose} className="h-14 rounded-2xl bg-red-500 text-base font-bold text-white shadow-[0_0_28px_rgba(239,68,68,0.38)]">
+              <button type="button" onClick={onClose} className="h-14 rounded-2xl bg-[#efbf3a] text-base font-bold text-[#141414] shadow-[0_10px_26px_rgba(239,191,58,0.22)]">
                 Apply Filters
               </button>
             </div>
@@ -269,8 +269,8 @@ function SwipeCard({ hangout, disabled, onDecision }) {
   return (
     <div className="flex h-full flex-col overflow-hidden">
       <div className="relative flex-1 min-h-0">
-        <motion.div className="pointer-events-none absolute left-5 top-5 z-20 rounded-2xl border border-red-400/80 bg-red-500/14 px-4 py-2 text-sm font-black uppercase tracking-[0.22em] text-red-100" style={{ opacity: nopeOpacity, scale: nopeScale }}>NOPE</motion.div>
-        <motion.div className="pointer-events-none absolute right-5 top-5 z-20 rounded-2xl border border-emerald-400/80 bg-emerald-500/14 px-4 py-2 text-sm font-black uppercase tracking-[0.22em] text-emerald-100" style={{ opacity: joinOpacity, scale: joinScale }}>JOIN</motion.div>
+        <motion.div className="pointer-events-none absolute left-5 top-5 z-20 rounded-2xl border border-[#f0cdc7] bg-[#fff0ec] px-4 py-2 text-sm font-black uppercase tracking-[0.22em] text-[#b84234]" style={{ opacity: nopeOpacity, scale: nopeScale }}>NOPE</motion.div>
+        <motion.div className="pointer-events-none absolute right-5 top-5 z-20 rounded-2xl border border-[#d8ebd4] bg-[#eef7ec] px-4 py-2 text-sm font-black uppercase tracking-[0.22em] text-[#2f7a35]" style={{ opacity: joinOpacity, scale: joinScale }}>JOIN</motion.div>
 
         <motion.div
           drag={disabled ? false : "x"}
@@ -286,55 +286,55 @@ function SwipeCard({ hangout, disabled, onDecision }) {
             if (info.offset.x < -110) return finishVote("dislike");
             controls.start({ x: 0, rotate: 0, transition: { type: "spring", stiffness: 380, damping: 32 } });
           }}
-          className="relative h-full overflow-hidden rounded-[30px] border bg-[#121212] shadow-[0_30px_70px_rgba(0,0,0,0.42)]"
+          className="relative h-full overflow-hidden rounded-[30px] border border-black/8 bg-[#fffaf2] shadow-[0_30px_70px_rgba(39,29,14,0.14)]"
         >
           <motion.div className="absolute inset-0 z-0" style={{ background: overlay }} />
           <div className="relative z-10 flex h-full flex-col overflow-hidden">
-            <div className="relative h-[30%] min-h-[150px] shrink-0 overflow-hidden border-b border-white/8">
+            <div className="relative h-[30%] min-h-[150px] shrink-0 overflow-hidden border-b border-black/8">
               <img src={item.cover} alt={item.placeName} className="h-full w-full object-cover" />
-              <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-black/70" />
-              <div className="absolute left-4 top-4 inline-flex max-w-[80%] items-center gap-2 rounded-full bg-black/70 px-3 py-2 text-xs font-bold uppercase tracking-[0.16em] text-white backdrop-blur-md">
+              <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-white/96" />
+              <div className="absolute left-4 top-4 inline-flex max-w-[80%] items-center gap-2 rounded-full bg-white/92 px-3 py-2 text-xs font-bold uppercase tracking-[0.16em] text-[#141414] backdrop-blur-md">
                 <span>{item.vibeEmoji}</span>
                 <span className="truncate">{item.vibe}</span>
               </div>
             </div>
 
             <div className="flex min-h-0 flex-1 flex-col px-5 pb-5 pt-4">
-              <div className="flex items-start justify-between gap-3 text-[12px] font-black uppercase tracking-[0.18em] text-stone-300">
+              <div className="flex items-start justify-between gap-3 text-[12px] font-black uppercase tracking-[0.18em] text-[#6d665b]">
                 <div className="leading-5">{item.when.toLocaleDateString([], { day: "2-digit", month: "short" }).toUpperCase()} · {item.when.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</div>
                 <div className="rounded-full bg-emerald-500/12 px-3 py-1 text-emerald-200">{item.spotsLeft} spots left</div>
               </div>
 
-              <h1 className="mt-3 text-[clamp(1.65rem,5vw,2.3rem)] font-black leading-[0.94] tracking-[-0.045em] text-white line-clamp-2">{item.title}</h1>
+              <h1 className="mt-3 text-[clamp(1.65rem,5vw,2.3rem)] font-black leading-[0.94] tracking-[-0.045em] text-[#141414] line-clamp-2">{item.title}</h1>
 
-              <div className="mt-3 flex items-start gap-2 text-[15px] text-stone-100">
+              <div className="mt-3 flex items-start gap-2 text-[15px] text-[#141414]">
                 <MapPin className="mt-1 h-4 w-4 shrink-0 text-red-400" />
                 <div className="min-w-0">
-                  <div className="truncate font-semibold text-white">{item.placeName}</div>
-                  <div className="truncate text-sm text-stone-400">{item.neighborhood}</div>
+                  <div className="truncate font-semibold text-[#141414]">{item.placeName}</div>
+                  <div className="truncate text-sm text-[#6d665b]">{item.neighborhood}</div>
                 </div>
               </div>
 
               <div className="mt-4 grid grid-cols-2 gap-3">
-                <div className="rounded-2xl bg-white/[0.04] px-3 py-3">
-                  <div className="text-[11px] font-bold uppercase tracking-[0.16em] text-stone-500">Price</div>
-                  <div className="mt-1 text-lg font-black text-white">{item.priceLabel}</div>
+                <div className="rounded-2xl border border-black/8 bg-[#f8f3ea] px-3 py-3">
+                  <div className="text-[11px] font-bold uppercase tracking-[0.16em] text-[#8e8578]">Price</div>
+                  <div className="mt-1 text-lg font-black text-[#141414]">{item.priceLabel}</div>
                 </div>
-                <div className="rounded-2xl bg-white/[0.04] px-3 py-3">
-                  <div className="text-[11px] font-bold uppercase tracking-[0.16em] text-stone-500">People</div>
-                  <div className="mt-1 text-lg font-black text-white">{item.joinedCount} / {item.maxParticipants || item.joinedCount}</div>
+                <div className="rounded-2xl border border-black/8 bg-[#f8f3ea] px-3 py-3">
+                  <div className="text-[11px] font-bold uppercase tracking-[0.16em] text-[#8e8578]">People</div>
+                  <div className="mt-1 text-lg font-black text-[#141414]">{item.joinedCount} / {item.maxParticipants || item.joinedCount}</div>
                 </div>
               </div>
 
-              <p className="mt-4 text-[15px] leading-6 text-stone-200 flex-1 min-h-0 overflow-hidden line-clamp-4">{item.description}</p>
+              <p className="mt-4 text-[15px] leading-6 text-[#5f584e] flex-1 min-h-0 overflow-hidden line-clamp-4">{item.description}</p>
 
-              <div className="mt-4 flex items-center gap-3 border-t border-white/10 pt-4">
-                <div className={`flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-br ${item.host?.avatar_color || "from-orange-500 to-red-500"} text-sm font-bold text-white shadow-lg`}>
+              <div className="mt-4 flex items-center gap-3 border-t border-black/8 pt-4">
+                <div className={`flex h-11 w-11 items-center justify-center rounded-full bg-[#efbf3a] text-sm font-bold text-[#141414] shadow-lg`}>
                   {avatarLabel(item.host) || avatarLabel({ full_name: item.hostName })}
                 </div>
                 <div className="min-w-0">
-                  <div className="text-xs text-stone-500">Hosted by</div>
-                  <div className="truncate font-bold text-white">{item.hostName}</div>
+                  <div className="text-xs text-[#8e8578]">Hosted by</div>
+                  <div className="truncate font-bold text-[#141414]">{item.hostName}</div>
                 </div>
               </div>
             </div>
@@ -347,7 +347,7 @@ function SwipeCard({ hangout, disabled, onDecision }) {
           type="button"
           disabled={disabled}
           onClick={() => finishVote("dislike")}
-          className="grid h-14 w-14 place-items-center rounded-full border border-white/10 bg-white/[0.05] text-stone-200 transition hover:border-red-400/40 hover:text-red-200 disabled:opacity-60"
+          className="grid h-14 w-14 place-items-center rounded-full border border-black/8 bg-white text-[#141414] transition hover:border-[#f0cdc7] hover:text-[#b84234] disabled:opacity-60"
         >
           <X className="h-6 w-6" />
         </button>
@@ -355,7 +355,7 @@ function SwipeCard({ hangout, disabled, onDecision }) {
           type="button"
           disabled={disabled}
           onClick={() => finishVote("like")}
-          className="grid h-16 w-16 place-items-center rounded-full bg-emerald-500 text-white shadow-[0_0_36px_rgba(16,185,129,0.32)] transition hover:scale-[1.02] disabled:opacity-60"
+          className="grid h-16 w-16 place-items-center rounded-full bg-[#3e9444] text-white shadow-[0_0_36px_rgba(62,148,68,0.22)] transition hover:scale-[1.02] disabled:opacity-60"
         >
           <Check className="h-8 w-8" />
         </button>
@@ -454,28 +454,28 @@ export default function Descubrir() {
     },
   });
 
-  if (isLoading) return <div className="flex min-h-screen items-center justify-center bg-[#060606] text-white">Loading…</div>;
+  if (isLoading) return <div className="flex min-h-screen items-center justify-center bg-[#f4efe6] text-[#141414]">Cargando…</div>;
 
   const pagePaddingBottom = "max(18px, env(safe-area-inset-bottom))";
 
   if (!current) {
     return (
-      <div className="h-[100dvh] overflow-hidden bg-[#060606] px-4 pt-4" style={{ paddingBottom: pagePaddingBottom }}>
+      <div className="h-[100dvh] overflow-hidden bg-[#f4efe6] px-4 pt-4" style={{ paddingBottom: pagePaddingBottom }}>
         <div className="mx-auto flex h-full max-w-md flex-col overflow-hidden">
           <div className="mb-4 flex items-center justify-between">
             <div>
-              <div className="text-[1.4rem] font-black text-white">Discover Plans</div>
-              <div className="mt-1 text-sm text-stone-400">Nothing new right now</div>
+              <div className="text-[1.4rem] font-black text-[#141414]">Descubrir planes</div>
+              <div className="mt-1 text-sm text-[#6d665b]">Ahora mismo no hay planes nuevos</div>
             </div>
-            <button type="button" onClick={() => navigate(-1)} className="grid h-11 w-11 place-items-center rounded-full border border-white/10 bg-white/[0.04] text-stone-200"><ChevronLeft className="h-5 w-5" /></button>
+            <button type="button" onClick={() => navigate(-1)} className="grid h-11 w-11 place-items-center rounded-full border border-black/8 bg-white text-[#141414]"><ChevronLeft className="h-5 w-5" /></button>
           </div>
-          <div className="flex flex-1 flex-col items-center justify-center rounded-[30px] border border-white/10 bg-[#111] p-8 text-center">
-            <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-[28px] bg-white/[0.04] text-4xl">🍕</div>
-            <h1 className="mt-6 text-3xl font-black text-white">No more plans right now</h1>
-            <p className="mt-3 text-sm leading-7 text-stone-400">When someone proposes a pizza meetup, it will show up here for you to join or skip.</p>
+          <div className="flex flex-1 flex-col items-center justify-center rounded-[30px] border border-black/8 bg-[#fffaf2] p-8 text-center">
+            <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-[28px] bg-[#fff6de] text-4xl">🍕</div>
+            <h1 className="mt-6 text-3xl font-black text-[#141414]">Ahora mismo no hay más planes</h1>
+            <p className="mt-3 text-sm leading-7 text-[#6d665b]">Cuando alguien cree un nuevo plan de pizza, aparecerá aquí para que decidas si te unes o lo dejas pasar.</p>
             <div className="mt-6 grid w-full gap-3">
-              {user ? <Link to={createPageUrl("CrearQuedada")} className="inline-flex h-12 items-center justify-center rounded-2xl bg-red-600 text-sm font-bold text-white">Create a plan</Link> : <button type="button" onClick={() => setLoginPrompt(true)} className="inline-flex h-12 items-center justify-center rounded-2xl bg-red-600 text-sm font-bold text-white">Create a plan</button>}
-              {user ? <Link to={createPageUrl("MisMatches") + (joinedToast ? `?focus=${joinedToast.id}` : "")} className="inline-flex h-12 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] text-sm font-bold text-stone-200">See my groups</Link> : <button type="button" onClick={() => setLoginPrompt(true)} className="inline-flex h-12 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] text-sm font-bold text-stone-200">Sign in to join plans</button>}
+              {user ? <Link to={createPageUrl("CrearQuedada")} className="inline-flex h-12 items-center justify-center rounded-2xl bg-[#efbf3a] text-sm font-bold text-[#141414]">Crear plan</Link> : <button type="button" onClick={() => setLoginPrompt(true)} className="inline-flex h-12 items-center justify-center rounded-2xl bg-[#efbf3a] text-sm font-bold text-[#141414]">Crear plan</button>}
+              {user ? <Link to={createPageUrl("MisMatches") + (joinedToast ? `?focus=${joinedToast.id}` : "")} className="inline-flex h-12 items-center justify-center rounded-2xl border border-black/8 bg-white text-sm font-bold text-[#141414]">Ver mis grupos</Link> : <button type="button" onClick={() => setLoginPrompt(true)} className="inline-flex h-12 items-center justify-center rounded-2xl border border-black/8 bg-white text-sm font-bold text-[#141414]">Entra para unirte a planes</button>}
             </div>
           </div>
         </div>
@@ -485,14 +485,14 @@ export default function Descubrir() {
 
   return (
     <>
-      <div className="h-[100dvh] overflow-hidden bg-[#060606] px-4 pt-4" style={{ paddingBottom: pagePaddingBottom }}>
+      <div className="h-[100dvh] overflow-hidden bg-[#f4efe6] px-4 pt-4" style={{ paddingBottom: pagePaddingBottom }}>
         <div className="mx-auto flex h-full max-w-md flex-col overflow-hidden relative">
           <div className="shrink-0 flex items-center justify-between gap-4 pb-3">
             <div>
-              <p className="text-[13px] font-semibold uppercase tracking-[0.22em] text-stone-500">Tonight</p>
-              <div className="text-[1.5rem] font-black leading-none text-white">Discover Plans</div>
+              <p className="text-[13px] font-semibold uppercase tracking-[0.22em] text-[#8e8578]">Tonight</p>
+              <div className="text-[1.5rem] font-black leading-none text-[#141414]">Descubrir planes</div>
             </div>
-            <button type="button" onClick={() => setFiltersOpen(true)} className="grid h-11 w-11 place-items-center rounded-full border border-white/10 bg-white/[0.04] text-stone-200 shrink-0">
+            <button type="button" onClick={() => setFiltersOpen(true)} className="grid h-11 w-11 place-items-center rounded-full border border-black/8 bg-white text-[#141414] shrink-0">
               <Settings2 className="h-5 w-5" />
             </button>
           </div>
@@ -501,19 +501,19 @@ export default function Descubrir() {
             <SwipeCard hangout={current} disabled={mutate.isPending} onDecision={(id, decision) => mutate.mutate({ id, decision })} />
           </div>
 
-          <button type="button" onClick={() => navigate(-1)} className="absolute bottom-4 left-0 z-30 grid h-11 w-11 place-items-center rounded-full border border-white/10 bg-white/[0.06] text-white shadow-[0_12px_40px_rgba(0,0,0,0.4)]">
+          <button type="button" onClick={() => navigate(-1)} className="absolute bottom-4 left-0 z-30 grid h-11 w-11 place-items-center rounded-full border border-black/8 bg-white text-[#141414] shadow-[0_12px_40px_rgba(0,0,0,0.4)]">
             <ChevronLeft className="h-5 w-5" />
           </button>
 
           <AnimatePresence>
             {joinedToast ? (
-              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }} className="absolute inset-x-4 bottom-20 z-[1300] rounded-2xl border border-emerald-500/30 bg-emerald-600 px-4 py-3 text-white shadow-xl">
+              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }} className="absolute inset-x-4 bottom-20 z-[1300] rounded-2xl border border-[#d8ebd4] bg-[#3e9444] px-4 py-3 text-white shadow-xl">
                 <div className="flex items-center justify-between gap-3">
                   <div className="flex min-w-0 items-center gap-3">
                     <div className="rounded-full bg-white/14 p-2"><Check className="h-5 w-5" /></div>
-                    <div className="min-w-0"><div className="font-bold">You joined the group</div><div className="truncate text-sm text-emerald-50/90">{normalizeHangout(joinedToast).title}</div></div>
+                    <div className="min-w-0"><div className="font-bold">Te has unido al grupo</div><div className="truncate text-sm text-emerald-50/90">{normalizeHangout(joinedToast).title}</div></div>
                   </div>
-                  <Link to={createPageUrl("MisMatches")} className="text-sm font-bold text-white/95">Open</Link>
+                  <Link to={createPageUrl("MisMatches")} className="text-sm font-bold text-white/95">Abrir</Link>
                 </div>
               </motion.div>
             ) : null}

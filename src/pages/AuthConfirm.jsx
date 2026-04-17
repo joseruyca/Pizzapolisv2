@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { CheckCircle2, Loader2, XCircle } from 'lucide-react';
+import { CheckCircle2, Loader2, Map, XCircle } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
 function getHashParams() {
@@ -11,11 +11,10 @@ function getHashParams() {
 function friendlyMessage(raw) {
   if (!raw) return 'No pudimos confirmar tu email. Pide un enlace nuevo e inténtalo otra vez.';
   const text = String(raw);
-  if (text.includes('expired')) return 'Este enlace ha caducado. Pide uno nuevo desde la pantalla de acceso.';
-  if (text.includes('otp_expired')) return 'Este enlace ha caducado. Pide uno nuevo desde la pantalla de acceso.';
+  if (text.includes('expired') || text.includes('otp_expired')) return 'Este enlace ha caducado. Pide uno nuevo desde la pantalla de acceso.';
   if (text.includes('invalid')) return 'Este enlace no es válido o ya fue usado. Pide uno nuevo e inténtalo otra vez.';
   if (text.includes('stole it') || text.includes('released because another request stole it')) {
-    return 'Este enlace ya fue procesado en otra comprobación. Vamos a intentar entrar igualmente.';
+    return 'El enlace ya fue procesado. Vamos a comprobar si tu cuenta quedó confirmada igualmente.';
   }
   return text;
 }
@@ -25,7 +24,7 @@ export default function AuthConfirm() {
   const [searchParams] = useSearchParams();
   const next = searchParams.get('next') || '/home';
   const [status, setStatus] = useState('loading');
-  const [message, setMessage] = useState('Confirmando tu email y preparando tu acceso…');
+  const [message, setMessage] = useState('Estamos confirmando tu email y preparando tu acceso.');
 
   useEffect(() => {
     let active = true;
@@ -47,17 +46,15 @@ export default function AuthConfirm() {
       const urlError = searchParams.get('error_description') || hashParams.get('error_description') || searchParams.get('error') || hashParams.get('error');
 
       try {
-        if (urlError) {
-          throw new Error(urlError);
-        }
+        if (urlError) throw new Error(urlError);
 
         const existing = await supabase.auth.getSession();
         if (existing?.data?.session?.user) {
           if (!active) return;
           setStatus('success');
-          setMessage('Tu email ya estaba confirmado. Entrando en Pizzapolis…');
+          setMessage('Tu cuenta ya estaba confirmada. Entrando en Pizzapolis...');
           window.history.replaceState({}, document.title, '/auth/confirm');
-          window.setTimeout(() => navigate(next, { replace: true }), 700);
+          window.setTimeout(() => navigate(next, { replace: true }), 900);
           return;
         }
 
@@ -76,21 +73,21 @@ export default function AuthConfirm() {
 
         if (!active) return;
         setStatus('success');
-        setMessage('Email confirmado correctamente. Entrando en Pizzapolis…');
+        setMessage('Email confirmado correctamente. Ya puedes usar spots, planes y grupos.');
         window.history.replaceState({}, document.title, '/auth/confirm');
-        window.setTimeout(() => navigate(next, { replace: true }), 700);
+        window.setTimeout(() => navigate(next, { replace: true }), 900);
       } catch (error) {
         const msg = friendlyMessage(error?.message || error);
 
-        if (msg.includes('Vamos a intentar entrar igualmente.')) {
+        if (msg.includes('Vamos a comprobar')) {
           try {
             const retry = await supabase.auth.getSession();
             if (retry?.data?.session?.user) {
               if (!active) return;
               setStatus('success');
-              setMessage('Tu email ya quedó confirmado. Entrando en Pizzapolis…');
+              setMessage('Tu cuenta ya quedó confirmada. Entrando en Pizzapolis...');
               window.history.replaceState({}, document.title, '/auth/confirm');
-              window.setTimeout(() => navigate(next, { replace: true }), 700);
+              window.setTimeout(() => navigate(next, { replace: true }), 900);
               return;
             }
           } catch {}
@@ -103,29 +100,41 @@ export default function AuthConfirm() {
     }
 
     run();
-
     return () => {
       active = false;
     };
   }, [navigate, next, searchParams]);
 
-  return (
-    <div className="min-h-screen bg-[#080808] text-white grid place-items-center px-6">
-      <div className="w-full max-w-md rounded-[32px] border border-white/10 bg-[#111] p-6 shadow-2xl shadow-black/40">
-        <div className="mb-5 inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-red-600 text-2xl">🍕</div>
-        <h1 className="text-3xl font-black">Pizzapolis</h1>
-        <p className="mt-2 text-stone-400">Confirmación de email</p>
+  const success = status === 'success';
 
-        <div className="mt-8 rounded-[28px] border border-white/8 bg-white/[0.03] p-6 text-center">
-          {status === 'loading' && <Loader2 className="mx-auto h-10 w-10 animate-spin text-red-500" />}
-          {status === 'success' && <CheckCircle2 className="mx-auto h-10 w-10 text-emerald-400" />}
-          {status === 'error' && <XCircle className="mx-auto h-10 w-10 text-red-400" />}
-          <p className="mt-5 text-sm leading-7 text-stone-300">{message}</p>
+  return (
+    <div className="grid min-h-screen place-items-center bg-[#f4efe6] px-6 text-[#141414]">
+      <div className="w-full max-w-md rounded-[34px] border border-black/8 bg-[#fffaf2] p-6 shadow-[0_24px_60px_rgba(39,29,14,0.12)]">
+        <div className="mb-5 inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-[#efbf3a] text-2xl shadow-[0_18px_38px_rgba(239,191,58,0.24)]">🍕</div>
+        <h1 className="text-3xl font-black tracking-tight">Pizzapolis</h1>
+        <p className="mt-2 text-[#6d665b]">Confirmación de email</p>
+
+        <div className="mt-8 rounded-[28px] border border-black/8 bg-white p-6 text-center">
+          {status === 'loading' && <Loader2 className="mx-auto h-10 w-10 animate-spin text-[#dbab23]" />}
+          {success && <CheckCircle2 className="mx-auto h-10 w-10 text-[#3e9444]" />}
+          {status === 'error' && <XCircle className="mx-auto h-10 w-10 text-[#e25545]" />}
+          <p className="mt-5 text-sm leading-7 text-[#5f584e]">{message}</p>
+          {success && (
+            <div className="mt-5 rounded-2xl border border-[#d8ebd4] bg-[#eef7ec] p-4 text-left text-sm text-[#2f7a35]">
+              <div className="font-semibold">Tu cuenta está activa.</div>
+              <div className="mt-1">Ya puedes crear planes, añadir spots y unirte a grupos.</div>
+            </div>
+          )}
         </div>
 
         <div className="mt-6 grid gap-3">
-          <Link to="/auth" className="inline-flex h-11 items-center justify-center rounded-2xl bg-red-600 text-sm font-bold text-white hover:bg-red-500">Ir al acceso</Link>
-          <Link to="/home" className="inline-flex h-11 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.03] text-sm font-semibold text-stone-200 hover:bg-white/[0.05]">Seguir como visitante</Link>
+          <Link to="/home" className="inline-flex h-12 items-center justify-center rounded-2xl bg-[#3e9444] text-sm font-bold text-white hover:bg-[#2f7a35]">
+            <Map className="mr-2 h-4 w-4" />
+            Explorar el mapa
+          </Link>
+          <Link to="/auth" className="inline-flex h-12 items-center justify-center rounded-2xl border border-black/10 bg-white text-sm font-semibold text-[#141414] hover:bg-[#fffdf8]">
+            Ir al acceso
+          </Link>
         </div>
       </div>
     </div>

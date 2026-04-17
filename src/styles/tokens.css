@@ -1,58 +1,67 @@
 @layer base {
   :root {
-    color-scheme: dark;
+    color-scheme: light;
 
-    --background: 0 0% 4%;
-    --foreground: 40 6% 95%;
-    --card: 0 0% 8%;
-    --card-foreground: 40 6% 95%;
-    --popover: 0 0% 8%;
-    --popover-foreground: 40 6% 95%;
-    --primary: 0 72% 51%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 0 0% 12%;
-    --secondary-foreground: 40 6% 90%;
-    --muted: 0 0% 15%;
-    --muted-foreground: 0 0% 55%;
-    --accent: 0 0% 15%;
-    --accent-foreground: 40 6% 95%;
-    --destructive: 0 84% 60%;
+    --background: 44 40% 95%;
+    --foreground: 0 0% 9%;
+    --card: 42 43% 98%;
+    --card-foreground: 0 0% 9%;
+    --popover: 42 43% 98%;
+    --popover-foreground: 0 0% 9%;
+    --primary: 43 87% 56%;
+    --primary-foreground: 0 0% 9%;
+    --secondary: 45 22% 90%;
+    --secondary-foreground: 0 0% 14%;
+    --muted: 45 20% 92%;
+    --muted-foreground: 0 0% 38%;
+    --accent: 45 20% 92%;
+    --accent-foreground: 0 0% 9%;
+    --destructive: 3 75% 56%;
     --destructive-foreground: 0 0% 100%;
-    --border: 0 0% 16%;
-    --input: 0 0% 16%;
-    --ring: 0 72% 51%;
+    --border: 34 20% 82%;
+    --input: 34 20% 82%;
+    --ring: 43 87% 56%;
 
     --radius: 0.75rem;
     --radius-lg: 1.25rem;
     --radius-xl: 1.5rem;
     --radius-2xl: 1.75rem;
 
-    --surface-0: #070707;
-    --surface-1: #090909;
-    --surface-2: #111111;
-    --surface-3: #171717;
-    --surface-elevated: rgba(255, 255, 255, 0.04);
+    --surface-0: #f4efe6;
+    --surface-1: rgba(252, 248, 242, 0.88);
+    --surface-2: #fffaf2;
+    --surface-3: #efe7da;
+    --surface-elevated: rgba(255, 255, 255, 0.72);
 
-    --text-primary: #f5f5f4;
-    --text-secondary: #d6d3d1;
-    --text-muted: #a8a29e;
-    --text-faint: #78716c;
+    --text-primary: #141414;
+    --text-secondary: #2f2f2f;
+    --text-muted: #6d665b;
+    --text-faint: #9c9385;
 
-    --accent-red: #dc2626;
-    --accent-red-strong: #ef4444;
-    --accent-green: #16a34a;
-    --accent-green-strong: #22c55e;
+    --accent-yellow: #efbf3a;
+    --accent-yellow-strong: #dbab23;
+    --accent-green: #3e9444;
+    --accent-green-strong: #2f7a35;
+    --accent-red: #e25545;
+    --accent-red-strong: #c84538;
+    --accent-black: #121212;
 
     --page-max-width: 1280px;
-    --header-height: 60px;
-    --mobile-nav-height: 78px;
+    --header-height: 72px;
+    --mobile-nav-height: 82px;
     --content-gutter: clamp(16px, 2.5vw, 24px);
 
-    --shadow-soft: 0 10px 30px rgba(0, 0, 0, 0.24);
-    --shadow-card: 0 22px 60px rgba(0, 0, 0, 0.32);
-    --shadow-red: 0 16px 40px rgba(220, 38, 38, 0.22);
+    --shadow-soft: 0 10px 30px rgba(28, 22, 12, 0.08);
+    --shadow-card: 0 22px 60px rgba(39, 29, 14, 0.12);
+    --shadow-brand: 0 18px 38px rgba(239, 191, 58, 0.24);
+    --shadow-red: 0 18px 40px rgba(226, 85, 69, 0.22);
 
     --transition-fast: 180ms ease;
     --transition-base: 240ms ease;
+  }
+
+  html, body, #root {
+    min-height: 100%;
+    background: var(--surface-0);
   }
 }
