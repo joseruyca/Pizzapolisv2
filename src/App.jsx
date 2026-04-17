@@ -1,3 +1,4 @@
+import React from 'react';
 import { Toaster } from '@/components/ui/toaster';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClientInstance } from '@/lib/query-client';
@@ -47,7 +48,7 @@ const PUBLIC_PAGES = new Set(['Landing', 'Home', 'Descubrir']);
 function AdminRoute({ children }) {
   const { role, isLoadingAuth } = useAuth();
   if (isLoadingAuth) return <LoadingScreen />;
-  if (role !== 'admin') return <Navigate to="/Home" replace />;
+  if (role !== 'admin') return <Navigate to="/home" replace />;
   return children;
 }
 
@@ -61,56 +62,45 @@ function ProtectedPage({ pageName, Component }) {
   );
 }
 
+const lowerAlias = (path) => `/${path.toLowerCase()}`;
+
 const AppRoutes = () => (
   <Routes>
     <Route path="/auth" element={<AuthPage />} />
-    <Route path="/" element={<Navigate to={`/${mainPageKey}`} replace />} />
-    <Route
-      path={`/${mainPageKey}`}
-      element={
-        PUBLIC_PAGES.has(mainPageKey) ? (
-          <LayoutWrapper currentPageName={mainPageKey}>
-            <MainPage />
-          </LayoutWrapper>
-        ) : (
-          <ProtectedPage pageName={mainPageKey} Component={MainPage} />
-        )
-      }
-    />
+    <Route path="/" element={<Navigate to={lowerAlias(mainPageKey)} replace />} />
+    <Route path={lowerAlias(mainPageKey)} element={PUBLIC_PAGES.has(mainPageKey) ? (<LayoutWrapper currentPageName={mainPageKey}><MainPage /></LayoutWrapper>) : (<ProtectedPage pageName={mainPageKey} Component={MainPage} />)} />
+    <Route path={`/${mainPageKey}`} element={<Navigate to={lowerAlias(mainPageKey)} replace />} />
     {Object.entries(Pages).map(([path, Page]) => (
-      <Route
-        key={path}
-        path={`/${path}`}
-        element={
-          PUBLIC_PAGES.has(path) ? (
+      <React.Fragment key={path}>
+        <Route
+          path={lowerAlias(path)}
+          element={PUBLIC_PAGES.has(path) ? (
             <LayoutWrapper currentPageName={path}>
               <Page />
             </LayoutWrapper>
           ) : (
             <ProtectedPage pageName={path} Component={Page} />
-          )
-        }
-      />
+          )}
+        />
+        <Route path={`/${path}`} element={<Navigate to={lowerAlias(path)} replace />} />
+      </React.Fragment>
     ))}
-    <Route path="/Favorites" element={<ProtectedPage pageName="Favorites" Component={Favorites} />} />
-    <Route path="/Trending" element={<LayoutWrapper currentPageName="Trending"><Trending /></LayoutWrapper>} />
-    <Route
-      path="/Admin"
-      element={
-        <ProtectedRoute>
-          <AdminRoute>
-            <LayoutWrapper currentPageName="Admin">
-              <Admin />
-            </LayoutWrapper>
-          </AdminRoute>
-        </ProtectedRoute>
-      }
-    />
-    <Route path="/MyLists" element={<ProtectedPage pageName="MyLists" Component={MyLists} />} />
-    <Route path="/Stats" element={<ProtectedPage pageName="Stats" Component={Stats} />} />
-    <Route path="/Recomendaciones" element={<LayoutWrapper currentPageName="Recomendaciones"><Recomendaciones /></LayoutWrapper>} />
-    <Route path="/Leaderboards" element={<LayoutWrapper currentPageName="Leaderboards"><Leaderboards /></LayoutWrapper>} />
-    <Route path="/Guides" element={<LayoutWrapper currentPageName="Guides"><Guides /></LayoutWrapper>} />
+    <Route path="/favorites" element={<ProtectedPage pageName="Favorites" Component={Favorites} />} />
+    <Route path="/Favorites" element={<Navigate to="/favorites" replace />} />
+    <Route path="/trending" element={<LayoutWrapper currentPageName="Trending"><Trending /></LayoutWrapper>} />
+    <Route path="/Trending" element={<Navigate to="/trending" replace />} />
+    <Route path="/admin" element={<ProtectedRoute><AdminRoute><LayoutWrapper currentPageName="Admin"><Admin /></LayoutWrapper></AdminRoute></ProtectedRoute>} />
+    <Route path="/Admin" element={<Navigate to="/admin" replace />} />
+    <Route path="/mylists" element={<ProtectedPage pageName="MyLists" Component={MyLists} />} />
+    <Route path="/MyLists" element={<Navigate to="/mylists" replace />} />
+    <Route path="/stats" element={<ProtectedPage pageName="Stats" Component={Stats} />} />
+    <Route path="/Stats" element={<Navigate to="/stats" replace />} />
+    <Route path="/recomendaciones" element={<LayoutWrapper currentPageName="Recomendaciones"><Recomendaciones /></LayoutWrapper>} />
+    <Route path="/Recomendaciones" element={<Navigate to="/recomendaciones" replace />} />
+    <Route path="/leaderboards" element={<LayoutWrapper currentPageName="Leaderboards"><Leaderboards /></LayoutWrapper>} />
+    <Route path="/Leaderboards" element={<Navigate to="/leaderboards" replace />} />
+    <Route path="/guides" element={<LayoutWrapper currentPageName="Guides"><Guides /></LayoutWrapper>} />
+    <Route path="/Guides" element={<Navigate to="/guides" replace />} />
     <Route path="*" element={<PageNotFound />} />
   </Routes>
 );

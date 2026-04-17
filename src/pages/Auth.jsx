@@ -41,7 +41,7 @@ export default function AuthPage() {
         await signIn(email, password);
       } else {
         await signUp({ email, password, fullName });
-        setSuccess('Cuenta creada. Revisa tu email si tu proyecto requiere confirmación.');
+        setSuccess('Cuenta creada. Revisa tu email y confirma tu cuenta para continuar.');
       }
     } catch (error) {
       setLocalError(error.message || 'No se pudo completar la autenticación.');
