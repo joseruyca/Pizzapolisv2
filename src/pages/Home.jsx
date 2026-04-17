@@ -9,8 +9,7 @@ import PlaceListPanel from "../components/map/PlaceListPanel";
 import AddPinModal from "../components/map/AddPinModal";
 import LoginPrompt from "../components/shared/LoginPrompt";
 import PinPopup from "../components/map/PinPopup";
-import MapBottomNav from "../components/map/MapBottomNav";
-import { Coins, MapPin, Flame, Users } from "lucide-react";
+import { MapPin } from "lucide-react";
 import { getValueLabel, isOpenNow } from "@/lib/place-helpers";
 import { MAP_STYLES } from "@/lib/constants";
 
@@ -23,9 +22,7 @@ export default function Home() {
   const [sheetSortDirection, setSheetSortDirection] = useState("asc");
   const [addPinOpen, setAddPinOpen] = useState(false);
   const [loginPrompt, setLoginPrompt] = useState(false);
-  const [mapInstance, setMapInstance] = useState(null);
-  const [mapStyle, setMapStyle] = useState("positron");
-  const [mapSettings, setMapSettings] = useState({ showOverview: false, styleId: "positron" });
+  const [mapStyle] = useState("positron");
   const [mapBounds, setMapBounds] = useState(null);
   const [hasMapMoved, setHasMapMoved] = useState(false);
   const [useMapArea, setUseMapArea] = useState(false);
@@ -55,7 +52,7 @@ export default function Home() {
 
   const { data: favorites = [] } = useQuery({
     queryKey: ["favorites", user?.email || "guest"],
-    queryFn: () => user?.email ? base44.entities.Favorite.filter({ user_email: user.email }) : [],
+    queryFn: () => (user?.email ? base44.entities.Favorite.filter({ user_email: user.email }) : []),
   });
 
   const favoriteIds = useMemo(() => favorites.map((item) => item.place_id).filter(Boolean), [favorites]);
@@ -70,20 +67,25 @@ export default function Home() {
     return map;
   }, [activeHangouts]);
 
-  const enrichedPlaces = useMemo(() => places.map((place) => ({
-    ...place,
-    active_hangouts_count: hangoutsByPlace[place.id] || 0,
-  })), [places, hangoutsByPlace]);
+  const enrichedPlaces = useMemo(
+    () =>
+      places.map((place) => ({
+        ...place,
+        active_hangouts_count: hangoutsByPlace[place.id] || 0,
+      })),
+    [places, hangoutsByPlace],
+  );
 
   const filteredPlaces = useMemo(() => {
     let result = [...enrichedPlaces];
     if (filters.search) {
       const q = filters.search.toLowerCase();
-      result = result.filter((p) =>
-        p.name?.toLowerCase().includes(q) ||
-        p.neighborhood?.toLowerCase().includes(q) ||
-        p.borough?.toLowerCase().includes(q) ||
-        p.best_known_slice?.toLowerCase().includes(q)
+      result = result.filter(
+        (p) =>
+          p.name?.toLowerCase().includes(q) ||
+          p.neighborhood?.toLowerCase().includes(q) ||
+          p.borough?.toLowerCase().includes(q) ||
+          p.best_known_slice?.toLowerCase().includes(q),
       );
     }
     if (filters.boroughs?.length) result = result.filter((p) => filters.boroughs.includes(p.borough));
@@ -103,15 +105,6 @@ export default function Home() {
     return result;
   }, [enrichedPlaces, filters, useMapArea, mapBounds]);
 
-  const cheapestPrice = useMemo(() => {
-    const priced = filteredPlaces.filter((p) => Number(p.standard_slice_price) > 0);
-    if (!priced.length) return "—";
-    return `$${Math.min(...priced.map((p) => Number(p.standard_slice_price))).toFixed(2)}`;
-  }, [filteredPlaces]);
-
-  const openCount = useMemo(() => filteredPlaces.filter((p) => isOpenNow(p.hours)).length, [filteredPlaces]);
-  const hangoutCount = useMemo(() => filteredPlaces.reduce((sum, place) => sum + Number(place.active_hangouts_count || 0), 0), [filteredPlaces]);
-
   const handleAddPin = () => {
     if (!user) {
       setLoginPrompt(true);
@@ -124,27 +117,29 @@ export default function Home() {
 
   return (
     <>
-      <div className="relative h-[calc(100vh-56px)] w-full overflow-hidden pb-24 sm:pb-0">
-        <PizzaMap
-          places={filteredPlaces}
-          selectedPlace={selectedPlace || previewPlace}
-          savedPlaceIds={favoriteIds}
-          onSelectPlace={(place) => {
-            setPreviewPlace(place);
-            setListOpen(false);
-          }}
-          onMapReady={setMapInstance}
-          onBoundsChange={setMapBounds}
-          onMapMove={() => setHasMapMoved(true)}
-          controlsHidden={Boolean(selectedPlace)}
-          mapStyleUrl={currentMapStyle.url}
-          userLocation={userLocation}
-        />
+      <section className="relative h-[calc(100dvh-var(--header-height)-var(--mobile-nav-height))] min-h-0 w-full overflow-hidden md:h-[calc(100dvh-var(--header-height))]">
+        <div className="absolute inset-0 overflow-hidden rounded-none md:rounded-b-[32px]">
+          <PizzaMap
+            places={filteredPlaces}
+            selectedPlace={selectedPlace || previewPlace}
+            savedPlaceIds={favoriteIds}
+            onSelectPlace={(place) => {
+              setPreviewPlace(place);
+              setListOpen(false);
+            }}
+            onBoundsChange={setMapBounds}
+            onMapMove={() => setHasMapMoved(true)}
+            controlsHidden={Boolean(selectedPlace)}
+            mapStyleUrl={currentMapStyle.url}
+            userLocation={userLocation}
+          />
+          <div className="pointer-events-none absolute inset-x-0 top-0 h-40 bg-[linear-gradient(180deg,rgba(244,239,230,0.88)_0%,rgba(244,239,230,0.38)_40%,rgba(244,239,230,0)_100%)]" />
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-36 bg-[linear-gradient(180deg,rgba(244,239,230,0)_0%,rgba(244,239,230,0.28)_45%,rgba(244,239,230,0.9)_100%)] md:hidden" />
+        </div>
 
         <SearchFilters
           filters={filters}
           onFiltersChange={setFilters}
-          resultCount={filteredPlaces.length}
           onLocateMe={() => {
             if (navigator.geolocation) {
               navigator.geolocation.getCurrentPosition((position) => {
@@ -163,48 +158,14 @@ export default function Home() {
           }}
         />
 
-        {false && mapSettings.showOverview && !selectedPlace && !previewPlace && (
-          <div className="absolute top-[106px] left-4 right-4 sm:left-auto sm:right-4 sm:w-[300px] z-[560] pointer-events-none">
-            <div className="pointer-events-auto rounded-3xl border border-white/10 bg-[#0d0d0d]/84 backdrop-blur-xl shadow-2xl shadow-black/50 p-4 text-white hidden sm:block">
-              <div className="flex items-start justify-between gap-3 mb-3">
-                <div>
-                  <div className="text-[11px] uppercase tracking-[0.14em] text-stone-500 font-bold">Current view</div>
-                  <h2 className="text-lg font-black leading-tight mt-1">Pizzapolis map</h2>
-                </div>
-                {useMapArea && <span className="rounded-full border border-red-500/30 bg-red-500/10 px-2 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-red-300">This area</span>}
-              </div>
-              <div className="grid grid-cols-2 gap-2.5">
-                <div className="rounded-2xl bg-white/[0.04] border border-white/10 p-3">
-                  <div className="flex items-center gap-1.5 text-stone-500 text-[11px] font-semibold uppercase tracking-[0.12em]"><MapPin className="w-3.5 h-3.5" />Spots</div>
-                  <div className="text-xl font-black mt-1">{filteredPlaces.length}</div>
-                </div>
-                <div className="rounded-2xl bg-white/[0.04] border border-white/10 p-3">
-                  <div className="flex items-center gap-1.5 text-stone-500 text-[11px] font-semibold uppercase tracking-[0.12em]"><Coins className="w-3.5 h-3.5" />Cheapest</div>
-                  <div className="text-xl font-black mt-1">{cheapestPrice}</div>
-                </div>
-                <div className="rounded-2xl bg-white/[0.04] border border-white/10 p-3">
-                  <div className="flex items-center gap-1.5 text-stone-500 text-[11px] font-semibold uppercase tracking-[0.12em]"><Flame className="w-3.5 h-3.5" />Open now</div>
-                  <div className="text-xl font-black mt-1">{openCount}</div>
-                </div>
-                <div className="rounded-2xl bg-white/[0.04] border border-white/10 p-3">
-                  <div className="flex items-center gap-1.5 text-stone-500 text-[11px] font-semibold uppercase tracking-[0.12em]"><Users className="w-3.5 h-3.5" />Hangouts</div>
-                  <div className="text-xl font-black mt-1">{hangoutCount}</div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
         <button
           onClick={handleAddPin}
-          className="absolute right-4 bottom-28 z-[650] flex h-14 items-center justify-center gap-2 rounded-full bg-[#e25545] px-5 text-white shadow-[0_14px_34px_rgba(226,85,69,0.32)] hover:bg-[#cf493a]"
+          className="absolute right-4 bottom-4 z-[650] flex h-14 items-center justify-center gap-2 rounded-full bg-[#e25545] px-5 text-white shadow-[0_14px_34px_rgba(226,85,69,0.26)] transition hover:bg-[#cf493a] md:bottom-6"
           aria-label="Add Spot"
         >
           <MapPin className="h-5 w-5" />
           <span className="text-sm font-bold">Add Spot</span>
         </button>
-
-        <MapBottomNav onAddPin={handleAddPin} />
 
         <PlaceListPanel
           places={filteredPlaces}
@@ -227,7 +188,7 @@ export default function Home() {
         <AddPinModal open={addPinOpen} onClose={() => setAddPinOpen(false)} user={user} />
 
         <LoginPrompt open={loginPrompt} onClose={() => setLoginPrompt(false)} message="Sign in to create and join pizza hangouts with friends." />
-      </div>
+      </section>
 
       <PinPopup
         place={previewPlace}

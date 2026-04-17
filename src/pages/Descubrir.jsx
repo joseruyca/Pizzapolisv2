@@ -460,7 +460,7 @@ export default function Descubrir() {
 
   if (!current) {
     return (
-      <div className="h-[100dvh] overflow-hidden bg-[#f4efe6] px-4 pt-4" style={{ paddingBottom: pagePaddingBottom }}>
+      <div className="box-border h-[100svh] overflow-hidden bg-[#f4efe6] px-4 pt-3 md:h-[100dvh]" style={{ paddingBottom: pagePaddingBottom }}>
         <div className="mx-auto flex h-full max-w-md flex-col overflow-hidden">
           <div className="mb-4 flex items-center justify-between">
             <div>
@@ -485,9 +485,9 @@ export default function Descubrir() {
 
   return (
     <>
-      <div className="h-[100dvh] overflow-hidden bg-[#f4efe6] px-4 pt-4" style={{ paddingBottom: pagePaddingBottom }}>
+      <div className="box-border h-[100svh] overflow-hidden bg-[#f4efe6] px-4 pt-3 md:h-[100dvh]" style={{ paddingBottom: pagePaddingBottom }}>
         <div className="mx-auto flex h-full max-w-md flex-col overflow-hidden relative">
-          <div className="shrink-0 flex items-center justify-between gap-4 pb-3">
+          <div className="shrink-0 flex items-center justify-between gap-4 pb-2">
             <div>
               <p className="text-[13px] font-semibold uppercase tracking-[0.22em] text-[#8e8578]">Tonight</p>
               <div className="text-[1.5rem] font-black leading-none text-[#141414]">Descubrir planes</div>

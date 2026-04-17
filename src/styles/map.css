@@ -1,26 +1,30 @@
 @layer components {
+  .map-canvas,
   .leaflet-container {
-    background: #0a0a0a !important;
+    width: 100%;
+    height: 100%;
+    background: #edf1e8 !important;
   }
 
   .leaflet-tile-pane {
-    filter: brightness(0.7) contrast(1.1) saturate(0.3);
+    filter: saturate(0.92) contrast(1.02) brightness(1.02);
   }
 
   .leaflet-control-zoom a {
-    background: #1a1a1a !important;
-    color: #fafaf9 !important;
-    border-color: #262626 !important;
+    background: rgba(255, 250, 242, 0.96) !important;
+    color: #141414 !important;
+    border-color: rgba(20, 20, 20, 0.08) !important;
+    box-shadow: 0 12px 26px rgba(39, 29, 14, 0.12);
   }
 
   .leaflet-control-attribution {
-    background: rgba(10, 10, 10, 0.8) !important;
-    color: #737373 !important;
+    background: rgba(255, 250, 242, 0.9) !important;
+    color: #6d665b !important;
     font-size: 10px !important;
   }
 
   .leaflet-control-attribution a {
-    color: #a3a3a3 !important;
+    color: #3e9444 !important;
   }
 
   .leaflet-interactive:focus {
@@ -44,32 +48,5 @@
   .pizza-marker {
     background: none;
     border: none;
-  }
-
-  .pizza-marker-dot {
-    width: 32px;
-    height: 32px;
-    background: #dc2626;
-    border-radius: 999px;
-    border: 3px solid #fafaf9;
-    box-shadow: 0 2px 12px rgba(220, 38, 38, 0.5);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 14px;
-    transition: transform var(--transition-fast), box-shadow var(--transition-fast);
-    cursor: pointer;
-  }
-
-  .pizza-marker-dot:hover,
-  .pizza-marker-dot.active {
-    transform: scale(1.25);
-    box-shadow: 0 4px 20px rgba(220, 38, 38, 0.7);
-  }
-
-  .pizza-marker-featured .pizza-marker-dot {
-    width: 38px;
-    height: 38px;
-    background: linear-gradient(135deg, #dc2626, #f97316);
   }
 }

@@ -106,6 +106,16 @@ function MapInitializer({ onMapReady }) {
   const map = useMap();
   useEffect(() => {
     onMapReady?.(map);
+    const resize = () => map.invalidateSize({ animate: false });
+    resize();
+    const t1 = window.setTimeout(resize, 120);
+    const t2 = window.setTimeout(resize, 320);
+    window.addEventListener("resize", resize);
+    return () => {
+      window.clearTimeout(t1);
+      window.clearTimeout(t2);
+      window.removeEventListener("resize", resize);
+    };
   }, [map, onMapReady]);
   return null;
 }
@@ -126,7 +136,7 @@ export default function PizzaMap({
     <MapContainer
       center={NYC_CENTER}
       zoom={NYC_ZOOM}
-      className={`w-full h-full ${controlsHidden ? "map-ui-hidden" : ""}`}
+      className={`h-full w-full map-canvas ${controlsHidden ? "map-ui-hidden" : ""}`}
       zoomControl={false}
       attributionControl={false}
     >
