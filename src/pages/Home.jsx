@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { MapPin, List } from "lucide-react";
+import { List, MapPin } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
 import PizzaMap from "@/components/map/PizzaMap";
@@ -116,82 +116,77 @@ export default function Home() {
   return (
     <>
       <section className="home-screen">
-        <div className="absolute inset-0 overflow-hidden">
-          <PizzaMap
+        <div className="home-map-shell">
+          <div className="home-map-layer">
+            <PizzaMap
+              places={filteredPlaces}
+              selectedPlace={selectedPlace || previewPlace}
+              savedPlaceIds={favoriteIds}
+              onSelectPlace={(place) => {
+                setPreviewPlace(place);
+                setListOpen(false);
+              }}
+              onBoundsChange={setMapBounds}
+              onMapMove={() => setHasMapMoved(true)}
+              controlsHidden={Boolean(selectedPlace)}
+              mapStyleUrl={currentMapStyle.url}
+              userLocation={userLocation}
+            />
+            <div className="home-map-gradient" />
+            <div className="home-map-topshade" />
+          </div>
+
+          <SearchFilters
+            filters={filters}
+            onFiltersChange={setFilters}
+            onLocateMe={() => {
+              if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition((position) => {
+                  const { latitude, longitude } = position.coords;
+                  setUserLocation({ lat: latitude, lng: longitude });
+                  setListOpen(false);
+                });
+              }
+            }}
+            hasMapMoved={hasMapMoved}
+            usingMapArea={useMapArea}
+            onSearchArea={(mode) => {
+              if (mode === "disable") setUseMapArea(false);
+              else if (mode === "enable") setUseMapArea(true);
+              else setUseMapArea((prev) => !prev);
+            }}
+          />
+
+          <button onClick={() => setListOpen((prev) => !prev)} className="home-map-count md:hidden">
+            <List className="h-4 w-4" />
+            <span>{filteredPlaces.length} sitios</span>
+          </button>
+
+          <button onClick={handleAddPin} className="home-map-fab" aria-label="Add Spot">
+            <MapPin className="h-5 w-5" />
+            <span className="home-map-fab-label">Add Spot</span>
+          </button>
+
+          <PlaceListPanel
             places={filteredPlaces}
-            selectedPlace={selectedPlace || previewPlace}
-            savedPlaceIds={favoriteIds}
+            open={listOpen && !selectedPlace}
+            onToggle={() => setListOpen(!listOpen)}
             onSelectPlace={(place) => {
-              setPreviewPlace(place);
+              setSelectedPlace(place);
+              setPreviewPlace(null);
               setListOpen(false);
             }}
-            onBoundsChange={setMapBounds}
-            onMapMove={() => setHasMapMoved(true)}
-            controlsHidden={Boolean(selectedPlace)}
-            mapStyleUrl={currentMapStyle.url}
-            userLocation={userLocation}
+            selectedId={selectedPlace?.id}
+            sortMode={sheetSort}
+            onSortModeChange={setSheetSort}
+            sortDirection={sheetSortDirection}
+            onSortDirectionChange={setSheetSortDirection}
           />
-          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_82%_72%,rgba(223,91,67,0.22),transparent_0,transparent_24%),linear-gradient(180deg,rgba(8,8,8,0.08)_0%,rgba(8,8,8,0.22)_100%)]" />
-          <div className="pointer-events-none absolute inset-x-0 top-0 h-32 bg-[linear-gradient(180deg,rgba(8,8,8,0.56)_0%,rgba(8,8,8,0)_100%)]" />
+
+          {selectedPlace && <PlacePanel place={selectedPlace} onClose={() => setSelectedPlace(null)} user={user} />}
+          <AddPinModal open={addPinOpen} onClose={() => setAddPinOpen(false)} user={user} />
+          <LoginPrompt open={loginPrompt} onClose={() => setLoginPrompt(false)} message="Sign in to create and join pizza hangouts with friends." />
         </div>
-
-        <SearchFilters
-          filters={filters}
-          onFiltersChange={setFilters}
-          onLocateMe={() => {
-            if (navigator.geolocation) {
-              navigator.geolocation.getCurrentPosition((position) => {
-                const { latitude, longitude } = position.coords;
-                setUserLocation({ lat: latitude, lng: longitude });
-                setListOpen(false);
-              });
-            }
-          }}
-          hasMapMoved={hasMapMoved}
-          usingMapArea={useMapArea}
-          onSearchArea={(mode) => {
-            if (mode === "disable") setUseMapArea(false);
-            else if (mode === "enable") setUseMapArea(true);
-            else setUseMapArea((prev) => !prev);
-          }}
-        />
-
-        <button
-          onClick={handleAddPin}
-          className="home-map-fab"
-          aria-label="Add Spot"
-        >
-          <MapPin className="h-4 w-4" />
-          <span className="text-[12px] font-bold">Add Spot</span>
-        </button>
-
-        <button
-          onClick={() => setListOpen((prev) => !prev)}
-          className="home-map-count md:hidden"
-        >
-          <List className="h-4 w-4" />
-          <span>{filteredPlaces.length} sitios</span>
-        </button>
-
-        <PlaceListPanel
-          places={filteredPlaces}
-          open={listOpen && !selectedPlace}
-          onToggle={() => setListOpen(!listOpen)}
-          onSelectPlace={(place) => {
-            setSelectedPlace(place);
-            setPreviewPlace(null);
-            setListOpen(false);
-          }}
-          selectedId={selectedPlace?.id}
-          sortMode={sheetSort}
-          onSortModeChange={setSheetSort}
-          sortDirection={sheetSortDirection}
-          onSortDirectionChange={setSheetSortDirection}
-        />
-
-        {selectedPlace && <PlacePanel place={selectedPlace} onClose={() => setSelectedPlace(null)} user={user} />}
-        <AddPinModal open={addPinOpen} onClose={() => setAddPinOpen(false)} user={user} />
-        <LoginPrompt open={loginPrompt} onClose={() => setLoginPrompt(false)} message="Sign in to create and join pizza hangouts with friends." />
       </section>
 
       <PinPopup

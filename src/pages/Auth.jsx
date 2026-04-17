@@ -62,8 +62,8 @@ export default function AuthPage() {
   };
 
   return (
-    <div className="auth-screen md:grid md:place-items-center">
-      <div className="auth-card">
+    <div className="auth-screen bg-[#f4efe6] px-4 py-4 text-[#111111] md:grid md:place-items-center">
+      <div className="mx-auto w-full max-w-md rounded-[34px] border border-black/10 bg-[#fffaf1] p-5 shadow-[0_24px_60px_rgba(34,25,11,0.12)] md:p-6">
         <div className="mb-5 flex items-center gap-3">
           <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#f0bf39] text-2xl shadow-[0_18px_36px_rgba(240,191,57,0.24)]">🍕</div>
           <div>
@@ -98,7 +98,7 @@ export default function AuthPage() {
           </Button>
         </form>
 
-        <div className="auth-benefits">
+        <div className="mt-4 grid gap-2">
           {bullets.map(({ icon: Icon, text }) => (
             <div key={text} className="flex items-center gap-3 rounded-[20px] border border-black/8 bg-[#f8f3ea] px-4 py-3">
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[#111111] text-[#f0bf39]">

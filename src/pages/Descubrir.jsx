@@ -457,14 +457,14 @@ export default function Descubrir() {
     },
   });
 
-  if (isLoading) return <div className="discover-screen grid h-[100dvh] place-items-center text-[#fffaf2]">Cargando…</div>;
+  if (isLoading) return <div className="grid h-[100dvh] place-items-center bg-[#090909] text-[#fffaf2]">Cargando…</div>;
 
   const pagePaddingBottom = "max(12px, env(safe-area-inset-bottom))";
   const pagePaddingTop = "max(12px, env(safe-area-inset-top))";
 
   if (!current) {
     return (
-      <div className="discover-screen discover-shell" style={{ paddingBottom: pagePaddingBottom, paddingTop: pagePaddingTop }}>
+      <div className="discover-screen box-border h-[100dvh] overflow-hidden bg-[#090909] px-3 pt-3" style={{ paddingBottom: pagePaddingBottom, paddingTop: pagePaddingTop }}>
         <div className="relative mx-auto flex h-full max-w-md flex-col overflow-hidden">
           <div className="mb-3 flex items-center justify-between gap-3 rounded-[28px] border border-white/10 bg-[#121212] px-4 py-3 shadow-[0_18px_40px_rgba(0,0,0,0.32)]">
             <div>
@@ -489,12 +489,12 @@ export default function Descubrir() {
 
   return (
     <>
-      <div className="discover-screen discover-shell" style={{ paddingBottom: pagePaddingBottom, paddingTop: pagePaddingTop }}>
+      <div className="discover-screen box-border h-[100dvh] overflow-hidden bg-[#090909] px-3 pt-3" style={{ paddingBottom: pagePaddingBottom, paddingTop: pagePaddingTop }}>
         <div className="relative mx-auto flex h-full max-w-md flex-col overflow-hidden">
           <div className="mb-3 flex shrink-0 items-center justify-between gap-3 rounded-[28px] border border-black/8 bg-[#fff9f1] px-4 py-3 shadow-[0_16px_36px_rgba(34,25,11,0.1)]">
             <div>
               <p className="text-[11px] font-black uppercase tracking-[0.22em] text-[#efbf3a]">Tonight</p>
-              <div className="text-[1.6rem] font-black leading-none text-[#fffaf2]">Descubrir planes</div>
+              <div className="text-[1.6rem] font-black leading-none text-[#111111]">Descubrir planes</div>
             </div>
             <button type="button" onClick={() => setFiltersOpen(true)} className="grid h-11 w-11 place-items-center rounded-full border border-white/10 bg-[#181818] text-[#fffaf2] shrink-0">
               <Settings2 className="h-5 w-5" />
