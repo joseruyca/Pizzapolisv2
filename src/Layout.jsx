@@ -25,7 +25,7 @@ export default function Layout({ children, currentPageName }) {
   const navItems = [...publicNavItems, ...privateNavItems];
   const menuItems = role === 'admin' && isAuthenticated ? [...navItems, { label: 'Admin', page: 'Admin', icon: Shield }] : navItems;
   const hideHeader = currentPageName === 'Landing' || currentPageName === 'Descubrir';
-  const hideBottomNav = currentPageName === 'Descubrir';
+  const hideBottomNav = currentPageName === 'Descubrir' || currentPageName === 'MisMatches';
   const publicPages = new Set(['Landing', 'Home', 'Descubrir']);
   const viewportPages = new Set(['Landing']);
 

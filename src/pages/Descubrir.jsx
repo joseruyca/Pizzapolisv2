@@ -286,55 +286,55 @@ function SwipeCard({ hangout, disabled, onDecision }) {
             if (info.offset.x < -110) return finishVote("dislike");
             controls.start({ x: 0, rotate: 0, transition: { type: "spring", stiffness: 380, damping: 32 } });
           }}
-          className="relative h-full overflow-hidden rounded-[30px] border border-black/8 bg-[#fffaf2] shadow-[0_30px_70px_rgba(39,29,14,0.14)]"
+          className="relative h-full overflow-hidden rounded-[30px] border border-white/10 bg-[#131313] shadow-[0_30px_70px_rgba(0,0,0,0.38)]"
         >
           <motion.div className="absolute inset-0 z-0" style={{ background: overlay }} />
           <div className="relative z-10 flex h-full flex-col overflow-hidden">
             <div className="relative h-[30%] min-h-[150px] shrink-0 overflow-hidden border-b border-black/8">
               <img src={item.cover} alt={item.placeName} className="h-full w-full object-cover" />
               <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-white/96" />
-              <div className="absolute left-4 top-4 inline-flex max-w-[80%] items-center gap-2 rounded-full bg-white/92 px-3 py-2 text-xs font-bold uppercase tracking-[0.16em] text-[#141414] backdrop-blur-md">
+              <div className="absolute left-4 top-4 inline-flex max-w-[80%] items-center gap-2 rounded-full border border-white/10 bg-black/70 px-3 py-2 text-xs font-bold uppercase tracking-[0.16em] text-[#fff7dd] backdrop-blur-md">
                 <span>{item.vibeEmoji}</span>
                 <span className="truncate">{item.vibe}</span>
               </div>
             </div>
 
             <div className="flex min-h-0 flex-1 flex-col px-5 pb-5 pt-4">
-              <div className="flex items-start justify-between gap-3 text-[12px] font-black uppercase tracking-[0.18em] text-[#6d665b]">
+              <div className="flex items-start justify-between gap-3 text-[12px] font-black uppercase tracking-[0.18em] text-[#b6ad9d]">
                 <div className="leading-5">{item.when.toLocaleDateString([], { day: "2-digit", month: "short" }).toUpperCase()} · {item.when.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</div>
-                <div className="rounded-full bg-emerald-500/12 px-3 py-1 text-emerald-200">{item.spotsLeft} spots left</div>
+                <div className="rounded-full bg-emerald-500/18 px-3 py-1 text-emerald-300">{item.spotsLeft} spots left</div>
               </div>
 
-              <h1 className="mt-3 text-[clamp(1.65rem,5vw,2.3rem)] font-black leading-[0.94] tracking-[-0.045em] text-[#141414] line-clamp-2">{item.title}</h1>
+              <h1 className="mt-3 text-[clamp(1.65rem,5vw,2.3rem)] font-black leading-[0.94] tracking-[-0.045em] text-[#fffaf2] line-clamp-2">{item.title}</h1>
 
-              <div className="mt-3 flex items-start gap-2 text-[15px] text-[#141414]">
+              <div className="mt-3 flex items-start gap-2 text-[15px] text-[#fffaf2]">
                 <MapPin className="mt-1 h-4 w-4 shrink-0 text-red-400" />
                 <div className="min-w-0">
-                  <div className="truncate font-semibold text-[#141414]">{item.placeName}</div>
-                  <div className="truncate text-sm text-[#6d665b]">{item.neighborhood}</div>
+                  <div className="truncate font-semibold text-[#fffaf2]">{item.placeName}</div>
+                  <div className="truncate text-sm text-[#bbb2a2]">{item.neighborhood}</div>
                 </div>
               </div>
 
               <div className="mt-4 grid grid-cols-2 gap-3">
-                <div className="rounded-2xl border border-black/8 bg-[#f8f3ea] px-3 py-3">
-                  <div className="text-[11px] font-bold uppercase tracking-[0.16em] text-[#8e8578]">Price</div>
-                  <div className="mt-1 text-lg font-black text-[#141414]">{item.priceLabel}</div>
+                <div className="rounded-2xl border border-white/10 bg-[#1b1b1b] px-3 py-3">
+                  <div className="text-[11px] font-bold uppercase tracking-[0.16em] text-[#a89f90]">Price</div>
+                  <div className="mt-1 text-lg font-black text-[#fffaf2]">{item.priceLabel}</div>
                 </div>
-                <div className="rounded-2xl border border-black/8 bg-[#f8f3ea] px-3 py-3">
-                  <div className="text-[11px] font-bold uppercase tracking-[0.16em] text-[#8e8578]">People</div>
-                  <div className="mt-1 text-lg font-black text-[#141414]">{item.joinedCount} / {item.maxParticipants || item.joinedCount}</div>
+                <div className="rounded-2xl border border-white/10 bg-[#1b1b1b] px-3 py-3">
+                  <div className="text-[11px] font-bold uppercase tracking-[0.16em] text-[#a89f90]">People</div>
+                  <div className="mt-1 text-lg font-black text-[#fffaf2]">{item.joinedCount} / {item.maxParticipants || item.joinedCount}</div>
                 </div>
               </div>
 
-              <p className="mt-4 text-[15px] leading-6 text-[#5f584e] flex-1 min-h-0 overflow-hidden line-clamp-4">{item.description}</p>
+              <p className="mt-4 text-[15px] leading-6 text-[#d0c8bb] flex-1 min-h-0 overflow-hidden line-clamp-4">{item.description}</p>
 
-              <div className="mt-4 flex items-center gap-3 border-t border-black/8 pt-4">
-                <div className={`flex h-11 w-11 items-center justify-center rounded-full bg-[#efbf3a] text-sm font-bold text-[#141414] shadow-lg`}>
+              <div className="mt-4 flex items-center gap-3 border-t border-white/10 pt-4">
+                <div className={`flex h-11 w-11 items-center justify-center rounded-full bg-[#efbf3a] text-sm font-bold text-[#141414] shadow-[0_12px_30px_rgba(239,191,58,0.22)]`}>
                   {avatarLabel(item.host) || avatarLabel({ full_name: item.hostName })}
                 </div>
                 <div className="min-w-0">
-                  <div className="text-xs text-[#8e8578]">Hosted by</div>
-                  <div className="truncate font-bold text-[#141414]">{item.hostName}</div>
+                  <div className="text-xs text-[#a89f90]">Hosted by</div>
+                  <div className="truncate font-bold text-[#fffaf2]">{item.hostName}</div>
                 </div>
               </div>
             </div>
@@ -457,29 +457,29 @@ export default function Descubrir() {
     },
   });
 
-  if (isLoading) return <div className="grid h-[100dvh] place-items-center bg-[#f4efe6] text-[#111111]">Cargando…</div>;
+  if (isLoading) return <div className="grid h-[100dvh] place-items-center bg-[#090909] text-[#fffaf2]">Cargando…</div>;
 
   const pagePaddingBottom = "max(12px, env(safe-area-inset-bottom))";
   const pagePaddingTop = "max(12px, env(safe-area-inset-top))";
 
   if (!current) {
     return (
-      <div className="box-border h-[100dvh] overflow-hidden bg-[#f4efe6] px-3 pt-3" style={{ paddingBottom: pagePaddingBottom, paddingTop: pagePaddingTop }}>
+      <div className="box-border h-[100dvh] overflow-hidden bg-[#090909] px-3 pt-3" style={{ paddingBottom: pagePaddingBottom, paddingTop: pagePaddingTop }}>
         <div className="relative mx-auto flex h-full max-w-md flex-col overflow-hidden">
-          <div className="mb-3 flex items-center justify-between gap-3 rounded-[28px] border border-black/8 bg-[#fff9f1] px-4 py-3 shadow-[0_16px_36px_rgba(34,25,11,0.1)]">
+          <div className="mb-3 flex items-center justify-between gap-3 rounded-[28px] border border-white/10 bg-[#121212] px-4 py-3 shadow-[0_18px_40px_rgba(0,0,0,0.32)]">
             <div>
-              <div className="text-[11px] font-black uppercase tracking-[0.18em] text-[#216b33]">Descubrir</div>
-              <div className="mt-1 text-xl font-black text-[#111111]">Ahora mismo no hay planes nuevos</div>
+              <div className="text-[11px] font-black uppercase tracking-[0.18em] text-[#efbf3a]">Descubrir</div>
+              <div className="mt-1 text-xl font-black text-[#fffaf2]">Ahora mismo no hay planes nuevos</div>
             </div>
             <button type="button" onClick={() => navigate(-1)} className="grid h-11 w-11 place-items-center rounded-full border border-black/8 bg-white text-[#111111]"><ChevronLeft className="h-5 w-5" /></button>
           </div>
-          <div className="flex flex-1 flex-col items-center justify-center rounded-[30px] border border-black/8 bg-[#fff9f1] p-8 text-center shadow-[0_24px_60px_rgba(34,25,11,0.12)]">
+          <div className="flex flex-1 flex-col items-center justify-center rounded-[30px] border border-white/10 bg-[#131313] p-8 text-center shadow-[0_24px_60px_rgba(0,0,0,0.32)]">
             <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-[28px] bg-[#fff4d8] text-4xl">🍕</div>
-            <h1 className="mt-6 text-3xl font-black text-[#111111]">No hay más planes por ahora</h1>
-            <p className="mt-3 text-sm leading-7 text-[#605747]">Cuando alguien cree un nuevo plan de pizza aparecerá aquí para que decidas si te unes o lo dejas pasar.</p>
+            <h1 className="mt-6 text-3xl font-black text-[#fffaf2]">No hay más planes por ahora</h1>
+            <p className="mt-3 text-sm leading-7 text-[#cbc2b3]">Cuando alguien cree un nuevo plan de pizza aparecerá aquí para que decidas si te unes o lo dejas pasar.</p>
             <div className="mt-6 grid w-full gap-3">
               {user ? <Link to={createPageUrl("CrearQuedada")} className="inline-flex h-12 items-center justify-center rounded-2xl bg-[#ebb932] text-sm font-black text-[#111111]">Crear plan</Link> : <button type="button" onClick={() => setLoginPrompt(true)} className="inline-flex h-12 items-center justify-center rounded-2xl bg-[#ebb932] text-sm font-black text-[#111111]">Crear plan</button>}
-              {user ? <Link to={createPageUrl("MisMatches") + (joinedToast ? `?focus=${joinedToast.id}` : "")} className="inline-flex h-12 items-center justify-center rounded-2xl border border-black/8 bg-white text-sm font-bold text-[#111111]">Ver mis grupos</Link> : <button type="button" onClick={() => setLoginPrompt(true)} className="inline-flex h-12 items-center justify-center rounded-2xl border border-black/8 bg-white text-sm font-bold text-[#111111]">Entrar para unirte</button>}
+              {user ? <Link to={createPageUrl("MisMatches") + (joinedToast ? `?focus=${joinedToast.id}` : "")} className="inline-flex h-12 items-center justify-center rounded-2xl border border-white/10 bg-[#181818] text-sm font-bold text-[#fffaf2]">Ver mis grupos</Link> : <button type="button" onClick={() => setLoginPrompt(true)} className="inline-flex h-12 items-center justify-center rounded-2xl border border-white/10 bg-[#181818] text-sm font-bold text-[#fffaf2]">Entrar para unirte</button>}
             </div>
           </div>
         </div>
@@ -489,23 +489,23 @@ export default function Descubrir() {
 
   return (
     <>
-      <div className="box-border h-[100dvh] overflow-hidden bg-[#f4efe6] px-3 pt-3" style={{ paddingBottom: pagePaddingBottom, paddingTop: pagePaddingTop }}>
+      <div className="box-border h-[100dvh] overflow-hidden bg-[#090909] px-3 pt-3" style={{ paddingBottom: pagePaddingBottom, paddingTop: pagePaddingTop }}>
         <div className="relative mx-auto flex h-full max-w-md flex-col overflow-hidden">
           <div className="mb-3 flex shrink-0 items-center justify-between gap-3 rounded-[28px] border border-black/8 bg-[#fff9f1] px-4 py-3 shadow-[0_16px_36px_rgba(34,25,11,0.1)]">
             <div>
-              <p className="text-[11px] font-black uppercase tracking-[0.22em] text-[#8b816f]">Tonight</p>
-              <div className="text-[1.6rem] font-black leading-none text-[#111111]">Descubrir planes</div>
+              <p className="text-[11px] font-black uppercase tracking-[0.22em] text-[#efbf3a]">Tonight</p>
+              <div className="text-[1.6rem] font-black leading-none text-[#fffaf2]">Descubrir planes</div>
             </div>
-            <button type="button" onClick={() => setFiltersOpen(true)} className="grid h-11 w-11 place-items-center rounded-full border border-black/8 bg-white text-[#111111] shrink-0">
+            <button type="button" onClick={() => setFiltersOpen(true)} className="grid h-11 w-11 place-items-center rounded-full border border-white/10 bg-[#181818] text-[#fffaf2] shrink-0">
               <Settings2 className="h-5 w-5" />
             </button>
           </div>
 
-          <div className="min-h-0 flex-1 overflow-hidden rounded-[32px] border border-black/8 bg-[#fff8ee] p-2 shadow-[0_28px_64px_rgba(34,25,11,0.12)]">
+          <div className="min-h-0 flex-1 overflow-hidden rounded-[32px] border border-white/10 bg-[#101010] p-2 shadow-[0_28px_64px_rgba(0,0,0,0.34)]">
             <SwipeCard hangout={current} disabled={mutate.isPending} onDecision={(id, decision) => mutate.mutate({ id, decision })} />
           </div>
 
-          <button type="button" onClick={() => navigate(-1)} className="absolute bottom-4 left-4 z-30 grid h-11 w-11 place-items-center rounded-full border border-black/8 bg-white text-[#111111] shadow-[0_12px_30px_rgba(34,25,11,0.16)]">
+          <button type="button" onClick={() => navigate(-1)} className="absolute bottom-4 left-4 z-30 grid h-11 w-11 place-items-center rounded-full border border-white/10 bg-[#181818] text-[#fffaf2] shadow-[0_12px_30px_rgba(0,0,0,0.3)]">
             <ChevronLeft className="h-5 w-5" />
           </button>
 

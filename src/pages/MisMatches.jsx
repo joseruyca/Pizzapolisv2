@@ -234,7 +234,7 @@ export default function MisMatches() {
 
   return (
     <>
-      <div className="h-[calc(100vh-64px)] overflow-hidden bg-[#070707] text-white">
+      <div className="h-[calc(100dvh-var(--header-height))] overflow-hidden bg-[#070707] text-white">
         <div className="mx-auto grid h-full max-w-6xl lg:grid-cols-[360px,1fr]">
           <aside className={`${mobileChatOpen ? "hidden lg:flex" : "flex"} min-h-0 flex-col border-r border-white/6 bg-[#0f0f0f]`}>
             <div className="border-b border-white/6 px-4 py-4">
@@ -267,7 +267,7 @@ export default function MisMatches() {
           </aside>
 
           {selected ? (
-            <section className={`${mobileChatOpen ? "flex" : "hidden lg:flex"} min-h-0 flex-col bg-[#0b0b0b]`}>
+            <section className={`${mobileChatOpen ? "flex" : "hidden lg:flex"} min-h-0 min-w-0 flex-col bg-[#0b0b0b]`}>
               <div className="flex items-center gap-3 border-b border-white/6 px-4 py-3">
                 <button onClick={() => setMobileChatOpen(false)} className="grid h-10 w-10 place-items-center rounded-full border border-white/10 bg-white/[0.04] text-stone-300 lg:hidden"><ArrowLeft className="h-4 w-4" /></button>
                 <button onClick={() => setShowInfo(true)} className="min-w-0 flex-1 text-left">
@@ -287,7 +287,7 @@ export default function MisMatches() {
                 </div>
               </div>
 
-              <div className="min-h-0 flex-1 overflow-y-auto bg-[radial-gradient(circle_at_top,rgba(220,38,38,0.12),transparent_24%),linear-gradient(180deg,#0b0b0b_0%,#0a0a0a_100%)] px-4 py-4">
+              <div className="min-h-0 flex-1 overflow-y-auto bg-[radial-gradient(circle_at_top,rgba(220,38,38,0.12),transparent_24%),linear-gradient(180deg,#0b0b0b_0%,#0a0a0a_100%)] px-4 py-4 pb-6">
                 <div className="mb-4 flex flex-wrap gap-2">
                   {selected.participants.map((person) => (
                     <div key={person.email} className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-2 text-xs text-stone-200">
@@ -302,8 +302,8 @@ export default function MisMatches() {
                 </div>
               </div>
 
-              <div className="border-t border-white/6 px-4 py-3" style={{ paddingBottom: "max(0.9rem, env(safe-area-inset-bottom))" }}>
-                <div className="flex items-center gap-2 rounded-[24px] border border-white/10 bg-[#121212] p-2">
+              <div className="shrink-0 border-t border-white/6 px-4 py-3 bg-[#0a0a0a]" style={{ paddingBottom: "max(0.9rem, env(safe-area-inset-bottom))" }}>
+                <div className="flex w-full items-center gap-2 rounded-[24px] border border-white/10 bg-[#121212] p-2">
                   <input
                     value={messageText}
                     onChange={(e) => setMessageText(e.target.value)}
@@ -314,9 +314,9 @@ export default function MisMatches() {
                       }
                     }}
                     placeholder="Escribe un mensaje..."
-                    className="h-11 flex-1 bg-transparent px-3 text-sm text-white outline-none placeholder:text-stone-500"
+                    className="h-11 min-w-0 flex-1 bg-transparent px-3 text-sm text-white outline-none placeholder:text-stone-500"
                   />
-                  <button onClick={handleSend} className="grid h-11 w-11 place-items-center rounded-full bg-red-600 text-white disabled:opacity-50" disabled={!messageText.trim() || sendMutation.isPending}>
+                  <button onClick={handleSend} className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-red-600 text-white disabled:opacity-50" disabled={!messageText.trim() || sendMutation.isPending}>
                     <Send className="h-4 w-4" />
                   </button>
                 </div>
