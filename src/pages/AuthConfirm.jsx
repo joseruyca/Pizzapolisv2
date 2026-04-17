@@ -1,43 +1,59 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { CheckCircle2, Loader2, XCircle } from 'lucide-react';
+import { Loader2, CheckCircle2, XCircle } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
-function getHashParams() {
-  const hash = window.location.hash.startsWith('#') ? window.location.hash.slice(1) : '';
+function readHashParams() {
+  const hash = window.location.hash?.replace(/^#/, '') || '';
   return new URLSearchParams(hash);
 }
 
 export default function AuthConfirm() {
+  const [params] = useSearchParams();
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const next = searchParams.get('next') || '/home';
   const [status, setStatus] = useState('loading');
   const [message, setMessage] = useState('Confirming your email and starting your session…');
 
-  const tokenHash = useMemo(() => searchParams.get('token_hash') || getHashParams().get('token_hash'), [searchParams]);
-  const type = useMemo(() => searchParams.get('type') || getHashParams().get('type') || 'email', [searchParams]);
-  const hasAuthTokens = useMemo(() => {
-    const hashParams = getHashParams();
-    return Boolean(hashParams.get('access_token') || hashParams.get('refresh_token'));
-  }, []);
+  const next = useMemo(() => params.get('next') || '/home', [params]);
+  const tokenHash = params.get('token_hash');
+  const type = params.get('type') || 'signup';
+  const code = params.get('code');
 
   useEffect(() => {
     let active = true;
 
     async function confirm() {
       try {
-        if (tokenHash) {
-          const { error } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type });
-          if (error) throw error;
+        if (!supabase) {
+          throw new Error('Supabase is not configured.');
         }
 
-        if (hasAuthTokens) {
-          const { error } = await supabase.auth.getSession();
+        const hashParams = readHashParams();
+        const accessToken = hashParams.get('access_token');
+        const refreshToken = hashParams.get('refresh_token');
+
+        if (code) {
+          const { error } = await supabase.auth.exchangeCodeForSession(code);
           if (error) throw error;
+        } else if (tokenHash) {
+          const { error } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type });
+          if (error) throw error;
+        } else if (accessToken && refreshToken) {
+          const { error } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken,
+          });
+          if (error) throw error;
+        } else {
+          const { data, error } = await supabase.auth.getSession();
+          if (error) throw error;
+          if (!data.session) {
+            throw new Error('Confirmation link is invalid or has expired.');
+          }
         }
 
         if (!active) return;
+        window.history.replaceState({}, document.title, window.location.pathname + window.location.search);
         setStatus('success');
         setMessage('Email confirmed. Redirecting you back into Pizzapolis…');
         window.setTimeout(() => navigate(next, { replace: true }), 900);
@@ -49,11 +65,10 @@ export default function AuthConfirm() {
     }
 
     confirm();
-
     return () => {
       active = false;
     };
-  }, [tokenHash, type, hasAuthTokens, navigate, next]);
+  }, [code, tokenHash, type, navigate, next]);
 
   return (
     <div className="min-h-screen bg-[#080808] text-white grid place-items-center px-6">

@@ -125,10 +125,10 @@ export default function NotificationCenter({ user }) {
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="font-medium text-sm text-white truncate">
-                            {notification.titulo}
+                            {notification.titulo || 'Notification'}
                           </p>
                           <p className="text-xs text-stone-500 mt-0.5 line-clamp-2">
-                            {notification.descripcion}
+                            {notification.descripcion || notification.texto || ''}
                           </p>
                         </div>
                         <button

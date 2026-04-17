@@ -1,5 +1,3 @@
-import { seedData } from "@/data/seedData";
-
 const DB_KEY = "pizzapolis_local_db";
 const USER_KEY = "pizzapolis_current_user";
 
@@ -7,19 +5,56 @@ const clone = (v) => JSON.parse(JSON.stringify(v));
 const wait = (ms = 40) => new Promise((r) => setTimeout(r, ms));
 const uid = (prefix = "id") => `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
+const EMPTY_DB = {
+  User: [],
+  PizzaPlace: [],
+  Favorite: [],
+  Rating: [],
+  Comment: [],
+  Photo: [],
+  Quedada: [],
+  Interes: [],
+  Message: [],
+  Notification: [],
+  UserBadge: [],
+  List: [],
+  SearchLog: [],
+  Guide: [],
+};
+
+function looksLikeLegacyDemoDb(parsed) {
+  if (!parsed || typeof parsed !== 'object') return false;
+  const users = Array.isArray(parsed.User) ? parsed.User : [];
+  const hasDemoEmail = users.some((user) => String(user?.email || '').includes('demo@pizzapolis.app'));
+  const hasLegacyCollections = Array.isArray(parsed.PizzaPlace) || Array.isArray(parsed.Quedada);
+  return hasDemoEmail || hasLegacyCollections;
+}
+
 function bootstrap() {
   if (typeof window === "undefined") return;
   const existing = localStorage.getItem(DB_KEY);
-  if (!existing) localStorage.setItem(DB_KEY, JSON.stringify(seedData));
+  if (!existing) {
+    localStorage.setItem(DB_KEY, JSON.stringify(EMPTY_DB));
+    return;
+  }
+
+  try {
+    const parsed = JSON.parse(existing);
+    if (looksLikeLegacyDemoDb(parsed)) {
+      localStorage.setItem(DB_KEY, JSON.stringify(EMPTY_DB));
+    }
+  } catch {
+    localStorage.setItem(DB_KEY, JSON.stringify(EMPTY_DB));
+  }
 }
 
 function readDb() {
   bootstrap();
-  return JSON.parse(localStorage.getItem(DB_KEY) || "{}");
+  return { ...EMPTY_DB, ...JSON.parse(localStorage.getItem(DB_KEY) || "{}") };
 }
 
 function writeDb(db) {
-  localStorage.setItem(DB_KEY, JSON.stringify(db));
+  localStorage.setItem(DB_KEY, JSON.stringify({ ...EMPTY_DB, ...db }));
 }
 
 function getUser() {
@@ -112,6 +147,7 @@ const entities = {
 
 async function toggleFavorite({ place_id, place_name }) {
   const user = getUser();
+  if (!user?.email) return { data: { favorited: false } };
   const db = readDb();
   db.Favorite = db.Favorite || [];
   const existing = db.Favorite.find((f) => f.place_id === place_id && f.user_email === user.email);
@@ -146,7 +182,7 @@ function enrichQuedada(quedada, db) {
 async function obtenerQuedadasParaDescubrir() {
   const user = getUser();
   const db = readDb();
-  const decided = new Set((db.Interes || []).filter((i) => i.usuario_id === user.email).map((i) => i.quedada_id));
+  const decided = new Set((db.Interes || []).filter((i) => i.usuario_id === user?.email).map((i) => i.quedada_id));
   const upcoming = sortItems(
     (db.Quedada || []).filter((q) => q.estado === "activa" && new Date(q.fecha_hora) >= new Date() && !decided.has(q.id)),
     "fecha_hora"
@@ -156,6 +192,7 @@ async function obtenerQuedadasParaDescubrir() {
 
 async function recordarInteres({ quedada_id, tipo_interes, decision }) {
   const user = getUser();
+  if (!user?.email) return { data: { success: false } };
   const db = readDb();
   const choice = tipo_interes || decision || "like";
   db.Interes = db.Interes || [];
@@ -173,7 +210,7 @@ async function recordarInteres({ quedada_id, tipo_interes, decision }) {
       id: uid("notification"),
       user_id: user.id,
       tipo: "nuevo_match",
-      texto: `You joined ${quedada?.titulo || "a hangout"}`,
+      texto: `You joined ${quedada?.titulo || "a plan"}`,
       leida: false,
       created_date: new Date().toISOString()
     });
@@ -184,6 +221,7 @@ async function recordarInteres({ quedada_id, tipo_interes, decision }) {
 
 async function checkAndAwardBadges() {
   const user = getUser();
+  if (!user?.email) return { data: { ok: false, awarded: [] } };
   const db = readDb();
   db.UserBadge = db.UserBadge || [];
   const userRatings = (db.Rating || []).filter((r) => r.user_email === user.email);
@@ -195,7 +233,7 @@ async function checkAndAwardBadges() {
     db.UserBadge.push(badge); awarded.push(badge.title);
   }
   if (userLikes.length >= 1 && !existingTitles.has("Social Slice")) {
-    const badge = { id: uid("badge"), user_email: user.email, title: "Social Slice", icon: "🍕", description: "Joined a pizza hangout.", created_date: new Date().toISOString() };
+    const badge = { id: uid("badge"), user_email: user.email, title: "Social Slice", icon: "🍕", description: "Joined a pizza plan.", created_date: new Date().toISOString() };
     db.UserBadge.push(badge); awarded.push(badge.title);
   }
   writeDb(db);
@@ -245,6 +283,5 @@ export const base44 = {
 };
 
 export const resetLocalDb = () => {
-  localStorage.removeItem(DB_KEY);
-  bootstrap();
+  localStorage.setItem(DB_KEY, JSON.stringify(EMPTY_DB));
 };

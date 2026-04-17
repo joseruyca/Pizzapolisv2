@@ -11,7 +11,7 @@ export default function MapBottomNav({ onAddPin }) {
           className="flex-1 sm:flex-none flex flex-col items-center justify-center gap-1 py-2 px-4 rounded-lg text-stone-400 hover:text-white hover:bg-white/5 transition-colors"
         >
           <Plus className="w-5 h-5" />
-          <span className="text-xs font-medium hidden sm:inline">Add Site</span>
+          <span className="text-xs font-medium hidden sm:inline">Add Spot</span>
         </button>
 
         <Link
