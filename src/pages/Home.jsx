@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { MapPin, List, Sparkles } from "lucide-react";
+import { MapPin, List } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
 import PizzaMap from "@/components/map/PizzaMap";
@@ -115,7 +115,7 @@ export default function Home() {
 
   return (
     <>
-      <section className="relative h-full min-h-0 w-full overflow-hidden bg-[#0e0e0e]">
+      <section className="relative w-full overflow-hidden bg-[#080808] h-[calc(100dvh-var(--header-height)-var(--mobile-nav-height))] md:h-full">
         <div className="absolute inset-0 overflow-hidden">
           <PizzaMap
             places={filteredPlaces}
@@ -131,20 +131,8 @@ export default function Home() {
             mapStyleUrl={currentMapStyle.url}
             userLocation={userLocation}
           />
-          <div className="pointer-events-none absolute inset-x-0 top-0 h-36 bg-[linear-gradient(180deg,rgba(14,14,14,0.86)_0%,rgba(14,14,14,0.34)_42%,rgba(14,14,14,0)_100%)]" />
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-36 bg-[linear-gradient(180deg,rgba(14,14,14,0)_0%,rgba(14,14,14,0.18)_36%,rgba(14,14,14,0.92)_100%)] md:hidden" />
-        </div>
-
-        <div className="pointer-events-none absolute inset-x-0 top-0 z-[620] px-4 pt-3 md:px-6 md:pt-5">
-          <div className="mx-auto flex max-w-[440px] items-center justify-between rounded-[28px] border border-white/10 bg-[#111111]/82 px-4 py-2.5 shadow-[0_18px_44px_rgba(0,0,0,0.28)] backdrop-blur-xl md:ml-0">
-            <div>
-              <div className="text-[11px] font-black uppercase tracking-[0.18em] text-[#f0bf39]">Mapa público</div>
-              <div className="mt-1 text-sm font-semibold text-white">Spots reales, slices y valor por zona.</div>
-            </div>
-            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white/8 text-[#f0bf39]">
-              <Sparkles className="h-4 w-4" />
-            </div>
-          </div>
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_82%_72%,rgba(223,91,67,0.22),transparent_0,transparent_24%),linear-gradient(180deg,rgba(8,8,8,0.08)_0%,rgba(8,8,8,0.22)_100%)]" />
+          <div className="pointer-events-none absolute inset-x-0 top-0 h-32 bg-[linear-gradient(180deg,rgba(8,8,8,0.56)_0%,rgba(8,8,8,0)_100%)]" />
         </div>
 
         <SearchFilters
@@ -170,7 +158,7 @@ export default function Home() {
 
         <button
           onClick={handleAddPin}
-          className="absolute bottom-[calc(var(--mobile-nav-height)+18px)] right-4 z-[650] flex h-14 items-center justify-center gap-2 rounded-full bg-[#df5b43] px-5 text-white shadow-[0_14px_34px_rgba(223,91,67,0.26)] transition hover:bg-[#c84b35] md:bottom-6 md:right-6"
+          className="absolute bottom-[calc(var(--mobile-nav-height)+18px)] right-4 z-[650] flex h-14 items-center justify-center gap-2 rounded-full bg-[#df5b43] px-5 text-white shadow-[0_18px_38px_rgba(223,91,67,0.34)] transition hover:bg-[#c84b35] md:bottom-6 md:right-6"
           aria-label="Add Spot"
         >
           <MapPin className="h-5 w-5" />
@@ -179,7 +167,7 @@ export default function Home() {
 
         <button
           onClick={() => setListOpen((prev) => !prev)}
-          className="absolute bottom-[calc(var(--mobile-nav-height)+16px)] left-1/2 z-[640] flex -translate-x-1/2 items-center gap-2 rounded-full border border-white/10 bg-[#111111]/88 px-4 py-2 text-sm font-semibold text-white shadow-[0_14px_32px_rgba(0,0,0,0.24)] backdrop-blur-xl md:hidden"
+          className="absolute bottom-[calc(var(--mobile-nav-height)+18px)] left-1/2 z-[640] flex -translate-x-1/2 items-center gap-2 rounded-full border border-white/10 bg-[#111111]/88 px-4 py-2 text-sm font-semibold text-white shadow-[0_14px_32px_rgba(0,0,0,0.24)] backdrop-blur-xl md:hidden"
         >
           <List className="h-4 w-4" />
           <span>{filteredPlaces.length} sitios</span>

@@ -27,7 +27,7 @@ export default function Layout({ children, currentPageName }) {
   const hideHeader = currentPageName === 'Landing' || currentPageName === 'Descubrir';
   const hideBottomNav = currentPageName === 'Descubrir';
   const publicPages = new Set(['Landing', 'Home', 'Descubrir']);
-  const viewportPages = new Set(['Home', 'Landing']);
+  const viewportPages = new Set(['Landing']);
 
   const navTarget = (page) => {
     if (publicPages.has(page) || isAuthenticated) return createPageUrl(page);

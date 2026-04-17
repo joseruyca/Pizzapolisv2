@@ -81,11 +81,25 @@ export const AuthProvider = ({ children }) => {
       setIsAuthenticated(false);
       return;
     }
-    const p = await ensureProfile(sessionUser);
-    const bridged = bridgeUser(sessionUser, p);
-    setUser(bridged);
-    setProfile(p);
+
+    const immediate = bridgeUser(sessionUser, null);
+    setUser(immediate);
     setIsAuthenticated(true);
+
+    try {
+      const profilePromise = ensureProfile(sessionUser);
+      const timeoutPromise = new Promise((resolve) => window.setTimeout(() => resolve(null), 1500));
+      const resolvedProfile = await Promise.race([profilePromise, timeoutPromise]);
+      if (resolvedProfile) {
+        const bridged = bridgeUser(sessionUser, resolvedProfile);
+        setUser(bridged);
+        setProfile(resolvedProfile);
+      } else {
+        setProfile(null);
+      }
+    } catch {
+      setProfile(null);
+    }
   }, []);
 
   useEffect(() => {
@@ -132,6 +146,7 @@ export const AuthProvider = ({ children }) => {
     setAuthError(null);
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) throw error;
+    setIsLoadingAuth(false);
     if (data?.user) {
       await syncSession(data.user);
     } else {
