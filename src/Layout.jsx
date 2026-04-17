@@ -27,7 +27,7 @@ export default function Layout({ children, currentPageName }) {
   const hideHeader = currentPageName === 'Landing' || currentPageName === 'Descubrir';
   const hideBottomNav = currentPageName === 'Descubrir';
   const publicPages = new Set(['Landing', 'Home', 'Descubrir']);
-  const viewportPages = new Set(['Home']);
+  const viewportPages = new Set(['Home', 'Landing']);
 
   const navTarget = (page) => {
     if (publicPages.has(page) || isAuthenticated) return createPageUrl(page);
@@ -35,7 +35,7 @@ export default function Layout({ children, currentPageName }) {
   };
 
   const navClass = (active, accent = false) => {
-    if (accent) return 'bg-[#df5b43] text-white shadow-[0_12px_32px_rgba(223,91,67,0.22)] hover:bg-[#c84b35]';
+    if (accent) return 'bg-[#de5a42] text-white shadow-[0_12px_32px_rgba(222,90,66,0.22)] hover:bg-[#c84b35]';
     if (active) return 'bg-white text-[#141414] shadow-[0_12px_28px_rgba(20,20,20,0.08)]';
     return 'text-[#5e574d] hover:bg-white/80 hover:text-[#141414]';
   };
@@ -84,7 +84,7 @@ export default function Layout({ children, currentPageName }) {
                     <Menu className="h-5 w-5" />
                   </Button>
                 </SheetTrigger>
-                <SheetContent side="right" className="z-[2500] w-[340px] border-black/10 bg-[#fff9f0] p-0 text-[#141414]">
+                <SheetContent side="right" className="z-[2500] w-[340px] border-black/10 bg-[#fffaf1] p-0 text-[#141414]">
                   <div className="p-6">
                     <div className="mb-8 flex items-center gap-3">
                       <div className="app-brand-mark">🍕</div>

@@ -22,7 +22,7 @@ export default function Home() {
   const [sheetSortDirection, setSheetSortDirection] = useState("asc");
   const [addPinOpen, setAddPinOpen] = useState(false);
   const [loginPrompt, setLoginPrompt] = useState(false);
-  const [mapStyle] = useState("positron");
+  const [mapStyle] = useState("dark");
   const [mapBounds, setMapBounds] = useState(null);
   const [hasMapMoved, setHasMapMoved] = useState(false);
   const [useMapArea, setUseMapArea] = useState(false);
@@ -115,7 +115,7 @@ export default function Home() {
 
   return (
     <>
-      <section className="relative h-full min-h-0 w-full overflow-hidden bg-[#f7f3eb]">
+      <section className="relative h-full min-h-0 w-full overflow-hidden bg-[#0e0e0e]">
         <div className="absolute inset-0 overflow-hidden">
           <PizzaMap
             places={filteredPlaces}
@@ -131,17 +131,17 @@ export default function Home() {
             mapStyleUrl={currentMapStyle.url}
             userLocation={userLocation}
           />
-          <div className="pointer-events-none absolute inset-x-0 top-0 h-36 bg-[linear-gradient(180deg,rgba(247,243,235,0.94)_0%,rgba(247,243,235,0.58)_40%,rgba(247,243,235,0)_100%)]" />
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-36 bg-[linear-gradient(180deg,rgba(247,243,235,0)_0%,rgba(247,243,235,0.24)_40%,rgba(247,243,235,0.94)_100%)] md:hidden" />
+          <div className="pointer-events-none absolute inset-x-0 top-0 h-36 bg-[linear-gradient(180deg,rgba(14,14,14,0.86)_0%,rgba(14,14,14,0.34)_42%,rgba(14,14,14,0)_100%)]" />
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-36 bg-[linear-gradient(180deg,rgba(14,14,14,0)_0%,rgba(14,14,14,0.18)_36%,rgba(14,14,14,0.92)_100%)] md:hidden" />
         </div>
 
         <div className="pointer-events-none absolute inset-x-0 top-0 z-[620] px-4 pt-3 md:px-6 md:pt-5">
-          <div className="mx-auto flex max-w-[440px] items-center justify-between rounded-[28px] border border-black/8 bg-[#fffaf1]/90 px-4 py-2.5 shadow-[0_18px_44px_rgba(34,25,11,0.12)] backdrop-blur-xl md:ml-0">
+          <div className="mx-auto flex max-w-[440px] items-center justify-between rounded-[28px] border border-white/10 bg-[#111111]/82 px-4 py-2.5 shadow-[0_18px_44px_rgba(0,0,0,0.28)] backdrop-blur-xl md:ml-0">
             <div>
-              <div className="text-[11px] font-black uppercase tracking-[0.18em] text-[#216b33]">Mapa público</div>
-              <div className="mt-1 text-sm font-semibold text-[#111111]">Spots reales, slices y valor por zona.</div>
+              <div className="text-[11px] font-black uppercase tracking-[0.18em] text-[#f0bf39]">Mapa público</div>
+              <div className="mt-1 text-sm font-semibold text-white">Spots reales, slices y valor por zona.</div>
             </div>
-            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#f3ecd9] text-[#d6a11e]">
+            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white/8 text-[#f0bf39]">
               <Sparkles className="h-4 w-4" />
             </div>
           </div>
@@ -179,7 +179,7 @@ export default function Home() {
 
         <button
           onClick={() => setListOpen((prev) => !prev)}
-          className="absolute bottom-[calc(var(--mobile-nav-height)+16px)] left-1/2 z-[640] flex -translate-x-1/2 items-center gap-2 rounded-full border border-black/8 bg-[#fffaf1]/95 px-4 py-2 text-sm font-semibold text-[#111111] shadow-[0_14px_32px_rgba(34,25,11,0.14)] backdrop-blur-xl md:hidden"
+          className="absolute bottom-[calc(var(--mobile-nav-height)+16px)] left-1/2 z-[640] flex -translate-x-1/2 items-center gap-2 rounded-full border border-white/10 bg-[#111111]/88 px-4 py-2 text-sm font-semibold text-white shadow-[0_14px_32px_rgba(0,0,0,0.24)] backdrop-blur-xl md:hidden"
         >
           <List className="h-4 w-4" />
           <span>{filteredPlaces.length} sitios</span>

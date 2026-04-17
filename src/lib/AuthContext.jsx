@@ -7,28 +7,37 @@ const USER_STORAGE_KEY = 'pizzapolis_current_user';
 async function ensureProfile(user) {
   if (!supabase || !user) return null;
   const metadataName = user.user_metadata?.full_name || user.email?.split('@')[0] || 'Usuario';
-  const { data: existing, error: existingError } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', user.id)
-    .maybeSingle();
-
-  if (existingError) throw existingError;
-  if (existing) return existing;
-
-  const insertPayload = {
+  const fallbackProfile = {
     id: user.id,
     email: user.email,
     full_name: metadataName,
     username: user.email?.split('@')[0] || `user-${user.id.slice(0, 6)}`,
-    role: 'user',
+    role: user.app_metadata?.role || 'user',
   };
-  const { data, error } = await supabase.from('profiles').insert(insertPayload).select('*').single();
-  if (error) {
-    console.error('Error creating profile:', error);
-    return insertPayload;
+
+  try {
+    const { data: existing, error: existingError } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', user.id)
+      .maybeSingle();
+
+    if (existingError) {
+      console.warn('Profile lookup fallback:', existingError.message || existingError);
+      return fallbackProfile;
+    }
+    if (existing) return existing;
+
+    const { data, error } = await supabase.from('profiles').insert(fallbackProfile).select('*').single();
+    if (error) {
+      console.warn('Profile insert fallback:', error.message || error);
+      return fallbackProfile;
+    }
+    return data || fallbackProfile;
+  } catch (error) {
+    console.warn('Profile sync fallback:', error?.message || error);
+    return fallbackProfile;
   }
-  return data || insertPayload;
 }
 
 function bridgeUser(user, profile) {

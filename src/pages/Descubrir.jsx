@@ -457,23 +457,23 @@ export default function Descubrir() {
     },
   });
 
-  if (isLoading) return <div className="grid h-[100dvh] place-items-center bg-[#f7f3eb] text-[#111111]">Cargando…</div>;
+  if (isLoading) return <div className="grid h-[100dvh] place-items-center bg-[#f4efe6] text-[#111111]">Cargando…</div>;
 
   const pagePaddingBottom = "max(12px, env(safe-area-inset-bottom))";
   const pagePaddingTop = "max(12px, env(safe-area-inset-top))";
 
   if (!current) {
     return (
-      <div className="box-border h-[100dvh] overflow-hidden bg-[#f7f3eb] px-3" style={{ paddingBottom: pagePaddingBottom, paddingTop: pagePaddingTop }}>
+      <div className="box-border h-[100dvh] overflow-hidden bg-[#f4efe6] px-3 pt-3" style={{ paddingBottom: pagePaddingBottom, paddingTop: pagePaddingTop }}>
         <div className="relative mx-auto flex h-full max-w-md flex-col overflow-hidden">
-          <div className="mb-3 flex items-center justify-between gap-3 rounded-[28px] border border-black/8 bg-[#fffaf1] px-4 py-3 shadow-[0_16px_36px_rgba(34,25,11,0.1)]">
+          <div className="mb-3 flex items-center justify-between gap-3 rounded-[28px] border border-black/8 bg-[#fff9f1] px-4 py-3 shadow-[0_16px_36px_rgba(34,25,11,0.1)]">
             <div>
               <div className="text-[11px] font-black uppercase tracking-[0.18em] text-[#216b33]">Descubrir</div>
               <div className="mt-1 text-xl font-black text-[#111111]">Ahora mismo no hay planes nuevos</div>
             </div>
             <button type="button" onClick={() => navigate(-1)} className="grid h-11 w-11 place-items-center rounded-full border border-black/8 bg-white text-[#111111]"><ChevronLeft className="h-5 w-5" /></button>
           </div>
-          <div className="flex flex-1 flex-col items-center justify-center rounded-[30px] border border-black/8 bg-[#fffaf1] p-8 text-center shadow-[0_24px_60px_rgba(34,25,11,0.12)]">
+          <div className="flex flex-1 flex-col items-center justify-center rounded-[30px] border border-black/8 bg-[#fff9f1] p-8 text-center shadow-[0_24px_60px_rgba(34,25,11,0.12)]">
             <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-[28px] bg-[#fff4d8] text-4xl">🍕</div>
             <h1 className="mt-6 text-3xl font-black text-[#111111]">No hay más planes por ahora</h1>
             <p className="mt-3 text-sm leading-7 text-[#605747]">Cuando alguien cree un nuevo plan de pizza aparecerá aquí para que decidas si te unes o lo dejas pasar.</p>
@@ -489,9 +489,9 @@ export default function Descubrir() {
 
   return (
     <>
-      <div className="box-border h-[100dvh] overflow-hidden bg-[#f7f3eb] px-3" style={{ paddingBottom: pagePaddingBottom, paddingTop: pagePaddingTop }}>
+      <div className="box-border h-[100dvh] overflow-hidden bg-[#f4efe6] px-3 pt-3" style={{ paddingBottom: pagePaddingBottom, paddingTop: pagePaddingTop }}>
         <div className="relative mx-auto flex h-full max-w-md flex-col overflow-hidden">
-          <div className="mb-3 flex shrink-0 items-center justify-between gap-3 rounded-[28px] border border-black/8 bg-[#fffaf1] px-4 py-3 shadow-[0_16px_36px_rgba(34,25,11,0.1)]">
+          <div className="mb-3 flex shrink-0 items-center justify-between gap-3 rounded-[28px] border border-black/8 bg-[#fff9f1] px-4 py-3 shadow-[0_16px_36px_rgba(34,25,11,0.1)]">
             <div>
               <p className="text-[11px] font-black uppercase tracking-[0.22em] text-[#8b816f]">Tonight</p>
               <div className="text-[1.6rem] font-black leading-none text-[#111111]">Descubrir planes</div>
@@ -501,7 +501,7 @@ export default function Descubrir() {
             </button>
           </div>
 
-          <div className="min-h-0 flex-1 overflow-hidden rounded-[32px] border border-black/8 bg-[#f6efe1] p-2 shadow-[0_28px_64px_rgba(34,25,11,0.12)]">
+          <div className="min-h-0 flex-1 overflow-hidden rounded-[32px] border border-black/8 bg-[#fff8ee] p-2 shadow-[0_28px_64px_rgba(34,25,11,0.12)]">
             <SwipeCard hangout={current} disabled={mutate.isPending} onDecision={(id, decision) => mutate.mutate({ id, decision })} />
           </div>
 
