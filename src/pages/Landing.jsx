@@ -26,7 +26,7 @@ const slides = [
     accent: "from-emerald-700/20 via-red-700/10 to-black",
     icon: "📍",
     points: [
-      { icon: MapPin, title: "Add Spot", text: "Coloca un pin nuevo en el mapa cuando descubras un sitio bueno." },
+      { icon: MapPin, title: "Add Site", text: "Coloca un pin nuevo en el mapa cuando descubras un sitio bueno." },
       { icon: MessageCircle, title: "Añade contexto", text: "Comparte precio, tipo de slice y si realmente merece la pena." },
     ],
   },

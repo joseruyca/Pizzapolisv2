@@ -1,92 +1,41 @@
 import React from 'react';
-import { Shield, Database, Users, MapPinned, MessageSquare, CheckCircle2 } from 'lucide-react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Shield, Loader2, CheckCircle, EyeOff, Trash2 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { base44 } from '@/api/base44Client';
 import { useAuth } from '@/lib/AuthContext';
-
-const cards = [
-  {
-    title: 'Spots',
-    description: 'Move the public pizza map to Supabase and remove all local fallback content.',
-    icon: MapPinned,
-  },
-  {
-    title: 'Plans',
-    description: 'Store real plans, membership and discovery state in Supabase.',
-    icon: Users,
-  },
-  {
-    title: 'Messages',
-    description: 'Attach real chat threads to plan membership instead of local browser data.',
-    icon: MessageSquare,
-  },
-  {
-    title: 'Moderation',
-    description: 'Keep this area for admin-only tools once real content tables are live.',
-    icon: Shield,
-  },
-];
 
 export default function Admin() {
   const { role, user } = useAuth();
+  const [activeTab, setActiveTab] = React.useState('comments');
+  const queryClient = useQueryClient();
 
-  if (role !== 'admin') {
-    return <div className="min-h-screen bg-[#080808] pt-14 grid place-items-center text-stone-400">No tienes acceso a esta zona.</div>;
-  }
+  const enabled = role === 'admin';
+  const { data: comments = [], isLoading: commentsLoading } = useQuery({ queryKey: ['allComments'], queryFn: () => base44.asServiceRole.entities.Comment.list('-created_date', 100), enabled });
+  const { data: photos = [], isLoading: photosLoading } = useQuery({ queryKey: ['allPhotos'], queryFn: () => base44.asServiceRole.entities.Photo.list('-created_date', 100), enabled });
+  const { data: places = [] } = useQuery({ queryKey: ['allPlaces'], queryFn: () => base44.asServiceRole.entities.PizzaPlace.list('-created_date', 100), enabled });
+
+  const updateCommentMutation = useMutation({ mutationFn: (data) => base44.asServiceRole.entities.Comment.update(data.id, { status: data.status }), onSuccess: () => queryClient.invalidateQueries({ queryKey: ['allComments'] }) });
+  const updatePhotoMutation = useMutation({ mutationFn: (data) => base44.asServiceRole.entities.Photo.update(data.id, { status: data.status }), onSuccess: () => queryClient.invalidateQueries({ queryKey: ['allPhotos'] }) });
+  const deleteCommentMutation = useMutation({ mutationFn: (id) => base44.asServiceRole.entities.Comment.delete(id), onSuccess: () => queryClient.invalidateQueries({ queryKey: ['allComments'] }) });
+  const deletePhotoMutation = useMutation({ mutationFn: (id) => base44.asServiceRole.entities.Photo.delete(id), onSuccess: () => queryClient.invalidateQueries({ queryKey: ['allPhotos'] }) });
+
+  if (role !== 'admin') return <div className="min-h-screen bg-[#080808] pt-14 grid place-items-center text-stone-400">No tienes acceso a esta zona.</div>;
+  const pendingComments = comments.filter((c) => c.status !== 'visible');
+  const pendingPhotos = photos.filter((p) => p.status !== 'visible');
 
   return (
-    <div className="min-h-screen bg-[#080808] pt-14 pb-20 px-4 text-white">
-      <div className="mx-auto max-w-5xl">
-        <div className="rounded-[32px] border border-white/10 bg-[#111] p-6 shadow-2xl shadow-black/30">
-          <div className="flex items-start gap-4">
-            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-red-600/15 text-red-400">
-              <Shield className="h-7 w-7" />
-            </div>
-            <div>
-              <div className="text-[11px] font-bold uppercase tracking-[0.18em] text-red-300">Admin</div>
-              <h1 className="mt-1 text-3xl font-black tracking-tight">Clean admin base</h1>
-              <p className="mt-2 max-w-2xl text-sm leading-7 text-stone-400">
-                Signed in as {user?.email}. Demo moderation panels have been removed so this area only reflects the real product roadmap.
-              </p>
-            </div>
-          </div>
-
-          <div className="mt-6 rounded-[28px] border border-emerald-500/20 bg-emerald-500/10 p-4 text-sm text-emerald-100">
-            <div className="flex items-center gap-2 font-semibold">
-              <CheckCircle2 className="h-4 w-4" />
-              Admin access is now role-based from profiles.role
-            </div>
-            <p className="mt-2 text-emerald-50/85">
-              Use Supabase to set your user as admin in the profiles table. The route remains protected in the app.
-            </p>
-          </div>
+    <div className="min-h-screen bg-[#080808] pt-14 pb-20 px-4">
+      <div className="max-w-5xl mx-auto">
+        <div className="mb-8 flex items-center gap-3"><Shield className="w-8 h-8 text-red-500" /><div><h1 className="text-4xl font-black text-white">Admin Dashboard</h1><p className="text-stone-500 mt-1">Moderando como {user?.email}</p></div></div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+          <div className="bg-[#111] border border-white/10 rounded-xl p-6"><p className="text-stone-500 text-sm mb-2">Pending Comments</p><p className="text-4xl font-black text-red-500">{pendingComments.length}</p></div>
+          <div className="bg-[#111] border border-white/10 rounded-xl p-6"><p className="text-stone-500 text-sm mb-2">Pending Photos</p><p className="text-4xl font-black text-yellow-500">{pendingPhotos.length}</p></div>
+          <div className="bg-[#111] border border-white/10 rounded-xl p-6"><p className="text-stone-500 text-sm mb-2">Total Places</p><p className="text-4xl font-black text-green-500">{places.length}</p></div>
         </div>
-
-        <div className="mt-6 grid gap-4 md:grid-cols-2">
-          {cards.map((card) => {
-            const Icon = card.icon;
-            return (
-              <div key={card.title} className="rounded-[28px] border border-white/10 bg-[#111] p-5">
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/[0.04] text-stone-200">
-                  <Icon className="h-5 w-5" />
-                </div>
-                <h2 className="mt-4 text-xl font-bold">{card.title}</h2>
-                <p className="mt-2 text-sm leading-7 text-stone-400">{card.description}</p>
-              </div>
-            );
-          })}
-        </div>
-
-        <div className="mt-6 rounded-[28px] border border-white/10 bg-[#111] p-5">
-          <div className="flex items-center gap-3 text-stone-100">
-            <Database className="h-5 w-5 text-red-400" />
-            <h2 className="text-lg font-bold">Next real migration</h2>
-          </div>
-          <ul className="mt-4 grid gap-3 text-sm text-stone-400">
-            <li>• spots</li>
-            <li>• plans</li>
-            <li>• plan_members</li>
-            <li>• messages</li>
-          </ul>
-        </div>
+        <div className="flex gap-2 mb-6 border-b border-white/10">{[{ id: 'comments', label: 'Comments', count: pendingComments.length }, { id: 'photos', label: 'Photos', count: pendingPhotos.length }].map((tab) => <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`px-4 py-3 text-sm font-medium transition-all ${activeTab === tab.id ? 'text-white border-b-2 border-red-500' : 'text-stone-500 hover:text-white'}`}>{tab.label}{tab.count > 0 && <span className="ml-2 bg-red-600 text-white px-2 py-0.5 rounded-full text-xs">{tab.count}</span>}</button>)}</div>
+        {activeTab === 'comments' && <div className="space-y-3">{commentsLoading ? <Loader2 className="w-8 h-8 animate-spin text-red-500" /> : pendingComments.length === 0 ? <p className="text-stone-500 text-center py-8">All comments approved ✓</p> : <AnimatePresence>{pendingComments.map((comment) => <motion.div key={comment.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="bg-[#111] border border-white/10 rounded-xl p-5"><div className="flex items-start justify-between mb-3"><div><p className="text-stone-400 text-sm">{comment.user_name} ({comment.user_email})</p><p className="text-stone-500 text-xs mt-1">Pizzeria: {places.find((p) => p.id === comment.place_id)?.name}</p></div><div className="flex gap-2"><button onClick={() => updateCommentMutation.mutate({ id: comment.id, status: 'visible' })} className="p-2 rounded-lg bg-green-600/20 text-green-400 hover:bg-green-600/30 transition"><CheckCircle className="w-4 h-4" /></button><button onClick={() => updateCommentMutation.mutate({ id: comment.id, status: 'hidden' })} className="p-2 rounded-lg bg-red-600/20 text-red-400 hover:bg-red-600/30 transition"><EyeOff className="w-4 h-4" /></button><button onClick={() => deleteCommentMutation.mutate(comment.id)} className="p-2 rounded-lg bg-stone-700/30 text-stone-400 hover:bg-stone-700/50 transition"><Trash2 className="w-4 h-4" /></button></div></div><p className="text-white text-sm">{comment.text || comment.texto}</p></motion.div>)}</AnimatePresence>}</div>}
+        {activeTab === 'photos' && <div className="space-y-3">{photosLoading ? <Loader2 className="w-8 h-8 animate-spin text-red-500" /> : pendingPhotos.length === 0 ? <p className="text-stone-500 text-center py-8">All photos approved ✓</p> : <AnimatePresence>{pendingPhotos.map((photo) => <motion.div key={photo.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="bg-[#111] border border-white/10 rounded-xl p-5"><div className="flex gap-4"><img src={photo.file_url || photo.image_url || 'https://images.unsplash.com/photo-1513104890138-7c749659a591?q=80&w=400&auto=format&fit=crop'} alt="" className="w-24 h-24 rounded-lg object-cover flex-shrink-0" /><div className="flex-1"><p className="text-stone-400 text-sm">{photo.user_name || 'Usuario'} ({photo.user_email})</p><p className="text-stone-500 text-xs mt-1">Pizzeria: {places.find((p) => p.id === photo.place_id)?.name}</p>{photo.caption && <p className="text-stone-300 text-sm mt-2">{photo.caption}</p>}<div className="flex gap-2 mt-3"><button onClick={() => updatePhotoMutation.mutate({ id: photo.id, status: 'visible' })} className="px-3 py-1 rounded-lg bg-green-600/20 text-green-400 hover:bg-green-600/30 transition text-sm font-medium">Approve</button><button onClick={() => deletePhotoMutation.mutate(photo.id)} className="px-3 py-1 rounded-lg bg-red-600/20 text-red-400 hover:bg-red-600/30 transition text-sm font-medium">Delete</button></div></div></div></motion.div>)}</AnimatePresence>}</div>}
       </div>
     </div>
   );

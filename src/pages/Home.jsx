@@ -198,10 +198,10 @@ export default function Home() {
         <button
           onClick={handleAddPin}
           className="absolute right-4 bottom-28 z-[650] flex h-14 items-center justify-center gap-2 rounded-full bg-red-600 px-5 text-white shadow-[0_14px_34px_rgba(220,38,38,0.45)] hover:bg-red-500"
-          aria-label="Add Spot"
+          aria-label="Add Site"
         >
           <MapPin className="h-5 w-5" />
-          <span className="text-sm font-bold">Add Spot</span>
+          <span className="text-sm font-bold">Add Site</span>
         </button>
 
         <MapBottomNav onAddPin={handleAddPin} />

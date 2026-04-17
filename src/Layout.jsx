@@ -17,7 +17,7 @@ export default function Layout({ children, currentPageName }) {
   ];
 
   const privateNavItems = [
-    { label: 'Add Plan', page: 'CrearQuedada', icon: PlusCircle, accent: true },
+    { label: 'Add Site', page: 'CrearQuedada', icon: PlusCircle, accent: true },
     { label: 'Mis grupos', page: 'MisMatches', icon: Users },
     { label: 'Perfil', page: 'Profile', icon: User },
   ];
