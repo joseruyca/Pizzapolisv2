@@ -25,7 +25,7 @@ export const SORT_OPTIONS = [
 
 // Map styles
 export const MAP_STYLES = [
+  { id: "positron", name: "Voyager", url: "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png" },
+  { id: "light", name: "OpenStreetMap", url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" },
   { id: "dark", name: "Dark", url: "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png" },
-  { id: "light", name: "Light", url: "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png" },
-  { id: "positron", name: "Positron", url: "https://{s}.basemaps.cartocdn.com/positron/{z}/{x}/{y}{r}.png" },
 ];

@@ -3,11 +3,24 @@
   .leaflet-container {
     width: 100%;
     height: 100%;
-    background: #edf1e8 !important;
+    background: #eef2e7 !important;
+  }
+
+  .leaflet-map-pane,
+  .leaflet-tile-pane,
+  .leaflet-overlay-pane,
+  .leaflet-shadow-pane,
+  .leaflet-marker-pane {
+    visibility: visible !important;
   }
 
   .leaflet-tile-pane {
-    filter: saturate(0.92) contrast(1.02) brightness(1.02);
+    opacity: 1 !important;
+    filter: saturate(1.02) contrast(1.04) brightness(1.01);
+  }
+
+  .leaflet-tile {
+    image-rendering: auto;
   }
 
   .leaflet-control-zoom a {
@@ -24,7 +37,7 @@
   }
 
   .leaflet-control-attribution a {
-    color: #3e9444 !important;
+    color: #2f8f46 !important;
   }
 
   .leaflet-interactive:focus {

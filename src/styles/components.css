@@ -2,16 +2,16 @@
   .app-shell {
     @apply min-h-screen text-[color:var(--text-primary)];
     background:
-      radial-gradient(circle at top left, rgba(239, 191, 58, 0.16), transparent 28%),
-      radial-gradient(circle at top right, rgba(62, 148, 68, 0.10), transparent 24%),
-      linear-gradient(180deg, #f8f3ea 0%, #f4efe6 100%);
+      radial-gradient(circle at top left, rgba(235, 185, 50, 0.18), transparent 28%),
+      radial-gradient(circle at top right, rgba(47, 143, 70, 0.1), transparent 24%),
+      linear-gradient(180deg, #fbf8f2 0%, #f6f1e8 100%);
   }
 
   .app-header {
     @apply fixed inset-x-0 top-0 z-[2000] border-b backdrop-blur-xl;
     min-height: var(--header-height);
     background: var(--surface-1);
-    border-color: rgba(18, 18, 18, 0.08);
+    border-color: rgba(17, 17, 17, 0.08);
   }
 
   .app-header-inner {
@@ -48,8 +48,23 @@
   }
 
   .app-content {
-    @apply pb-24 md:pb-8;
     padding-top: var(--header-height);
+    padding-bottom: 0;
+  }
+
+  .app-content--standard {
+    padding-bottom: 6rem;
+  }
+
+  .app-content--viewport {
+    height: var(--viewport-height);
+    overflow: hidden;
+  }
+
+  @media (max-width: 767px) {
+    .app-content--viewport {
+      height: var(--viewport-height-mobile);
+    }
   }
 
   .screen-shell {
@@ -77,8 +92,8 @@
 
   .app-surface {
     @apply rounded-[28px] border backdrop-blur-md;
-    background: rgba(255, 250, 242, 0.74);
-    border-color: rgba(18, 18, 18, 0.08);
+    background: rgba(255, 250, 242, 0.82);
+    border-color: rgba(17, 17, 17, 0.08);
     box-shadow: var(--shadow-soft);
   }
 
@@ -86,34 +101,34 @@
     @apply rounded-[28px] border;
     background: var(--surface-2);
     color: var(--accent-black);
-    border-color: rgba(18, 18, 18, 0.08);
+    border-color: rgba(17, 17, 17, 0.08);
     box-shadow: var(--shadow-card);
   }
 
   .app-card-muted {
     @apply rounded-[24px] border;
-    background: rgba(255, 255, 255, 0.54);
+    background: rgba(255, 255, 255, 0.7);
     color: var(--accent-black);
-    border-color: rgba(18, 18, 18, 0.06);
+    border-color: rgba(17, 17, 17, 0.08);
   }
 
   .app-chip {
     @apply inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-[11px] font-semibold;
     color: var(--text-secondary);
-    border: 1px solid rgba(18, 18, 18, 0.08);
-    background: rgba(255, 255, 255, 0.64);
+    border: 1px solid rgba(17, 17, 17, 0.08);
+    background: rgba(255, 255, 255, 0.72);
   }
 
   .app-chip--accent {
-    color: #8d5b00;
-    border-color: rgba(239, 191, 58, 0.32);
-    background: rgba(239, 191, 58, 0.18);
+    color: #7f5500;
+    border-color: rgba(235, 185, 50, 0.36);
+    background: rgba(235, 185, 50, 0.2);
   }
 
   .app-chip--success {
-    color: #216327;
-    border-color: rgba(62, 148, 68, 0.24);
-    background: rgba(62, 148, 68, 0.14);
+    color: #1f6e33;
+    border-color: rgba(47, 143, 70, 0.24);
+    background: rgba(47, 143, 70, 0.12);
   }
 
   .app-button-primary {
@@ -130,12 +145,12 @@
   .app-button-secondary {
     @apply inline-flex items-center justify-center rounded-2xl border px-4 py-3 text-sm font-semibold transition;
     color: var(--accent-black);
-    border-color: rgba(18, 18, 18, 0.08);
-    background: rgba(255, 255, 255, 0.62);
+    border-color: rgba(17, 17, 17, 0.08);
+    background: rgba(255, 255, 255, 0.76);
   }
 
   .app-button-secondary:hover {
-    background: rgba(255, 255, 255, 0.9);
+    background: rgba(255, 255, 255, 0.94);
   }
 
   .app-fab {
@@ -151,8 +166,8 @@
   .mobile-tabbar {
     @apply fixed inset-x-0 bottom-0 z-[1800] border-t backdrop-blur-xl md:hidden;
     min-height: var(--mobile-nav-height);
-    background: rgba(255, 248, 240, 0.92);
-    border-color: rgba(18, 18, 18, 0.08);
+    background: rgba(255, 248, 240, 0.96);
+    border-color: rgba(17, 17, 17, 0.08);
   }
 
   .mobile-tabbar-grid {
@@ -167,36 +182,36 @@
   .sheet-panel {
     @apply rounded-t-[28px] border shadow-2xl;
     background: var(--surface-2);
-    border-color: rgba(18, 18, 18, 0.08);
+    border-color: rgba(17, 17, 17, 0.08);
     box-shadow: var(--shadow-card);
   }
 
   .sheet-handle {
     @apply mx-auto my-3 h-1.5 w-14 rounded-full;
-    background: rgba(18, 18, 18, 0.12);
+    background: rgba(17, 17, 17, 0.12);
   }
 
   .floating-back-button {
     @apply fixed z-[1800] flex h-12 w-12 items-center justify-center rounded-full border backdrop-blur-md transition;
     color: var(--accent-black);
-    background: rgba(255, 250, 242, 0.92);
-    border-color: rgba(18, 18, 18, 0.1);
+    background: rgba(255, 250, 242, 0.94);
+    border-color: rgba(17, 17, 17, 0.1);
     box-shadow: var(--shadow-soft);
   }
 
   .floating-back-button:hover {
-    background: rgba(255, 255, 255, 0.96);
+    background: rgba(255, 255, 255, 0.98);
   }
 
   .chat-shell {
     @apply flex min-h-0 flex-1 flex-col overflow-hidden rounded-[28px] border;
     background: var(--surface-2);
-    border-color: rgba(18, 18, 18, 0.08);
+    border-color: rgba(17, 17, 17, 0.08);
   }
 
   .chat-input-shell {
     @apply border-t px-4 py-3;
     background: rgba(248, 244, 238, 0.94);
-    border-color: rgba(18, 18, 18, 0.08);
+    border-color: rgba(17, 17, 17, 0.08);
   }
 }

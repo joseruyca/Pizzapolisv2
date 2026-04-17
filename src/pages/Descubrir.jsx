@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import {
   AnimatePresence,
@@ -375,6 +375,9 @@ export default function Descubrir() {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
 
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+  }, []);
 
   const { data: hangouts = [], isLoading } = useQuery({
     queryKey: ["discover-hangouts-v5", user?.email],
@@ -454,28 +457,29 @@ export default function Descubrir() {
     },
   });
 
-  if (isLoading) return <div className="flex min-h-screen items-center justify-center bg-[#f4efe6] text-[#141414]">Cargando…</div>;
+  if (isLoading) return <div className="grid h-[100dvh] place-items-center bg-[#f7f3eb] text-[#111111]">Cargando…</div>;
 
-  const pagePaddingBottom = "max(18px, env(safe-area-inset-bottom))";
+  const pagePaddingBottom = "max(12px, env(safe-area-inset-bottom))";
+  const pagePaddingTop = "max(12px, env(safe-area-inset-top))";
 
   if (!current) {
     return (
-      <div className="box-border h-[100svh] overflow-hidden bg-[#f4efe6] px-4 pt-3 md:h-[100dvh]" style={{ paddingBottom: pagePaddingBottom }}>
-        <div className="mx-auto flex h-full max-w-md flex-col overflow-hidden">
-          <div className="mb-4 flex items-center justify-between">
+      <div className="box-border h-[100dvh] overflow-hidden bg-[#f7f3eb] px-3" style={{ paddingBottom: pagePaddingBottom, paddingTop: pagePaddingTop }}>
+        <div className="relative mx-auto flex h-full max-w-md flex-col overflow-hidden">
+          <div className="mb-3 flex items-center justify-between gap-3 rounded-[28px] border border-black/8 bg-[#fffaf1] px-4 py-3 shadow-[0_16px_36px_rgba(34,25,11,0.1)]">
             <div>
-              <div className="text-[1.4rem] font-black text-[#141414]">Descubrir planes</div>
-              <div className="mt-1 text-sm text-[#6d665b]">Ahora mismo no hay planes nuevos</div>
+              <div className="text-[11px] font-black uppercase tracking-[0.18em] text-[#216b33]">Descubrir</div>
+              <div className="mt-1 text-xl font-black text-[#111111]">Ahora mismo no hay planes nuevos</div>
             </div>
-            <button type="button" onClick={() => navigate(-1)} className="grid h-11 w-11 place-items-center rounded-full border border-black/8 bg-white text-[#141414]"><ChevronLeft className="h-5 w-5" /></button>
+            <button type="button" onClick={() => navigate(-1)} className="grid h-11 w-11 place-items-center rounded-full border border-black/8 bg-white text-[#111111]"><ChevronLeft className="h-5 w-5" /></button>
           </div>
-          <div className="flex flex-1 flex-col items-center justify-center rounded-[30px] border border-black/8 bg-[#fffaf2] p-8 text-center">
-            <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-[28px] bg-[#fff6de] text-4xl">🍕</div>
-            <h1 className="mt-6 text-3xl font-black text-[#141414]">Ahora mismo no hay más planes</h1>
-            <p className="mt-3 text-sm leading-7 text-[#6d665b]">Cuando alguien cree un nuevo plan de pizza, aparecerá aquí para que decidas si te unes o lo dejas pasar.</p>
+          <div className="flex flex-1 flex-col items-center justify-center rounded-[30px] border border-black/8 bg-[#fffaf1] p-8 text-center shadow-[0_24px_60px_rgba(34,25,11,0.12)]">
+            <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-[28px] bg-[#fff4d8] text-4xl">🍕</div>
+            <h1 className="mt-6 text-3xl font-black text-[#111111]">No hay más planes por ahora</h1>
+            <p className="mt-3 text-sm leading-7 text-[#605747]">Cuando alguien cree un nuevo plan de pizza aparecerá aquí para que decidas si te unes o lo dejas pasar.</p>
             <div className="mt-6 grid w-full gap-3">
-              {user ? <Link to={createPageUrl("CrearQuedada")} className="inline-flex h-12 items-center justify-center rounded-2xl bg-[#efbf3a] text-sm font-bold text-[#141414]">Crear plan</Link> : <button type="button" onClick={() => setLoginPrompt(true)} className="inline-flex h-12 items-center justify-center rounded-2xl bg-[#efbf3a] text-sm font-bold text-[#141414]">Crear plan</button>}
-              {user ? <Link to={createPageUrl("MisMatches") + (joinedToast ? `?focus=${joinedToast.id}` : "")} className="inline-flex h-12 items-center justify-center rounded-2xl border border-black/8 bg-white text-sm font-bold text-[#141414]">Ver mis grupos</Link> : <button type="button" onClick={() => setLoginPrompt(true)} className="inline-flex h-12 items-center justify-center rounded-2xl border border-black/8 bg-white text-sm font-bold text-[#141414]">Entra para unirte a planes</button>}
+              {user ? <Link to={createPageUrl("CrearQuedada")} className="inline-flex h-12 items-center justify-center rounded-2xl bg-[#ebb932] text-sm font-black text-[#111111]">Crear plan</Link> : <button type="button" onClick={() => setLoginPrompt(true)} className="inline-flex h-12 items-center justify-center rounded-2xl bg-[#ebb932] text-sm font-black text-[#111111]">Crear plan</button>}
+              {user ? <Link to={createPageUrl("MisMatches") + (joinedToast ? `?focus=${joinedToast.id}` : "")} className="inline-flex h-12 items-center justify-center rounded-2xl border border-black/8 bg-white text-sm font-bold text-[#111111]">Ver mis grupos</Link> : <button type="button" onClick={() => setLoginPrompt(true)} className="inline-flex h-12 items-center justify-center rounded-2xl border border-black/8 bg-white text-sm font-bold text-[#111111]">Entrar para unirte</button>}
             </div>
           </div>
         </div>
@@ -485,29 +489,29 @@ export default function Descubrir() {
 
   return (
     <>
-      <div className="box-border h-[100svh] overflow-hidden bg-[#f4efe6] px-4 pt-3 md:h-[100dvh]" style={{ paddingBottom: pagePaddingBottom }}>
-        <div className="mx-auto flex h-full max-w-md flex-col overflow-hidden relative">
-          <div className="shrink-0 flex items-center justify-between gap-4 pb-2">
+      <div className="box-border h-[100dvh] overflow-hidden bg-[#f7f3eb] px-3" style={{ paddingBottom: pagePaddingBottom, paddingTop: pagePaddingTop }}>
+        <div className="relative mx-auto flex h-full max-w-md flex-col overflow-hidden">
+          <div className="mb-3 flex shrink-0 items-center justify-between gap-3 rounded-[28px] border border-black/8 bg-[#fffaf1] px-4 py-3 shadow-[0_16px_36px_rgba(34,25,11,0.1)]">
             <div>
-              <p className="text-[13px] font-semibold uppercase tracking-[0.22em] text-[#8e8578]">Tonight</p>
-              <div className="text-[1.5rem] font-black leading-none text-[#141414]">Descubrir planes</div>
+              <p className="text-[11px] font-black uppercase tracking-[0.22em] text-[#8b816f]">Tonight</p>
+              <div className="text-[1.6rem] font-black leading-none text-[#111111]">Descubrir planes</div>
             </div>
-            <button type="button" onClick={() => setFiltersOpen(true)} className="grid h-11 w-11 place-items-center rounded-full border border-black/8 bg-white text-[#141414] shrink-0">
+            <button type="button" onClick={() => setFiltersOpen(true)} className="grid h-11 w-11 place-items-center rounded-full border border-black/8 bg-white text-[#111111] shrink-0">
               <Settings2 className="h-5 w-5" />
             </button>
           </div>
 
-          <div className="min-h-0 flex-1 overflow-hidden pb-0">
+          <div className="min-h-0 flex-1 overflow-hidden rounded-[32px] border border-black/8 bg-[#f6efe1] p-2 shadow-[0_28px_64px_rgba(34,25,11,0.12)]">
             <SwipeCard hangout={current} disabled={mutate.isPending} onDecision={(id, decision) => mutate.mutate({ id, decision })} />
           </div>
 
-          <button type="button" onClick={() => navigate(-1)} className="absolute bottom-4 left-0 z-30 grid h-11 w-11 place-items-center rounded-full border border-black/8 bg-white text-[#141414] shadow-[0_12px_40px_rgba(0,0,0,0.4)]">
+          <button type="button" onClick={() => navigate(-1)} className="absolute bottom-4 left-4 z-30 grid h-11 w-11 place-items-center rounded-full border border-black/8 bg-white text-[#111111] shadow-[0_12px_30px_rgba(34,25,11,0.16)]">
             <ChevronLeft className="h-5 w-5" />
           </button>
 
           <AnimatePresence>
             {joinedToast ? (
-              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }} className="absolute inset-x-4 bottom-20 z-[1300] rounded-2xl border border-[#d8ebd4] bg-[#3e9444] px-4 py-3 text-white shadow-xl">
+              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }} className="absolute inset-x-4 bottom-4 z-[1300] rounded-2xl border border-[#cfe3d1] bg-[#2f8f46] px-4 py-3 text-white shadow-xl">
                 <div className="flex items-center justify-between gap-3">
                   <div className="flex min-w-0 items-center gap-3">
                     <div className="rounded-full bg-white/14 p-2"><Check className="h-5 w-5" /></div>
@@ -522,7 +526,7 @@ export default function Descubrir() {
       </div>
 
       <FilterSheet open={filtersOpen} filters={filters} setFilters={setFilters} onClose={() => setFiltersOpen(false)} />
-      <LoginPrompt open={loginPrompt} onClose={() => setLoginPrompt(false)} message="Create an account to join pizza plans, chat with the group and keep your favorites." />
+      <LoginPrompt open={loginPrompt} onClose={() => setLoginPrompt(false)} message="Sign in to join pizza plans and see your groups." />
     </>
   );
 }

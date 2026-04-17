@@ -120,8 +120,16 @@ export const AuthProvider = ({ children }) => {
 
   const signIn = async (email, password) => {
     if (!supabase) throw new Error('Supabase no está configurado.');
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    setAuthError(null);
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) throw error;
+    if (data?.user) {
+      await syncSession(data.user);
+    } else {
+      const session = await supabase.auth.getSession();
+      await syncSession(session?.data?.session?.user || null);
+    }
+    return data;
   };
 
   const signUp = async ({ email, password, fullName }) => {
@@ -130,7 +138,7 @@ export const AuthProvider = ({ children }) => {
     const baseUrl = import.meta.env.VITE_APP_URL || window.location.origin;
     const redirectTo = `${baseUrl.replace(/\/$/, '')}/auth/confirm`;
 
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -139,6 +147,7 @@ export const AuthProvider = ({ children }) => {
       },
     });
     if (error) throw error;
+    return data;
   };
 
   const logout = async () => {

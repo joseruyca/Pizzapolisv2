@@ -1,15 +1,15 @@
-import React, { useState, useMemo } from "react";
+import React, { useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { MapPin, List, Sparkles } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
-import { useQuery } from "@tanstack/react-query";
-import PizzaMap from "../components/map/PizzaMap";
-import SearchFilters from "../components/map/SearchFilters";
-import PlacePanel from "../components/place/PlacePanel";
-import PlaceListPanel from "../components/map/PlaceListPanel";
-import AddPinModal from "../components/map/AddPinModal";
-import LoginPrompt from "../components/shared/LoginPrompt";
-import PinPopup from "../components/map/PinPopup";
-import { MapPin } from "lucide-react";
+import PizzaMap from "@/components/map/PizzaMap";
+import SearchFilters from "@/components/map/SearchFilters";
+import PlacePanel from "@/components/place/PlacePanel";
+import PlaceListPanel from "@/components/map/PlaceListPanel";
+import AddPinModal from "@/components/map/AddPinModal";
+import LoginPrompt from "@/components/shared/LoginPrompt";
+import PinPopup from "@/components/map/PinPopup";
 import { getValueLabel, isOpenNow } from "@/lib/place-helpers";
 import { MAP_STYLES } from "@/lib/constants";
 
@@ -99,9 +99,7 @@ export default function Home() {
     if (filters.sortBy === "rating") result.sort((a, b) => (b.average_rating || 0) - (a.average_rating || 0));
     if (filters.sortBy === "featured") result.sort((a, b) => Number(Boolean(b.featured)) - Number(Boolean(a.featured)));
     if (filters.sortBy === "price_low") result.sort((a, b) => Number(a.standard_slice_price || 0) - Number(b.standard_slice_price || 0));
-    if (useMapArea && mapBounds) {
-      result = result.filter((p) => mapBounds.contains([p.latitude, p.longitude]));
-    }
+    if (useMapArea && mapBounds) result = result.filter((p) => mapBounds.contains([p.latitude, p.longitude]));
     return result;
   }, [enrichedPlaces, filters, useMapArea, mapBounds]);
 
@@ -117,8 +115,8 @@ export default function Home() {
 
   return (
     <>
-      <section className="relative h-[calc(100dvh-var(--header-height)-var(--mobile-nav-height))] min-h-0 w-full overflow-hidden md:h-[calc(100dvh-var(--header-height))]">
-        <div className="absolute inset-0 overflow-hidden rounded-none md:rounded-b-[32px]">
+      <section className="relative h-full min-h-0 w-full overflow-hidden bg-[#f7f3eb]">
+        <div className="absolute inset-0 overflow-hidden">
           <PizzaMap
             places={filteredPlaces}
             selectedPlace={selectedPlace || previewPlace}
@@ -133,8 +131,20 @@ export default function Home() {
             mapStyleUrl={currentMapStyle.url}
             userLocation={userLocation}
           />
-          <div className="pointer-events-none absolute inset-x-0 top-0 h-40 bg-[linear-gradient(180deg,rgba(244,239,230,0.88)_0%,rgba(244,239,230,0.38)_40%,rgba(244,239,230,0)_100%)]" />
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-36 bg-[linear-gradient(180deg,rgba(244,239,230,0)_0%,rgba(244,239,230,0.28)_45%,rgba(244,239,230,0.9)_100%)] md:hidden" />
+          <div className="pointer-events-none absolute inset-x-0 top-0 h-36 bg-[linear-gradient(180deg,rgba(247,243,235,0.94)_0%,rgba(247,243,235,0.58)_40%,rgba(247,243,235,0)_100%)]" />
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-36 bg-[linear-gradient(180deg,rgba(247,243,235,0)_0%,rgba(247,243,235,0.24)_40%,rgba(247,243,235,0.94)_100%)] md:hidden" />
+        </div>
+
+        <div className="pointer-events-none absolute inset-x-0 top-0 z-[620] px-4 pt-3 md:px-6 md:pt-5">
+          <div className="mx-auto flex max-w-[440px] items-center justify-between rounded-[28px] border border-black/8 bg-[#fffaf1]/90 px-4 py-2.5 shadow-[0_18px_44px_rgba(34,25,11,0.12)] backdrop-blur-xl md:ml-0">
+            <div>
+              <div className="text-[11px] font-black uppercase tracking-[0.18em] text-[#216b33]">Mapa público</div>
+              <div className="mt-1 text-sm font-semibold text-[#111111]">Spots reales, slices y valor por zona.</div>
+            </div>
+            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#f3ecd9] text-[#d6a11e]">
+              <Sparkles className="h-4 w-4" />
+            </div>
+          </div>
         </div>
 
         <SearchFilters
@@ -160,11 +170,19 @@ export default function Home() {
 
         <button
           onClick={handleAddPin}
-          className="absolute right-4 bottom-4 z-[650] flex h-14 items-center justify-center gap-2 rounded-full bg-[#e25545] px-5 text-white shadow-[0_14px_34px_rgba(226,85,69,0.26)] transition hover:bg-[#cf493a] md:bottom-6"
+          className="absolute bottom-[calc(var(--mobile-nav-height)+18px)] right-4 z-[650] flex h-14 items-center justify-center gap-2 rounded-full bg-[#df5b43] px-5 text-white shadow-[0_14px_34px_rgba(223,91,67,0.26)] transition hover:bg-[#c84b35] md:bottom-6 md:right-6"
           aria-label="Add Spot"
         >
           <MapPin className="h-5 w-5" />
           <span className="text-sm font-bold">Add Spot</span>
+        </button>
+
+        <button
+          onClick={() => setListOpen((prev) => !prev)}
+          className="absolute bottom-[calc(var(--mobile-nav-height)+16px)] left-1/2 z-[640] flex -translate-x-1/2 items-center gap-2 rounded-full border border-black/8 bg-[#fffaf1]/95 px-4 py-2 text-sm font-semibold text-[#111111] shadow-[0_14px_32px_rgba(34,25,11,0.14)] backdrop-blur-xl md:hidden"
+        >
+          <List className="h-4 w-4" />
+          <span>{filteredPlaces.length} sitios</span>
         </button>
 
         <PlaceListPanel
@@ -184,9 +202,7 @@ export default function Home() {
         />
 
         {selectedPlace && <PlacePanel place={selectedPlace} onClose={() => setSelectedPlace(null)} user={user} />}
-
         <AddPinModal open={addPinOpen} onClose={() => setAddPinOpen(false)} user={user} />
-
         <LoginPrompt open={loginPrompt} onClose={() => setLoginPrompt(false)} message="Sign in to create and join pizza hangouts with friends." />
       </section>
 

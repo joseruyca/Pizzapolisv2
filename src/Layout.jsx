@@ -27,6 +27,7 @@ export default function Layout({ children, currentPageName }) {
   const hideHeader = currentPageName === 'Landing' || currentPageName === 'Descubrir';
   const hideBottomNav = currentPageName === 'Descubrir';
   const publicPages = new Set(['Landing', 'Home', 'Descubrir']);
+  const viewportPages = new Set(['Home']);
 
   const navTarget = (page) => {
     if (publicPages.has(page) || isAuthenticated) return createPageUrl(page);
@@ -34,7 +35,7 @@ export default function Layout({ children, currentPageName }) {
   };
 
   const navClass = (active, accent = false) => {
-    if (accent) return 'bg-[#e25545] text-white shadow-[0_12px_32px_rgba(226,85,69,0.24)] hover:bg-[#cf493a]';
+    if (accent) return 'bg-[#df5b43] text-white shadow-[0_12px_32px_rgba(223,91,67,0.22)] hover:bg-[#c84b35]';
     if (active) return 'bg-white text-[#141414] shadow-[0_12px_28px_rgba(20,20,20,0.08)]';
     return 'text-[#5e574d] hover:bg-white/80 hover:text-[#141414]';
   };
@@ -73,13 +74,13 @@ export default function Layout({ children, currentPageName }) {
               {user ? (
                 <NotificationCenter user={user} />
               ) : (
-                <Button variant="ghost" size="icon" className="hidden h-11 w-11 rounded-2xl border border-black/10 bg-white/50 text-[#141414] hover:bg-white md:inline-flex">
+                <Button variant="ghost" size="icon" className="hidden h-11 w-11 rounded-2xl border border-black/10 bg-white/60 text-[#141414] hover:bg-white md:inline-flex">
                   <Bell className="h-4 w-4" />
                 </Button>
               )}
               <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
                 <SheetTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-11 w-11 rounded-2xl border border-black/10 bg-white/55 text-[#141414] hover:bg-white">
+                  <Button variant="ghost" size="icon" className="h-11 w-11 rounded-2xl border border-black/10 bg-white/70 text-[#141414] hover:bg-white">
                     <Menu className="h-5 w-5" />
                   </Button>
                 </SheetTrigger>
@@ -125,7 +126,7 @@ export default function Layout({ children, currentPageName }) {
                         <Link
                           to="/auth"
                           onClick={() => setMenuOpen(false)}
-                          className="mt-4 inline-flex h-12 w-full items-center justify-center rounded-2xl bg-[#e25545] text-sm font-bold text-white hover:bg-[#cf493a]"
+                          className="mt-4 inline-flex h-12 w-full items-center justify-center rounded-2xl bg-[#df5b43] text-sm font-bold text-white hover:bg-[#c84b35]"
                         >
                           Entrar / Crear cuenta
                         </Link>
@@ -138,7 +139,7 @@ export default function Layout({ children, currentPageName }) {
           </div>
         </header>
       )}
-      <main className={hideHeader ? '' : 'app-content'}>{children}</main>
+      <main className={`${hideHeader ? '' : `app-content ${viewportPages.has(currentPageName) ? 'app-content--viewport' : 'app-content--standard'}`}`}>{children}</main>
       {!hideHeader && !hideBottomNav && (
         <nav className="mobile-tabbar">
           <div className="mobile-tabbar-grid">
@@ -147,10 +148,10 @@ export default function Layout({ children, currentPageName }) {
               const active = currentPageName === item.page;
               return (
                 <Link key={item.page} to={navTarget(item.page)} className="flex flex-col items-center justify-center gap-1 text-center no-tap-highlight">
-                  <div className={`flex h-11 w-11 items-center justify-center rounded-2xl transition ${item.accent ? 'bg-[#e25545] text-white shadow-[0_12px_30px_rgba(226,85,69,0.22)]' : active ? 'bg-white text-[#141414] shadow-[0_12px_24px_rgba(20,20,20,0.08)]' : 'text-[#786f61]'}`}>
+                  <div className={`flex h-11 w-11 items-center justify-center rounded-2xl transition ${item.accent ? 'bg-[#df5b43] text-white shadow-[0_12px_30px_rgba(223,91,67,0.22)]' : active ? 'bg-white text-[#141414] shadow-[0_12px_24px_rgba(20,20,20,0.08)]' : 'text-[#6f6555]'}`}>
                     <Icon className="h-5 w-5" />
                   </div>
-                  <span className={`text-[11px] font-medium ${active || item.accent ? 'text-[#141414]' : 'text-[#786f61]'}`}>{item.label}</span>
+                  <span className={`text-[11px] font-medium ${active || item.accent ? 'text-[#141414]' : 'text-[#6f6555]'}`}>{item.label}</span>
                 </Link>
               );
             })}
