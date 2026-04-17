@@ -115,7 +115,7 @@ export default function Home() {
 
   return (
     <>
-      <section className="relative w-full overflow-hidden bg-[#080808] h-[calc(100dvh-var(--header-height)-var(--mobile-nav-height))] md:h-full">
+      <section className="home-screen">
         <div className="absolute inset-0 overflow-hidden">
           <PizzaMap
             places={filteredPlaces}
@@ -158,16 +158,16 @@ export default function Home() {
 
         <button
           onClick={handleAddPin}
-          className="absolute bottom-[calc(var(--mobile-nav-height)+32px)] right-4 z-[650] flex h-11 items-center justify-center gap-2 rounded-full bg-[#df5b43] px-4 text-white shadow-[0_18px_38px_rgba(223,91,67,0.34)] transition hover:bg-[#c84b35] md:bottom-20 md:right-6"
+          className="home-map-fab"
           aria-label="Add Spot"
         >
-          <MapPin className="h-5 w-5" />
+          <MapPin className="h-4 w-4" />
           <span className="text-[12px] font-bold">Add Spot</span>
         </button>
 
         <button
           onClick={() => setListOpen((prev) => !prev)}
-          className="absolute bottom-[calc(var(--mobile-nav-height)+8px)] left-1/2 z-[640] flex -translate-x-1/2 items-center gap-2 rounded-full border border-white/10 bg-[#111111]/94 px-4 py-2 text-sm font-semibold text-white shadow-[0_14px_32px_rgba(0,0,0,0.24)] backdrop-blur-xl md:hidden"
+          className="home-map-count md:hidden"
         >
           <List className="h-4 w-4" />
           <span>{filteredPlaces.length} sitios</span>
