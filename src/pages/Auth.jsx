@@ -44,8 +44,12 @@ export default function AuthPage() {
     setSuccess('');
     try {
       if (mode === 'signin') {
-        await signIn(email, password);
-        navigate(nextUrl, { replace: true });
+        const result = await signIn(email, password);
+        if (!result?.user && !result?.session) {
+          throw new Error('No se pudo iniciar sesión.');
+        }
+        window.location.replace(nextUrl);
+        return;
       } else {
         await signUp({ email, password, fullName });
         setSuccess('Cuenta creada. Revisa tu email y confirma tu cuenta para entrar.');

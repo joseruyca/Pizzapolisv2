@@ -1,3 +1,20 @@
+const explicitRoutes: Record<string, string> = {
+  Landing: '/landing',
+  Home: '/home',
+  Descubrir: '/descubrir',
+  CrearQuedada: '/crearquedada',
+  MisMatches: '/mismatches',
+  Profile: '/profile',
+  Admin: '/admin',
+  Favorites: '/favorites',
+  Trending: '/trending',
+  MyLists: '/mylists',
+  Stats: '/stats',
+  Recomendaciones: '/recomendaciones',
+  Leaderboards: '/leaderboards',
+  Guides: '/guides',
+};
+
 export function createPageUrl(pageName: string) {
-  return '/' + pageName.replace(/([a-z])([A-Z])/g, '$1-$2').replace(/ /g, '-').toLowerCase();
+  return explicitRoutes[pageName] || `/${pageName.replace(/\s+/g, '').toLowerCase()}`;
 }

@@ -64,6 +64,7 @@ function ProtectedPage({ pageName, Component }) {
 }
 
 const lowerAlias = (path) => `/${path.toLowerCase()}`;
+const kebabAlias = (path) => '/' + path.replace(/([a-z])([A-Z])/g, '$1-$2').replace(/\s+/g, '-').toLowerCase();
 
 const AppRoutes = () => (
   <Routes>
@@ -84,6 +85,7 @@ const AppRoutes = () => (
             <ProtectedPage pageName={path} Component={Page} />
           )}
         />
+        <Route path={kebabAlias(path)} element={<Navigate to={lowerAlias(path)} replace />} />
         <Route path={`/${path}`} element={<Navigate to={lowerAlias(path)} replace />} />
       </React.Fragment>
     ))}
