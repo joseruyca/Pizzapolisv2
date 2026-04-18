@@ -1,216 +1,68 @@
-import React, { useMemo, useState } from "react";
-import { base44 } from "@/api/base44Client";
+import React, { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Trophy, Medal, Zap, Loader2, Award } from "lucide-react";
-import { motion } from "framer-motion";
+import { Award, Loader2, Medal, Pizza, Trophy, Users } from "lucide-react";
+import { supabase } from "@/lib/supabase";
+
+async function loadLeaderboard() {
+  const [profilesRes, plansRes, spotsRes] = await Promise.all([
+    supabase.from("profiles").select("id,email,username,avatar_url,role"),
+    supabase.from("plans").select("id,created_by,status"),
+    supabase.from("spots").select("id,created_by,status"),
+  ]);
+  if (profilesRes.error) throw profilesRes.error;
+  if (plansRes.error) throw plansRes.error;
+  if (spotsRes.error) throw spotsRes.error;
+  return {
+    profiles: profilesRes.data || [],
+    plans: plansRes.data || [],
+    spots: spotsRes.data || [],
+  };
+}
 
 export default function Leaderboards() {
-  const [activeTab, setActiveTab] = useState("badges");
+  const { data, isLoading } = useQuery({ queryKey: ["leaderboard-supabase"], queryFn: loadLeaderboard });
 
-  const { data: badges = [], isLoading: badgesLoading } = useQuery({
-    queryKey: ["allBadges"],
-    queryFn: () => base44.asServiceRole.entities.UserBadge.list('-created_date', 500),
-  });
+  const leaderboard = useMemo(() => {
+    const profiles = data?.profiles || [];
+    const plans = data?.plans || [];
+    const spots = data?.spots || [];
+    return profiles
+      .map((profile) => ({
+        ...profile,
+        planCount: plans.filter((plan) => plan.created_by === profile.id).length,
+        approvedSpots: spots.filter((spot) => spot.created_by === profile.id && spot.status === "approved").length,
+      }))
+      .sort((a, b) => (b.planCount + b.approvedSpots) - (a.planCount + a.approvedSpots))
+      .slice(0, 20);
+  }, [data]);
 
-  const { data: ratings = [] } = useQuery({
-    queryKey: ["allRatings"],
-    queryFn: () => base44.asServiceRole.entities.Rating.list('-created_date', 500),
-  });
-
-  const { data: quedadas = [] } = useQuery({
-    queryKey: ["allQuedadas"],
-    queryFn: () => base44.asServiceRole.entities.Quedada.list('-created_date', 500),
-  });
-
-  const { data: favorites = [] } = useQuery({
-    queryKey: ["allFavorites"],
-    queryFn: () => base44.asServiceRole.entities.Favorite.list('-created_date', 500),
-  });
-
-  const { data: users = [] } = useQuery({
-    queryKey: ["allUsers"],
-    queryFn: () => base44.asServiceRole.entities.User.list('-created_date', 100),
-  });
-
-  const leaderboards = useMemo(() => {
-    // Top Badges
-    const badgesByUser = {};
-    badges.forEach(b => {
-      if (!badgesByUser[b.user_email]) badgesByUser[b.user_email] = 0;
-      badgesByUser[b.user_email]++;
-    });
-
-    const topBadges = Object.entries(badgesByUser)
-      .map(([email, count]) => ({ email, count }))
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 10);
-
-    // Top Raters
-    const ratingsByUser = {};
-    ratings.forEach(r => {
-      if (!ratingsByUser[r.user_email]) ratingsByUser[r.user_email] = 0;
-      ratingsByUser[r.user_email]++;
-    });
-
-    const topRaters = Object.entries(ratingsByUser)
-      .map(([email, count]) => ({ email, count }))
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 10);
-
-    // Top Group Creators
-    const groupsByUser = {};
-    quedadas.forEach(q => {
-      if (!groupsByUser[q.creador_id]) groupsByUser[q.creador_id] = 0;
-      groupsByUser[q.creador_id]++;
-    });
-
-    const topCreators = Object.entries(groupsByUser)
-      .map(([id, count]) => ({ id, count }))
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 10);
-
-    return { topBadges, topRaters, topCreators };
-  }, [badges, ratings, quedadas]);
-
-  const getUser = (email) => users.find(u => u.email === email);
-  const getUserById = (id) => users.find(u => u.id === id);
-
-  const isLoading = badgesLoading;
-
-  const tabs = [
-    { id: "badges", label: "Top Badges", icon: Trophy },
-    { id: "raters", label: "Top Raters", icon: Zap },
-    { id: "creators", label: "Group Creators", icon: Award },
-  ];
+  if (isLoading) return <div className="min-h-[calc(100vh-64px)] grid place-items-center bg-[#060606]"><Loader2 className="h-8 w-8 animate-spin text-[#df5b43]" /></div>;
 
   return (
-    <div className="min-h-screen bg-[#080808] pt-14 pb-20 px-4">
-      <div className="max-w-3xl mx-auto">
-        <div className="mb-8">
-          <h1 className="text-4xl font-black text-white mb-2">Leaderboards</h1>
-          <p className="text-stone-500">Top community members</p>
-        </div>
-
-        {/* Tabs */}
-        <div className="flex gap-2 mb-8 border-b border-white/10">
-          {tabs.map(tab => {
-            const Icon = tab.icon;
+    <div className="min-h-[calc(100vh-64px)] bg-[#060606] px-4 py-4 text-white">
+      <div className="mx-auto max-w-4xl rounded-[30px] border border-white/10 bg-[#101010] p-5 shadow-[0_22px_60px_rgba(0,0,0,0.35)]">
+        <div className="text-[11px] font-black uppercase tracking-[0.18em] text-[#efbf3a]">Community</div>
+        <h1 className="mt-3 text-4xl font-black tracking-[-0.05em]">Most active creators</h1>
+        <p className="mt-3 text-sm leading-7 text-stone-400">Ranking simple basado en planes creados y spots aprobados para mantenerlo limpio y real.</p>
+        <div className="mt-8 space-y-3">
+          {leaderboard.map((item, idx) => {
+            const Icon = idx === 0 ? Trophy : idx === 1 ? Medal : idx === 2 ? Award : Users;
             return (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-2 px-4 py-3 text-sm font-medium transition-all ${
-                  activeTab === tab.id
-                    ? "text-white border-b-2 border-red-500"
-                    : "text-stone-500 hover:text-white"
-                }`}
-              >
-                <Icon className="w-4 h-4" />
-                {tab.label}
-              </button>
+              <div key={item.id} className="flex items-center gap-4 rounded-[24px] border border-white/8 bg-white/[0.03] p-4">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#141414] text-[#efbf3a]"><Icon className="h-5 w-5" /></div>
+                <div className="min-w-0 flex-1">
+                  <div className="text-lg font-black">{item.username || item.email}</div>
+                  <div className="mt-1 text-sm text-stone-400">{item.role === 'admin' ? 'Admin' : 'Community member'}</div>
+                </div>
+                <div className="flex flex-wrap gap-2 text-sm">
+                  <span className="rounded-full bg-[#df5b43]/10 px-3 py-2 font-bold text-[#ff8f7a]">{item.planCount} plans</span>
+                  <span className="rounded-full bg-[#216b33]/10 px-3 py-2 font-bold text-[#8de0a2] flex items-center gap-2"><Pizza className="h-4 w-4" />{item.approvedSpots} spots</span>
+                </div>
+              </div>
             );
           })}
+          {!leaderboard.length ? <div className="rounded-[24px] border border-dashed border-white/10 p-10 text-center text-stone-400">Aún no hay suficiente actividad para el ranking.</div> : null}
         </div>
-
-        {/* Content */}
-        {isLoading ? (
-          <div className="flex items-center justify-center py-20">
-            <Loader2 className="w-8 h-8 animate-spin text-red-500" />
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {activeTab === "badges" &&
-              leaderboards.topBadges.map((entry, idx) => {
-                const user = getUser(entry.email);
-                const icons = [Trophy, Medal, "🥉"];
-                const Icon = idx < 3 ? icons[idx] : null;
-                return (
-                  <motion.div
-                    key={entry.email}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: idx * 0.05 }}
-                    className={`flex items-center gap-4 p-4 rounded-xl border ${
-                      idx < 3
-                        ? "bg-gradient-to-r from-yellow-600/20 to-orange-600/20 border-yellow-500/30"
-                        : "bg-[#111] border-white/10"
-                    }`}
-                  >
-                    <div
-                      className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-white ${
-                        idx === 0
-                          ? "bg-yellow-600"
-                          : idx === 1
-                          ? "bg-gray-500"
-                          : idx === 2
-                          ? "bg-orange-700"
-                          : "bg-stone-700"
-                      }`}
-                    >
-                      {Icon && typeof Icon === "function" ? (
-                        <Icon className="w-5 h-5" />
-                      ) : (
-                        <span>{Icon}</span>
-                      )}
-                    </div>
-                    <div className="flex-1">
-                      <p className="font-bold text-white">{user?.full_name || entry.email}</p>
-                      <p className="text-xs text-stone-500">{entry.count} badges</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-2xl font-black text-yellow-500">#{idx + 1}</p>
-                    </div>
-                  </motion.div>
-                );
-              })}
-
-            {activeTab === "raters" &&
-              leaderboards.topRaters.map((entry, idx) => {
-                const user = getUser(entry.email);
-                return (
-                  <motion.div
-                    key={entry.email}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: idx * 0.05 }}
-                    className="flex items-center gap-4 p-4 rounded-xl bg-[#111] border border-white/10"
-                  >
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-red-600 to-orange-700 flex items-center justify-center font-bold text-white">
-                      {user?.full_name?.[0] || "?"}
-                    </div>
-                    <div className="flex-1">
-                      <p className="font-bold text-white">{user?.full_name || entry.email}</p>
-                      <p className="text-xs text-stone-500">{entry.count} ratings</p>
-                    </div>
-                    <div className="text-2xl font-black text-red-500">#{idx + 1}</div>
-                  </motion.div>
-                );
-              })}
-
-            {activeTab === "creators" &&
-              leaderboards.topCreators.map((entry, idx) => {
-                const user = getUserById(entry.id);
-                return (
-                  <motion.div
-                    key={entry.id}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: idx * 0.05 }}
-                    className="flex items-center gap-4 p-4 rounded-xl bg-[#111] border border-white/10"
-                  >
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-600 to-purple-700 flex items-center justify-center font-bold text-white">
-                      {user?.full_name?.[0] || "?"}
-                    </div>
-                    <div className="flex-1">
-                      <p className="font-bold text-white">{user?.full_name || "User"}</p>
-                      <p className="text-xs text-stone-500">{entry.count} groups created</p>
-                    </div>
-                    <div className="text-2xl font-black text-blue-500">#{idx + 1}</div>
-                  </motion.div>
-                );
-              })}
-          </div>
-        )}
       </div>
     </div>
   );
