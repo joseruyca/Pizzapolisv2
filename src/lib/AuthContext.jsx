@@ -65,6 +65,7 @@ export const AuthProvider = ({ children }) => {
   const [profile, setProfile] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoadingAuth, setIsLoadingAuth] = useState(true);
+  const [isProfileReady, setIsProfileReady] = useState(false);
   const [authError, setAuthError] = useState(null);
   const mountedRef = useRef(true);
 
@@ -75,6 +76,7 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
     setProfile(null);
     setIsAuthenticated(false);
+    setIsProfileReady(true);
   }, []);
 
   const applyResolvedProfile = useCallback((nextSessionUser, resolvedProfile) => {
@@ -84,6 +86,7 @@ export const AuthProvider = ({ children }) => {
     setProfile(nextProfile);
     setUser(nextSessionUser ? bridgeUser(nextSessionUser, nextProfile) : null);
     setIsAuthenticated(Boolean(nextSessionUser));
+    setIsProfileReady(Boolean(nextSessionUser));
   }, []);
 
   const refreshProfile = useCallback(async () => {
@@ -100,6 +103,7 @@ export const AuthProvider = ({ children }) => {
     async function init() {
       if (!isSupabaseConfigured) {
         setAuthError({ type: 'config_missing', message: 'Supabase no está configurado.' });
+        setIsProfileReady(true);
         setIsLoadingAuth(false);
         return;
       }
@@ -133,12 +137,14 @@ export const AuthProvider = ({ children }) => {
             setIsLoadingAuth(false);
             return;
           }
+          if (mountedRef.current) setIsProfileReady(false);
           applyResolvedProfile(nextSessionUser, getFallbackProfile(nextSessionUser));
           setIsLoadingAuth(false);
           setTimeout(() => {
             void fetchProfile(nextSessionUser.id, nextSessionUser).then((resolved) => {
               if (!mountedRef.current) return;
               applyResolvedProfile(nextSessionUser, resolved);
+              if (mountedRef.current) setIsProfileReady(true);
             });
           }, 0);
         })
@@ -167,10 +173,12 @@ export const AuthProvider = ({ children }) => {
     if (error) throw error;
     const nextSessionUser = data?.user || data?.session?.user || null;
     if (nextSessionUser) {
+      if (mountedRef.current) setIsProfileReady(false);
       applyResolvedProfile(nextSessionUser, getFallbackProfile(nextSessionUser));
       await fetchProfile(nextSessionUser.id, nextSessionUser).then((resolved) => {
         if (!mountedRef.current) return;
         applyResolvedProfile(nextSessionUser, resolved);
+        if (mountedRef.current) setIsProfileReady(true);
       });
     }
     setIsLoadingAuth(false);
@@ -219,8 +227,10 @@ export const AuthProvider = ({ children }) => {
       clearSession();
       return;
     }
+    if (mountedRef.current) setIsProfileReady(false);
     const resolved = await fetchProfile(nextSessionUser.id, nextSessionUser);
     applyResolvedProfile(nextSessionUser, resolved);
+    if (mountedRef.current) setIsProfileReady(true);
   };
 
   const derivedRole = profile?.role || user?.role || 'user';
@@ -232,6 +242,7 @@ export const AuthProvider = ({ children }) => {
     refreshProfile,
     isAuthenticated,
     isLoadingAuth,
+    isProfileReady,
     isLoadingPublicSettings: false,
     authError,
     appPublicSettings: { localMode: false },
@@ -241,7 +252,7 @@ export const AuthProvider = ({ children }) => {
     signIn,
     signUp,
     isSupabaseConfigured,
-  }), [user, profile, derivedRole, refreshProfile, isAuthenticated, isLoadingAuth, authError]);
+  }), [user, profile, derivedRole, refreshProfile, isAuthenticated, isLoadingAuth, isProfileReady, authError]);
 
   return <AuthContext.Provider value={contextValue}>{children}</AuthContext.Provider>;
 };

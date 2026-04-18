@@ -47,9 +47,9 @@ function ProtectedRoute({ children }) {
 const PUBLIC_PAGES = new Set(['Landing', 'Home', 'Descubrir']);
 
 function AdminRoute({ children }) {
-  const { role, isAdmin, isLoadingAuth, refreshProfile } = useAuth();
-  if (isLoadingAuth) return <LoadingScreen />;
-  if (!isAdmin && role !== 'admin') return <Navigate to="/home" replace />;
+  const { role, isAdmin, isLoadingAuth, isProfileReady } = useAuth();
+  if (isLoadingAuth || !isProfileReady) return <LoadingScreen />;
+  if (!isAdmin && role !== 'admin') return <Navigate to="/profile" replace />;
   return children;
 }
 

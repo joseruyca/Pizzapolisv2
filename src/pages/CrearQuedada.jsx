@@ -51,6 +51,7 @@ export default function CrearQuedada() {
   const { user } = useAuth();
   const [done, setDone] = useState(false);
   const [createdId, setCreatedId] = useState(null);
+  const [submitError, setSubmitError] = useState('');
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -126,7 +127,9 @@ export default function CrearQuedada() {
   const submit = async (e) => {
     e?.preventDefault?.();
     if (publishDisabled || !supabase) return;
+    setSubmitError('');
 
+    try {
     const { data: createdPlan, error: planError } = await supabase
       .from("plans")
       .insert({
@@ -159,6 +162,10 @@ export default function CrearQuedada() {
 
     setCreatedId(createdPlan.id);
     setDone(true);
+    } catch (error) {
+      console.error('Create plan failed:', error);
+      setSubmitError(error?.message || 'No se pudo crear el plan.');
+    }
   };
 
   return (
@@ -175,6 +182,7 @@ export default function CrearQuedada() {
             </Button>
           </div>
 
+          {submitError ? <div className="mb-4 rounded-2xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-200">{submitError}</div> : null}
           <form onSubmit={submit} className="space-y-5">
             <section className="rounded-[28px] border border-white/10 bg-white/[0.03] p-4">
               <div className="mb-3 text-xs font-bold uppercase tracking-[0.16em] text-stone-500">1 · Choose the spot</div>
@@ -279,7 +287,7 @@ export default function CrearQuedada() {
           <motion.div initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} className="w-full max-w-md rounded-[32px] border border-emerald-500/20 bg-[#07150f] p-7 text-center shadow-[0_24px_80px_rgba(0,0,0,0.45)]">
             <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-[24px] bg-emerald-500/20 text-emerald-300"><CheckCircle2 className="h-8 w-8" /></div>
             <div className="mt-5 text-2xl font-black text-white">Plan created</div>
-            <p className="mt-3 text-sm leading-7 text-stone-300">Todo correcto. Te mandamos al mapa y ya entraste automáticamente al grupo.</p>
+            <p className="mt-3 text-sm leading-7 text-stone-300">Plan creado correctamente. En un momento volvemos al mapa y entras al grupo automáticamente.</p>
             <div className="mt-6 grid gap-3 sm:grid-cols-2">
               <button type="button" onClick={() => navigate(`${createPageUrl("Home")}?createdPlan=${createdId}`, { replace: true })} className="inline-flex h-12 items-center justify-center rounded-2xl bg-red-600 font-bold text-white">Go to map</button>
               <button type="button" onClick={() => navigate(`${createPageUrl("MisMatches")}?focus=${createdId}`, { replace: true })} className="inline-flex h-12 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] font-bold text-stone-200">Open group</button>

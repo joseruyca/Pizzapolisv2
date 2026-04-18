@@ -147,6 +147,14 @@ export default function AddPinModal({ open, onClose, user }) {
     };
   }, [locationQuery, open]);
 
+  useEffect(() => {
+    if (!done) return;
+    const timer = window.setTimeout(() => {
+      handleClose();
+    }, 1400);
+    return () => window.clearTimeout(timer);
+  }, [done]);
+
   const matchingExisting = useMemo(() => {
     const q = locationQuery.trim().toLowerCase();
     if (!q) return [];
@@ -204,6 +212,7 @@ export default function AddPinModal({ open, onClose, user }) {
   async function handleSubmit(event) {
     event.preventDefault();
     if (!user || submitting || existingSpot) return;
+    setErrorMessage('');
     setSubmitting(true);
     try {
       let uploaded = null;
@@ -242,6 +251,9 @@ export default function AddPinModal({ open, onClose, user }) {
         queryClient.invalidateQueries({ queryKey: ["existing-spots-add-pin"] }),
       ]);
       setDone(true);
+    } catch (error) {
+      console.error('Add spot failed:', error);
+      setErrorMessage(error?.message || 'No se pudo guardar el spot.');
     } finally {
       setSubmitting(false);
     }
@@ -253,6 +265,7 @@ export default function AddPinModal({ open, onClose, user }) {
     setGeoSuggestions([]);
     setDone(false);
     setSubmitting(false);
+    setErrorMessage('');
     setPhotoName("");
     setPhotoFile(null);
     setExistingSpot(null);
@@ -281,9 +294,9 @@ export default function AddPinModal({ open, onClose, user }) {
               <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-[24px] bg-emerald-500/15 text-emerald-300">
                 <CheckCircle className="h-8 w-8" />
               </div>
-              <h3 className="text-2xl font-black text-white">Spot sent for review</h3>
-              <p className="mt-3 text-sm leading-7 text-stone-400">The spot is saved and waiting for admin approval before showing on the public map.</p>
-              <Button onClick={handleClose} className="mt-6 h-11 w-full rounded-2xl bg-red-600 text-white hover:bg-red-500">Close</Button>
+              <h3 className="text-2xl font-black text-white">Spot creado</h3>
+              <p className="mt-3 text-sm leading-7 text-stone-400">Tu spot se ha enviado para revisión. En un momento volvemos al mapa.</p>
+              <Button onClick={handleClose} className="mt-6 h-11 w-full rounded-2xl bg-red-600 text-white hover:bg-red-500">Volver al mapa</Button>
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="p-6">
@@ -368,6 +381,7 @@ export default function AddPinModal({ open, onClose, user }) {
                 </section>
               </div>
 
+              {errorMessage ? <div className="mt-5 rounded-2xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-200">{errorMessage}</div> : null}
               <Button type="submit" disabled={submitting || existingSpot || !form.name.trim() || !(form.address.trim() || locationQuery.trim())} className="mt-6 h-12 w-full rounded-2xl bg-red-600 text-white hover:bg-red-500">
                 {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                 Add spot

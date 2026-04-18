@@ -10,7 +10,7 @@ import { useAuth } from '@/lib/AuthContext';
 export default function Layout({ children, currentPageName }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [groupChatOpen, setGroupChatOpen] = useState(false);
-  const { user, role, isAdmin, logout, isAuthenticated, refreshProfile } = useAuth();
+  const { user, role, isAdmin, logout, isAuthenticated } = useAuth();
 
   useEffect(() => {
     const handleChatState = (event) => {
@@ -26,12 +26,6 @@ export default function Layout({ children, currentPageName }) {
       setGroupChatOpen(false);
     }
   }, [currentPageName]);
-
-  useEffect(() => {
-    if (isAuthenticated) {
-      void refreshProfile();
-    }
-  }, [isAuthenticated, refreshProfile]);
 
 
   const publicNavItems = [
