@@ -1,8 +1,8 @@
 import React, { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { List, MapPin } from "lucide-react";
-import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
+import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 import PizzaMap from "@/components/map/PizzaMap";
 import SearchFilters from "@/components/map/SearchFilters";
 import PlacePanel from "@/components/place/PlacePanel";
@@ -12,6 +12,46 @@ import LoginPrompt from "@/components/shared/LoginPrompt";
 import PinPopup from "@/components/map/PinPopup";
 import { getValueLabel, isOpenNow } from "@/lib/place-helpers";
 import { MAP_STYLES } from "@/lib/constants";
+
+async function resolveSpotPhoto(value) {
+  if (!value) return null;
+  if (String(value).startsWith("http")) return value;
+  const { data } = await supabase.storage.from("spot-photos").createSignedUrl(value, 60 * 60);
+  return data?.signedUrl || null;
+}
+
+function normalizeSpot(row) {
+  return {
+    ...row,
+    latitude: Number(row.latitude ?? row.lat ?? 0),
+    longitude: Number(row.longitude ?? row.lng ?? 0),
+    standard_slice_price: Number(row.standard_slice_price ?? row.slice_price ?? 0),
+    best_known_slice: row.best_known_slice ?? row.best_slice ?? "",
+    average_rating: Number(row.average_rating ?? 0),
+    ratings_count: Number(row.ratings_count ?? 0),
+    neighborhood: row.neighborhood || "NYC",
+    borough: row.borough || "",
+  };
+}
+
+async function fetchPlaces() {
+  const { data, error } = await supabase
+    .from("spots")
+    .select("id,name,address,lat,lng,latitude,longitude,slice_price,standard_slice_price,best_slice,best_known_slice,quick_note,description,photo_url,average_rating,ratings_count,featured,status,neighborhood,borough,hours,created_by")
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  const rows = await Promise.all((data || []).map(async (row) => ({ ...row, photo_url: await resolveSpotPhoto(row.photo_url) })));
+  return rows.map(normalizeSpot);
+}
+
+async function fetchActivePlanCounts() {
+  const { data, error } = await supabase
+    .from("plans")
+    .select("id,spot_id")
+    .eq("status", "active");
+  if (error) throw error;
+  return data || [];
+}
 
 export default function Home() {
   const { user } = useAuth();
@@ -41,38 +81,28 @@ export default function Home() {
   });
 
   const { data: places = [] } = useQuery({
-    queryKey: ["places"],
-    queryFn: () => base44.entities.PizzaPlace.filter({ status: "active" }),
+    queryKey: ["places-supabase"],
+    queryFn: fetchPlaces,
+    enabled: Boolean(isSupabaseConfigured && supabase),
   });
 
-  const { data: activeHangouts = [] } = useQuery({
-    queryKey: ["active-hangouts"],
-    queryFn: () => base44.entities.Quedada.filter({ estado: "activa" }, "fecha_hora"),
+  const { data: activePlans = [] } = useQuery({
+    queryKey: ["active-plan-counts"],
+    queryFn: fetchActivePlanCounts,
+    enabled: Boolean(isSupabaseConfigured && supabase),
   });
-
-  const { data: favorites = [] } = useQuery({
-    queryKey: ["favorites", user?.email || "guest"],
-    queryFn: () => (user?.email ? base44.entities.Favorite.filter({ user_email: user.email }) : []),
-  });
-
-  const favoriteIds = useMemo(() => favorites.map((item) => item.place_id).filter(Boolean), [favorites]);
 
   const hangoutsByPlace = useMemo(() => {
     const map = {};
-    activeHangouts.forEach((hangout) => {
-      const key = hangout.pizzeria_id || hangout.pizza_place_id;
-      if (!key) return;
-      map[key] = (map[key] || 0) + 1;
+    activePlans.forEach((plan) => {
+      if (!plan.spot_id) return;
+      map[plan.spot_id] = (map[plan.spot_id] || 0) + 1;
     });
     return map;
-  }, [activeHangouts]);
+  }, [activePlans]);
 
   const enrichedPlaces = useMemo(
-    () =>
-      places.map((place) => ({
-        ...place,
-        active_hangouts_count: hangoutsByPlace[place.id] || 0,
-      })),
+    () => places.map((place) => ({ ...place, active_hangouts_count: hangoutsByPlace[place.id] || 0 })),
     [places, hangoutsByPlace],
   );
 
@@ -83,18 +113,16 @@ export default function Home() {
       result = result.filter(
         (p) =>
           p.name?.toLowerCase().includes(q) ||
+          p.address?.toLowerCase().includes(q) ||
           p.neighborhood?.toLowerCase().includes(q) ||
           p.borough?.toLowerCase().includes(q) ||
           p.best_known_slice?.toLowerCase().includes(q),
       );
     }
     if (filters.boroughs?.length) result = result.filter((p) => filters.boroughs.includes(p.borough));
-    if (filters.prices?.length) result = result.filter((p) => filters.prices.includes(p.price_range));
-    if (filters.categories?.length) result = result.filter((p) => filters.categories.includes(p.category));
     if (filters.cheapOnly) result = result.filter((p) => Number(p.standard_slice_price || 0) <= 3.5);
     if (filters.valueOnly) result = result.filter((p) => ["Steal", "Best budget", "Worth it"].includes(getValueLabel(p)));
     if (filters.openNow) result = result.filter((p) => isOpenNow(p.hours));
-    if (filters.lateNight) result = result.filter((p) => /AM/i.test(p.hours || "") || /late/i.test(`${p.category || ""} ${p.description || ""}`));
     if (filters.featuredOnly) result = result.filter((p) => Boolean(p.featured));
     if (filters.sortBy === "rating") result.sort((a, b) => (b.average_rating || 0) - (a.average_rating || 0));
     if (filters.sortBy === "featured") result.sort((a, b) => Number(Boolean(b.featured)) - Number(Boolean(a.featured)));
@@ -121,7 +149,7 @@ export default function Home() {
             <PizzaMap
               places={filteredPlaces}
               selectedPlace={selectedPlace || previewPlace}
-              savedPlaceIds={favoriteIds}
+              savedPlaceIds={[]}
               onSelectPlace={(place) => {
                 setPreviewPlace(place);
                 setListOpen(false);

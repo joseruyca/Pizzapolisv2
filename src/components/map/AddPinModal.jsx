@@ -1,10 +1,10 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import { MapContainer, Marker, TileLayer, useMapEvents, useMap } from "react-leaflet";
 import L from "leaflet";
-import { CheckCircle, ImagePlus, Loader2, MapPin, Search, X } from "lucide-react";
-import { base44 } from "@/api/base44Client";
+import { AlertCircle, CheckCircle, ImagePlus, Loader2, MapPin, Search, X } from "lucide-react";
+import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,13 +18,11 @@ const markerIcon = L.icon({
 
 const initialForm = {
   name: "",
-  neighborhood: "NYC",
-  borough: "",
   address: "",
   standard_slice_price: "3.50",
   best_known_slice: "",
   description: "",
-  photo_url: "",
+  photoPreview: "",
   latitude: 40.7128,
   longitude: -74.006,
 };
@@ -36,28 +34,6 @@ function readFileAsDataUrl(file) {
     reader.onerror = reject;
     reader.readAsDataURL(file);
   });
-}
-
-function inferPlaceMeta(item) {
-  const address = item?.address || {};
-  const rawDisplay = item?.display_name || "";
-  const parts = rawDisplay.split(",").map((part) => part.trim()).filter(Boolean);
-  const borough =
-    address.borough ||
-    parts.find((part) => ["Manhattan", "Brooklyn", "Queens", "Bronx", "Staten Island"].includes(part)) ||
-    "";
-
-  const neighborhood =
-    address.neighbourhood ||
-    address.suburb ||
-    address.city_district ||
-    address.quarter ||
-    address.hamlet ||
-    address.city ||
-    parts[0] ||
-    "NYC";
-
-  return { neighborhood, borough };
 }
 
 function MapViewport({ position }) {
@@ -90,9 +66,30 @@ function MapPicker({ value, onChange }) {
           <MapEvents />
         </MapContainer>
       </div>
-      <p className="text-xs leading-5 text-stone-500">Search for the street first, then tap the map if you want to fine-tune the pin.</p>
+      <p className="text-xs leading-5 text-stone-500">Search first, then tap the map if you want to fine-tune the pin.</p>
     </div>
   );
+}
+
+async function fetchExistingSpots() {
+  const { data, error } = await supabase
+    .from("spots")
+    .select("id,name,address,lat,lng,latitude,longitude,slice_price,standard_slice_price,best_slice,best_known_slice,quick_note,description,photo_url,status")
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return data || [];
+}
+
+async function uploadSpotPhoto(file, userId) {
+  const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
+  const fileName = `${Date.now()}.${ext}`;
+  const filePath = `${userId}/${fileName}`;
+
+  const { error: uploadError } = await supabase.storage.from("spot-photos").upload(filePath, file, { upsert: false });
+  if (uploadError) throw uploadError;
+
+  const { data: publicData } = supabase.storage.from("spot-photos").getPublicUrl(filePath);
+  return { filePath, publicUrl: publicData?.publicUrl || null };
 }
 
 export default function AddPinModal({ open, onClose, user }) {
@@ -102,14 +99,23 @@ export default function AddPinModal({ open, onClose, user }) {
   const [done, setDone] = useState(false);
   const [locationQuery, setLocationQuery] = useState("");
   const [searching, setSearching] = useState(false);
-  const [suggestions, setSuggestions] = useState([]);
+  const [geoSuggestions, setGeoSuggestions] = useState([]);
   const [photoName, setPhotoName] = useState("");
+  const [photoFile, setPhotoFile] = useState(null);
+  const [existingSpot, setExistingSpot] = useState(null);
+
+  const { data: existingSpots = [] } = useQuery({
+    queryKey: ["existing-spots-add-pin"],
+    queryFn: fetchExistingSpots,
+    enabled: open,
+    staleTime: 20_000,
+  });
 
   useEffect(() => {
     if (!open) return;
     const query = locationQuery.trim();
     if (query.length < 3) {
-      setSuggestions([]);
+      setGeoSuggestions([]);
       setSearching(false);
       return;
     }
@@ -124,16 +130,16 @@ export default function AddPinModal({ open, onClose, user }) {
           headers: { Accept: "application/json" },
         });
         const results = await response.json();
-        setSuggestions(Array.isArray(results) ? results : []);
+        setGeoSuggestions(Array.isArray(results) ? results : []);
       } catch (error) {
         if (error?.name !== "AbortError") {
           console.error(error);
-          setSuggestions([]);
+          setGeoSuggestions([]);
         }
       } finally {
         setSearching(false);
       }
-    }, 280);
+    }, 250);
 
     return () => {
       controller.abort();
@@ -141,23 +147,45 @@ export default function AddPinModal({ open, onClose, user }) {
     };
   }, [locationQuery, open]);
 
+  const matchingExisting = useMemo(() => {
+    const q = locationQuery.trim().toLowerCase();
+    if (!q) return [];
+    return existingSpots
+      .filter((spot) => `${spot.name || ""} ${spot.address || ""}`.toLowerCase().includes(q))
+      .slice(0, 5);
+  }, [existingSpots, locationQuery]);
+
   if (!open) return null;
 
   const update = (key, value) => setForm((current) => ({ ...current, [key]: value }));
 
   function handleSelectSuggestion(item) {
-    const meta = inferPlaceMeta(item);
+    setExistingSpot(null);
     const addressLabel = item.display_name || "";
     setForm((current) => ({
       ...current,
       address: addressLabel,
       latitude: Number(item.lat),
       longitude: Number(item.lon),
-      neighborhood: meta.neighborhood || current.neighborhood || "NYC",
-      borough: meta.borough || current.borough || "",
     }));
     setLocationQuery(addressLabel);
-    setSuggestions([]);
+    setGeoSuggestions([]);
+  }
+
+  function handleSelectExisting(spot) {
+    setExistingSpot(spot);
+    setLocationQuery(spot.address || spot.name || "");
+    setForm((current) => ({
+      ...current,
+      name: spot.name || current.name,
+      address: spot.address || current.address,
+      standard_slice_price: String(spot.standard_slice_price ?? spot.slice_price ?? current.standard_slice_price),
+      best_known_slice: spot.best_known_slice || spot.best_slice || current.best_known_slice,
+      description: spot.quick_note || spot.description || current.description,
+      photoPreview: spot.photo_url || current.photoPreview,
+      latitude: Number(spot.latitude ?? spot.lat ?? current.latitude),
+      longitude: Number(spot.longitude ?? spot.lng ?? current.longitude),
+    }));
   }
 
   async function handlePhotoChange(event) {
@@ -166,7 +194,8 @@ export default function AddPinModal({ open, onClose, user }) {
     try {
       const dataUrl = await readFileAsDataUrl(file);
       setPhotoName(file.name);
-      setForm((current) => ({ ...current, photo_url: dataUrl }));
+      setPhotoFile(file);
+      setForm((current) => ({ ...current, photoPreview: dataUrl }));
     } catch (error) {
       console.error(error);
     }
@@ -174,34 +203,43 @@ export default function AddPinModal({ open, onClose, user }) {
 
   async function handleSubmit(event) {
     event.preventDefault();
-    if (!user || submitting) return;
+    if (!user || submitting || existingSpot) return;
     setSubmitting(true);
     try {
-      await base44.entities.PizzaPlace.create({
+      let uploaded = null;
+      if (photoFile) {
+        uploaded = await uploadSpotPhoto(photoFile, user.id);
+      }
+
+      const payload = {
         name: form.name.trim(),
-        neighborhood: form.neighborhood.trim() || "NYC",
-        borough: form.borough || "",
-        category: "Classic NY Slice",
         address: form.address.trim() || locationQuery.trim(),
-        price_range: "$",
-        standard_slice_price: Number(form.standard_slice_price || 0),
-        best_known_slice: form.best_known_slice.trim() || "",
-        description: form.description.trim(),
+        lat: Number(form.latitude),
+        lng: Number(form.longitude),
         latitude: Number(form.latitude),
         longitude: Number(form.longitude),
+        slice_price: Number(form.standard_slice_price || 0),
+        standard_slice_price: Number(form.standard_slice_price || 0),
+        best_slice: form.best_known_slice.trim() || null,
+        best_known_slice: form.best_known_slice.trim() || null,
+        quick_note: form.description.trim() || null,
+        description: form.description.trim() || null,
+        photo_url: uploaded?.filePath || null,
         average_rating: 0,
         ratings_count: 0,
         featured: false,
+        neighborhood: "NYC",
+        borough: "",
         status: "pending",
-        cover_image_url: form.photo_url.trim(),
-        hours: "",
-        last_price_update: new Date().toISOString().slice(0, 10),
-        submitted_by: user.email,
-      });
+        created_by: user.id,
+      };
+
+      const { error } = await supabase.from("spots").insert(payload);
+      if (error) throw error;
+
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["places"] }),
-        queryClient.invalidateQueries({ queryKey: ["places-for-panel"] }),
-        queryClient.invalidateQueries({ queryKey: ["create-plan-places-v4"] }),
+        queryClient.invalidateQueries({ queryKey: ["places-supabase"] }),
+        queryClient.invalidateQueries({ queryKey: ["existing-spots-add-pin"] }),
       ]);
       setDone(true);
     } finally {
@@ -212,10 +250,12 @@ export default function AddPinModal({ open, onClose, user }) {
   function handleClose() {
     setForm(initialForm);
     setLocationQuery("");
-    setSuggestions([]);
+    setGeoSuggestions([]);
     setDone(false);
     setSubmitting(false);
     setPhotoName("");
+    setPhotoFile(null);
+    setExistingSpot(null);
     onClose();
   }
 
@@ -259,94 +299,79 @@ export default function AddPinModal({ open, onClose, user }) {
               </div>
 
               <div className="space-y-5">
-                <section className="rounded-[24px] border border-white/10 bg-white/[0.03] p-4">
-                  <div className="mb-3 text-xs font-bold uppercase tracking-[0.16em] text-stone-500">1 · Find the place</div>
+                <section className="rounded-[26px] border border-white/10 bg-white/[0.03] p-4">
+                  <Label className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-stone-500"><Search className="h-3.5 w-3.5" />Find the place</Label>
                   <div className="relative">
-                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-stone-500" />
-                    <Input
-                      value={locationQuery}
-                      onChange={(event) => setLocationQuery(event.target.value)}
-                      placeholder="Search street or pizza place"
-                      className="h-11 border-white/10 bg-white/[0.04] pl-10 text-white"
-                    />
-                    {searching ? <Loader2 className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-red-400" /> : null}
+                    <Input value={locationQuery} onChange={(e) => setLocationQuery(e.target.value)} placeholder="Search street, address or spot name" className="h-11 border-white/10 bg-white/[0.04] pl-10 text-white" />
+                    <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-stone-500" />
+                    {searching ? <Loader2 className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-stone-500" /> : null}
                   </div>
-
-                  {suggestions.length > 0 ? (
-                    <div className="mt-3 overflow-hidden rounded-2xl border border-white/10 bg-[#171717]">
-                      {suggestions.map((item) => (
-                        <button
-                          key={`${item.place_id}-${item.lat}-${item.lon}`}
-                          type="button"
-                          onClick={() => handleSelectSuggestion(item)}
-                          className="flex w-full items-start gap-3 border-b border-white/8 px-3 py-3 text-left transition last:border-b-0 hover:bg-white/[0.04]"
-                        >
-                          <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-red-400" />
-                          <div className="min-w-0">
-                            <div className="line-clamp-1 text-sm font-semibold text-white">{item.display_name}</div>
-                            <div className="mt-1 text-xs text-stone-500">Tap to use this address</div>
+                  {(matchingExisting.length || geoSuggestions.length) ? (
+                    <div className="mt-3 overflow-hidden rounded-2xl border border-white/10 bg-[#151515]">
+                      {matchingExisting.map((spot) => (
+                        <button key={`existing-${spot.id}`} type="button" onClick={() => handleSelectExisting(spot)} className="flex w-full items-start justify-between gap-3 border-b border-white/6 px-4 py-3 text-left text-white hover:bg-white/[0.04]">
+                          <div>
+                            <div className="font-semibold">{spot.name}</div>
+                            <div className="text-xs text-stone-400">{spot.address}</div>
                           </div>
+                          <span className="rounded-full bg-amber-500/15 px-2 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-amber-200">Existing</span>
+                        </button>
+                      ))}
+                      {geoSuggestions.map((item) => (
+                        <button key={`${item.place_id}-${item.lat}-${item.lon}`} type="button" onClick={() => handleSelectSuggestion(item)} className="flex w-full items-start gap-3 px-4 py-3 text-left text-white hover:bg-white/[0.04]">
+                          <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-red-300" />
+                          <div className="text-sm text-stone-200">{item.display_name}</div>
                         </button>
                       ))}
                     </div>
                   ) : null}
-
-                  <div className="mt-3 rounded-2xl border border-white/10 bg-black/20 px-3 py-3 text-sm text-stone-300">
-                    {form.address || "Pick a suggestion to lock the address, then adjust the pin if needed."}
-                  </div>
-
-                  <div className="mt-4">
-                    <MapPicker value={form} onChange={(coords) => setForm((current) => ({ ...current, ...coords }))} />
-                  </div>
+                  {existingSpot ? (
+                    <div className="mt-3 flex items-start gap-3 rounded-2xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-amber-100">
+                      <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                      <div className="text-sm leading-6">This spot already exists on the map. Open it from the map instead of creating a duplicate.</div>
+                    </div>
+                  ) : null}
                 </section>
 
-                <section className="rounded-[24px] border border-white/10 bg-white/[0.03] p-4">
-                  <div className="mb-3 text-xs font-bold uppercase tracking-[0.16em] text-stone-500">2 · Spot details</div>
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <div>
-                      <Label className="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-stone-500">Spot name *</Label>
-                      <Input required value={form.name} onChange={(e) => update("name", e.target.value)} placeholder="Joe's Pizza" className="h-11 border-white/10 bg-white/[0.04] text-white" />
-                    </div>
-                    <div>
-                      <Label className="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-stone-500">Slice price *</Label>
-                      <Input required type="number" min="0.5" step="0.01" value={form.standard_slice_price} onChange={(e) => update("standard_slice_price", e.target.value)} placeholder="3.50" className="h-11 border-white/10 bg-white/[0.04] text-white" />
-                    </div>
-                  </div>
+                <section className="rounded-[26px] border border-white/10 bg-white/[0.03] p-4">
+                  <MapPicker value={form} onChange={(coords) => setForm((current) => ({ ...current, ...coords }))} />
+                </section>
 
-                  <div className="mt-4 grid gap-4 sm:grid-cols-2">
-                    <div>
-                      <Label className="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-stone-500">Best known slice</Label>
-                      <Input value={form.best_known_slice} onChange={(e) => update("best_known_slice", e.target.value)} placeholder="Vodka slice" className="h-11 border-white/10 bg-white/[0.04] text-white" />
-                    </div>
-                    <div>
-                      <Label className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-stone-500"><ImagePlus className="h-3.5 w-3.5" />Photo</Label>
-                      <label className="flex h-11 cursor-pointer items-center justify-between rounded-2xl border border-dashed border-white/10 bg-white/[0.04] px-3 text-sm text-stone-300 transition hover:bg-white/[0.06]">
-                        <span className="truncate">{photoName || "Choose from gallery"}</span>
-                        <span className="shrink-0 rounded-full bg-white/10 px-2 py-1 text-[11px] font-bold text-white">Browse</span>
-                        <input type="file" accept="image/*" onChange={handlePhotoChange} className="hidden" />
-                      </label>
-                      {form.photo_url ? (
-                        <div className="mt-3 overflow-hidden rounded-2xl border border-white/10 bg-black/30">
-                          <img src={form.photo_url} alt="Selected spot" className="h-28 w-full object-cover" />
-                        </div>
-                      ) : null}
-                    </div>
+                <section className="rounded-[26px] border border-white/10 bg-white/[0.03] p-4 space-y-4">
+                  <div>
+                    <Label className="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-stone-500">Name *</Label>
+                    <Input value={form.name} onChange={(e) => update("name", e.target.value)} placeholder="Joe's Pizza" className="h-11 border-white/10 bg-white/[0.04] text-white" />
                   </div>
-
-                  <div className="mt-4">
+                  <div>
+                    <Label className="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-stone-500">Slice price *</Label>
+                    <Input type="number" min="0" step="0.25" value={form.standard_slice_price} onChange={(e) => update("standard_slice_price", e.target.value)} placeholder="3.50" className="h-11 border-white/10 bg-white/[0.04] text-white" />
+                  </div>
+                  <div>
+                    <Label className="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-stone-500">Best known slice</Label>
+                    <Input value={form.best_known_slice} onChange={(e) => update("best_known_slice", e.target.value)} placeholder="Cheese, grandma, pepperoni..." className="h-11 border-white/10 bg-white/[0.04] text-white" />
+                  </div>
+                  <div>
                     <Label className="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-stone-500">Quick note</Label>
-                    <Textarea value={form.description} onChange={(e) => update("description", e.target.value)} className="min-h-[96px] border-white/10 bg-white/[0.04] text-white" placeholder="Best value late at night, fast service, crispy base..." maxLength={160} />
-                    <div className="mt-2 text-right text-[11px] font-medium text-stone-500">{form.description.length}/160</div>
+                    <Textarea value={form.description} onChange={(e) => update("description", e.target.value)} placeholder="Cheap and fast, good late-night stop..." className="min-h-[92px] border-white/10 bg-white/[0.04] text-white" />
                   </div>
+                </section>
+
+                <section className="rounded-[26px] border border-white/10 bg-white/[0.03] p-4">
+                  <Label className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-stone-500"><ImagePlus className="h-3.5 w-3.5" />Photo</Label>
+                  <label className="flex cursor-pointer flex-col gap-3 rounded-[22px] border border-dashed border-white/10 bg-white/[0.03] p-4 text-sm text-stone-300 hover:bg-white/[0.05]">
+                    <input type="file" accept="image/*" onChange={handlePhotoChange} className="hidden" />
+                    <span>{photoName || "Choose from gallery"}</span>
+                    <div className="aspect-[4/3] overflow-hidden rounded-[18px] border border-white/8 bg-[#0f0f0f]">
+                      {form.photoPreview ? <img src={form.photoPreview} alt="Preview" className="h-full w-full object-cover" /> : <div className="flex h-full items-center justify-center text-stone-600">4:3 preview</div>}
+                    </div>
+                  </label>
                 </section>
               </div>
 
-              <div className="mt-6 flex gap-3">
-                <Button type="button" variant="outline" onClick={handleClose} className="h-11 flex-1 rounded-2xl border-white/10 bg-white/[0.04] text-white hover:bg-white/[0.08]">Cancel</Button>
-                <Button type="submit" disabled={submitting} className="h-11 flex-1 rounded-2xl bg-red-600 text-white hover:bg-red-500">
-                  {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <MapPin className="mr-2 h-4 w-4" />}Publish spot
-                </Button>
-              </div>
+              <Button type="submit" disabled={submitting || existingSpot || !form.name.trim() || !(form.address.trim() || locationQuery.trim())} className="mt-6 h-12 w-full rounded-2xl bg-red-600 text-white hover:bg-red-500">
+                {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                Add spot
+              </Button>
             </form>
           )}
         </motion.div>

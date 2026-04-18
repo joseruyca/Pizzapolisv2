@@ -1,4 +1,4 @@
-import React, { createContext, useState, useContext, useEffect, useCallback, useRef } from 'react';
+import React, { createContext, useState, useContext, useEffect, useCallback, useMemo, useRef } from 'react';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 
 const AuthContext = createContext();
@@ -11,7 +11,7 @@ function getFallbackProfile(user) {
     email: user?.email || '',
     username: user?.user_metadata?.username || user?.user_metadata?.full_name || emailName,
     avatar_url: user?.user_metadata?.avatar_url || '',
-    role: user?.app_metadata?.role || 'user',
+    role: 'user',
   };
 }
 
@@ -29,7 +29,7 @@ function bridgeUser(user, profile) {
     email: user.email,
     full_name: displayName,
     username: resolvedProfile.username || user.email?.split('@')[0] || 'user',
-    role: resolvedProfile.role || user.app_metadata?.role || 'user',
+    role: resolvedProfile.role || 'user',
     avatar_url: resolvedProfile.avatar_url || '',
   };
 
@@ -37,53 +37,32 @@ function bridgeUser(user, profile) {
   return bridged;
 }
 
-async function loadOrCreateProfile(sessionUser) {
-  if (!supabase || !sessionUser) return null;
+async function fetchProfile(userId, fallbackUser = null) {
+  if (!supabase || !userId) return fallbackUser ? getFallbackProfile(fallbackUser) : null;
 
-  const fallbackProfile = getFallbackProfile(sessionUser);
-  const selectProfile = async () => {
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('id,email,username,avatar_url,role')
-      .eq('id', sessionUser.id)
-      .maybeSingle();
-    return { data, error };
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('id,email,username,avatar_url,role')
+    .eq('id', userId)
+    .maybeSingle();
+
+  if (error) {
+    console.warn('Profile select failed:', error.message || error);
+    return fallbackUser ? getFallbackProfile(fallbackUser) : null;
+  }
+
+  if (!data) {
+    return fallbackUser ? getFallbackProfile(fallbackUser) : null;
+  }
+
+  return {
+    ...(fallbackUser ? getFallbackProfile(fallbackUser) : {}),
+    ...data,
   };
-
-  let { data: existing, error: selectError } = await selectProfile();
-
-  if (selectError) {
-    console.warn('Profile select failed:', selectError.message || selectError);
-  }
-
-  if (existing) {
-    return { ...fallbackProfile, ...existing };
-  }
-
-  const insertPayload = {
-    id: sessionUser.id,
-    email: sessionUser.email,
-    username: fallbackProfile.username,
-    avatar_url: fallbackProfile.avatar_url,
-  };
-
-  const { error: insertError } = await supabase.from('profiles').insert(insertPayload);
-  if (insertError && !String(insertError.message || '').toLowerCase().includes('duplicate')) {
-    console.warn('Profile insert fallback:', insertError.message || insertError);
-  }
-
-  await new Promise((resolve) => setTimeout(resolve, 120));
-  const { data: created, error: createdError } = await selectProfile();
-
-  if (createdError) {
-    console.warn('Profile reload fallback:', createdError.message || createdError);
-    return fallbackProfile;
-  }
-
-  return { ...fallbackProfile, ...(created || {}) };
 }
 
 export const AuthProvider = ({ children }) => {
+  const [sessionUser, setSessionUser] = useState(null);
   const [user, setUser] = useState(null);
   const [profile, setProfile] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -94,42 +73,39 @@ export const AuthProvider = ({ children }) => {
   const mountedRef = useRef(true);
 
   const clearSession = useCallback(() => {
-    bridgeUser(null, null);
+    localStorage.removeItem(USER_STORAGE_KEY);
     if (!mountedRef.current) return;
+    setSessionUser(null);
     setUser(null);
     setProfile(null);
     setIsAuthenticated(false);
   }, []);
 
-  const applySession = useCallback((sessionUser) => {
+  const applySessionUser = useCallback((nextSessionUser) => {
     if (!mountedRef.current) return;
-
-    if (!sessionUser) {
+    setSessionUser(nextSessionUser || null);
+    if (!nextSessionUser) {
       clearSession();
       return;
     }
 
-    const fallbackProfile = getFallbackProfile(sessionUser);
-    const bridged = bridgeUser(sessionUser, fallbackProfile);
-    setUser(bridged);
-    setProfile((prev) => prev?.id === fallbackProfile.id ? { ...fallbackProfile, ...prev } : fallbackProfile);
+    const fallback = getFallbackProfile(nextSessionUser);
+    setUser(bridgeUser(nextSessionUser, fallback));
+    setProfile((prev) => ({ ...fallback, ...(prev || {}) }));
     setIsAuthenticated(true);
   }, [clearSession]);
 
-  const syncProfile = useCallback(async (sessionUser) => {
-    if (!isSupabaseConfigured || !sessionUser || !mountedRef.current) return;
+  const refreshProfile = useCallback(async () => {
+    if (!isSupabaseConfigured || !sessionUser?.id) return null;
 
-    try {
-      const resolvedProfile = await loadOrCreateProfile(sessionUser);
-      if (!mountedRef.current || !resolvedProfile) return;
-      const bridged = bridgeUser(sessionUser, resolvedProfile);
-      setUser(bridged);
-      setProfile(resolvedProfile);
-      setIsAuthenticated(true);
-    } catch (error) {
-      console.warn('Auth sync profile fallback:', error?.message || error);
-    }
-  }, []);
+    const resolved = await fetchProfile(sessionUser.id, sessionUser);
+    if (!mountedRef.current || !resolved) return resolved;
+
+    setProfile(resolved);
+    setUser(bridgeUser(sessionUser, resolved));
+    setIsAuthenticated(true);
+    return resolved;
+  }, [sessionUser]);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -145,18 +121,17 @@ export const AuthProvider = ({ children }) => {
         const { data, error } = await supabase.auth.getSession();
         if (error) throw error;
 
-        const sessionUser = data.session?.user || null;
-        applySession(sessionUser);
-        setIsLoadingAuth(false);
-
-        if (sessionUser) {
-          void syncProfile(sessionUser);
+        const nextSessionUser = data.session?.user || null;
+        applySessionUser(nextSessionUser);
+        if (nextSessionUser) {
+          await refreshProfile();
         }
       } catch (error) {
         console.error('Session restore error:', error);
         clearSession();
         setAuthError({ type: 'session_error', message: error.message || 'No se pudo restaurar la sesión.' });
-        setIsLoadingAuth(false);
+      } finally {
+        if (mountedRef.current) setIsLoadingAuth(false);
       }
     }
 
@@ -164,13 +139,17 @@ export const AuthProvider = ({ children }) => {
 
     const { data: listener } = isSupabaseConfigured
       ? supabase.auth.onAuthStateChange((_event, session) => {
-          const sessionUser = session?.user || null;
-          applySession(sessionUser);
+          const nextSessionUser = session?.user || null;
+          applySessionUser(nextSessionUser);
           setIsLoadingAuth(false);
-
-          if (sessionUser) {
+          if (nextSessionUser) {
             setTimeout(() => {
-              void syncProfile(sessionUser);
+              void fetchProfile(nextSessionUser.id, nextSessionUser).then((resolved) => {
+                if (!mountedRef.current || !resolved) return;
+                setProfile(resolved);
+                setUser(bridgeUser(nextSessionUser, resolved));
+                setIsAuthenticated(true);
+              });
             }, 0);
           }
         })
@@ -180,20 +159,23 @@ export const AuthProvider = ({ children }) => {
       mountedRef.current = false;
       listener?.subscription?.unsubscribe?.();
     };
-  }, [applySession, clearSession, syncProfile]);
+  }, [applySessionUser, clearSession, refreshProfile]);
 
   const signIn = async (email, password) => {
     if (!supabase) throw new Error('Supabase no está configurado.');
     setAuthError(null);
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) throw error;
-
-    const sessionUser = data?.user || data?.session?.user || null;
-    applySession(sessionUser);
-    setIsLoadingAuth(false);
-    if (sessionUser) {
-      await syncProfile(sessionUser);
+    const nextSessionUser = data?.user || data?.session?.user || null;
+    applySessionUser(nextSessionUser);
+    if (nextSessionUser) {
+      await fetchProfile(nextSessionUser.id, nextSessionUser).then((resolved) => {
+        if (!mountedRef.current || !resolved) return;
+        setProfile(resolved);
+        setUser(bridgeUser(nextSessionUser, resolved));
+      });
     }
+    setIsLoadingAuth(false);
     return data;
   };
 
@@ -216,9 +198,13 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = async () => {
-    if (!supabase) return;
-    await supabase.auth.signOut();
-    clearSession();
+    try {
+      if (supabase) {
+        await supabase.auth.signOut();
+      }
+    } finally {
+      clearSession();
+    }
   };
 
   const navigateToLogin = () => {
@@ -231,37 +217,33 @@ export const AuthProvider = ({ children }) => {
       return;
     }
     const { data } = await supabase.auth.getSession();
-    const sessionUser = data.session?.user || null;
-    applySession(sessionUser);
-    if (sessionUser) {
-      await syncProfile(sessionUser);
+    const nextSessionUser = data.session?.user || null;
+    applySessionUser(nextSessionUser);
+    if (nextSessionUser) {
+      await refreshProfile();
     }
   };
 
-  return (
-    <AuthContext.Provider
-      value={{
-        user,
-        profile,
-        role: profile?.role || user?.role || 'user',
-        isAdmin: (profile?.role || user?.role) === 'admin',
-        refreshProfile: () => user?.id ? syncProfile({ id: user.id, email: user.email, user_metadata: { full_name: user.full_name, username: user.username, avatar_url: user.avatar_url } }) : Promise.resolve(),
-        isAuthenticated,
-        isLoadingAuth,
-        isLoadingPublicSettings,
-        authError,
-        appPublicSettings,
-        logout,
-        navigateToLogin,
-        checkAppState,
-        signIn,
-        signUp,
-        isSupabaseConfigured,
-      }}
-    >
-      {children}
-    </AuthContext.Provider>
-  );
+  const contextValue = useMemo(() => ({
+    user,
+    profile,
+    role: profile?.role || user?.role || 'user',
+    isAdmin: (profile?.role || user?.role) === 'admin',
+    refreshProfile,
+    isAuthenticated,
+    isLoadingAuth,
+    isLoadingPublicSettings,
+    authError,
+    appPublicSettings,
+    logout,
+    navigateToLogin,
+    checkAppState,
+    signIn,
+    signUp,
+    isSupabaseConfigured,
+  }), [user, profile, refreshProfile, isAuthenticated, isLoadingAuth, isLoadingPublicSettings, authError, appPublicSettings, logout]);
+
+  return <AuthContext.Provider value={contextValue}>{children}</AuthContext.Provider>;
 };
 
 export const useAuth = () => {
