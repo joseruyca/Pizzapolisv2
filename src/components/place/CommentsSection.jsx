@@ -17,11 +17,12 @@ export default function CommentsSection({ placeId, comments, user, onRequireAuth
         user_email: user.email,
         user_name: user.full_name || "",
         text: commentText,
-        status: "visible",
+        status: "pending",
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["comments", placeId] });
       setText("");
+      alert("Comment sent for review.");
     },
   });
 
@@ -53,7 +54,7 @@ export default function CommentsSection({ placeId, comments, user, onRequireAuth
           className="bg-red-600 hover:bg-red-500 text-white"
         >
           <Send className="w-3.5 h-3.5 mr-1.5" />
-          {addComment.isPending ? "Posting..." : "Post"}
+          {addComment.isPending ? "Sending..." : "Send for review"}
         </Button>
       </form>
 

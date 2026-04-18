@@ -192,7 +192,7 @@ export default function AddPinModal({ open, onClose, user }) {
         average_rating: 0,
         ratings_count: 0,
         featured: false,
-        status: "active",
+        status: "pending",
         cover_image_url: form.photo_url.trim(),
         hours: "",
         last_price_update: new Date().toISOString().slice(0, 10),
@@ -241,8 +241,8 @@ export default function AddPinModal({ open, onClose, user }) {
               <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-[24px] bg-emerald-500/15 text-emerald-300">
                 <CheckCircle className="h-8 w-8" />
               </div>
-              <h3 className="text-2xl font-black text-white">Spot published</h3>
-              <p className="mt-3 text-sm leading-7 text-stone-400">The pin is now on the map with the slice price and the short note you added.</p>
+              <h3 className="text-2xl font-black text-white">Spot sent for review</h3>
+              <p className="mt-3 text-sm leading-7 text-stone-400">The spot is saved and waiting for admin approval before showing on the public map.</p>
               <Button onClick={handleClose} className="mt-6 h-11 w-full rounded-2xl bg-red-600 text-white hover:bg-red-500">Close</Button>
             </div>
           ) : (

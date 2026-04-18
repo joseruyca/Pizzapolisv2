@@ -25,10 +25,11 @@ export default function PhotoGallery({ placeId, photos, user, onRequireAuth }) {
       user_email: user.email,
       user_name: user.full_name || "",
       file_url,
-      status: "visible",
+      status: "pending",
     });
     queryClient.invalidateQueries({ queryKey: ["photos", placeId] });
     setUploading(false);
+    alert("Photo sent for review.");
   };
 
   const navigateLightbox = (dir) => {
@@ -53,7 +54,7 @@ export default function PhotoGallery({ placeId, photos, user, onRequireAuth }) {
           disabled={uploading}
         >
           {uploading ? <Loader2 className="w-4 h-4 mr-1.5 animate-spin" /> : <Upload className="w-4 h-4 mr-1.5" />}
-          {uploading ? "Uploading..." : "Add Photo"}
+          {uploading ? "Uploading..." : "Add photo"}
         </Button>
       </div>
 

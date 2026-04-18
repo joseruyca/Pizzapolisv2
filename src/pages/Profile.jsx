@@ -11,7 +11,7 @@ function avatarLabel(name) {
 }
 
 export default function Profile() {
-  const { user } = useAuth();
+  const { user, role } = useAuth();
 
 
   const { data: groups = [] } = useQuery({
@@ -98,6 +98,22 @@ export default function Profile() {
             <div className="flex items-center gap-3 text-sm text-stone-300"><div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-white/[0.04]"><Bookmark className="h-4 w-4 text-red-400" /></div><span>Guardaste Brooklyn Square &amp; Chill</span></div>
           </div>
         </div>
+
+
+
+        {role === "admin" ? (
+          <Link
+            to={createPageUrl("Admin")}
+            className="mt-8 flex items-center justify-between rounded-[26px] border border-[#efbf3a]/30 bg-[#111111] px-5 py-5 text-white shadow-[0_20px_45px_rgba(17,17,17,0.18)]"
+          >
+            <div>
+              <div className="text-[11px] font-black uppercase tracking-[0.16em] text-[#efbf3a]">Admin</div>
+              <div className="mt-2 text-lg font-black">Open moderation panel</div>
+              <div className="mt-1 text-sm text-white/70">Manage spots, plans, comments, photos and chat from one place.</div>
+            </div>
+            <div className="rounded-2xl bg-white/10 px-4 py-3 text-sm font-bold">Open</div>
+          </Link>
+        ) : null}
 
         <div className="mt-8 space-y-2">
           {items.map((item) => {

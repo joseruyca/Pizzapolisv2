@@ -4,16 +4,21 @@ import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 const AuthContext = createContext();
 const USER_STORAGE_KEY = 'pizzapolis_current_user';
 
+function getFallbackProfile(user) {
+  const emailName = user?.email?.split('@')[0] || 'usuario';
+  return {
+    id: user?.id,
+    email: user?.email || '',
+    username: user?.user_metadata?.username || emailName,
+    avatar_url: user?.user_metadata?.avatar_url || '',
+    role: user?.app_metadata?.role || 'user',
+  };
+}
+
 async function ensureProfile(user) {
   if (!supabase || !user) return null;
-  const metadataName = user.user_metadata?.full_name || user.email?.split('@')[0] || 'Usuario';
-  const fallbackProfile = {
-    id: user.id,
-    email: user.email,
-    full_name: metadataName,
-    username: user.email?.split('@')[0] || `user-${user.id.slice(0, 6)}`,
-    role: user.app_metadata?.role || 'user',
-  };
+
+  const fallbackProfile = getFallbackProfile(user);
 
   try {
     const { data: existing, error: existingError } = await supabase
@@ -22,18 +27,30 @@ async function ensureProfile(user) {
       .eq('id', user.id)
       .maybeSingle();
 
-    if (existingError) {
-      console.warn('Profile lookup fallback:', existingError.message || existingError);
-      return fallbackProfile;
+    if (!existingError && existing) {
+      return { ...fallbackProfile, ...existing };
     }
-    if (existing) return existing;
 
-    const { data, error } = await supabase.from('profiles').insert(fallbackProfile).select('*').single();
+    const payload = {
+      id: user.id,
+      email: user.email,
+      username: fallbackProfile.username,
+      avatar_url: fallbackProfile.avatar_url,
+      role: fallbackProfile.role,
+    };
+
+    const { data, error } = await supabase
+      .from('profiles')
+      .upsert(payload, { onConflict: 'id' })
+      .select('*')
+      .single();
+
     if (error) {
-      console.warn('Profile insert fallback:', error.message || error);
+      console.warn('Profile upsert fallback:', error.message || error);
       return fallbackProfile;
     }
-    return data || fallbackProfile;
+
+    return { ...fallbackProfile, ...(data || {}) };
   } catch (error) {
     console.warn('Profile sync fallback:', error?.message || error);
     return fallbackProfile;
@@ -45,14 +62,19 @@ function bridgeUser(user, profile) {
     localStorage.removeItem(USER_STORAGE_KEY);
     return null;
   }
+
+  const resolvedProfile = profile || getFallbackProfile(user);
+  const displayName = user.user_metadata?.full_name || resolvedProfile.username || user.email || 'Usuario';
+
   const bridged = {
     id: user.id,
     email: user.email,
-    full_name: profile?.full_name || user.user_metadata?.full_name || user.email,
-    username: profile?.username || user.email?.split('@')[0] || 'user',
-    role: profile?.role || user.app_metadata?.role || 'user',
-    avatar_url: profile?.avatar_url || '',
+    full_name: displayName,
+    username: resolvedProfile.username || user.email?.split('@')[0] || 'user',
+    role: resolvedProfile.role || user.app_metadata?.role || 'user',
+    avatar_url: resolvedProfile.avatar_url || '',
   };
+
   localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(bridged));
   return bridged;
 }
@@ -66,93 +88,89 @@ export const AuthProvider = ({ children }) => {
   const [authError, setAuthError] = useState(null);
   const [appPublicSettings] = useState({ localMode: false });
 
-  useEffect(() => {
-    const timeout = window.setTimeout(() => {
-      setIsLoadingAuth((current) => current ? false : current);
-    }, 7000);
-    return () => window.clearTimeout(timeout);
+  const clearSession = useCallback(() => {
+    bridgeUser(null, null);
+    setUser(null);
+    setProfile(null);
+    setIsAuthenticated(false);
   }, []);
 
   const syncSession = useCallback(async (sessionUser) => {
     if (!isSupabaseConfigured || !sessionUser) {
-      bridgeUser(null, null);
-      setUser(null);
-      setProfile(null);
-      setIsAuthenticated(false);
+      clearSession();
       return;
     }
 
-    const immediate = bridgeUser(sessionUser, null);
-    setUser(immediate);
+    const fallbackProfile = getFallbackProfile(sessionUser);
+    const immediateUser = bridgeUser(sessionUser, fallbackProfile);
+    setUser(immediateUser);
+    setProfile(fallbackProfile);
     setIsAuthenticated(true);
 
     try {
-      const profilePromise = ensureProfile(sessionUser);
-      const timeoutPromise = new Promise((resolve) => window.setTimeout(() => resolve(null), 1500));
-      const resolvedProfile = await Promise.race([profilePromise, timeoutPromise]);
-      if (resolvedProfile) {
-        const bridged = bridgeUser(sessionUser, resolvedProfile);
-        setUser(bridged);
-        setProfile(resolvedProfile);
-      } else {
-        setProfile(null);
-      }
-    } catch {
-      setProfile(null);
+      const resolvedProfile = await ensureProfile(sessionUser);
+      const bridged = bridgeUser(sessionUser, resolvedProfile || fallbackProfile);
+      setUser(bridged);
+      setProfile(resolvedProfile || fallbackProfile);
+    } catch (error) {
+      console.warn('Auth sync profile fallback:', error?.message || error);
+      setProfile(fallbackProfile);
     }
-  }, []);
+  }, [clearSession]);
 
   useEffect(() => {
     let mounted = true;
+
     async function init() {
       if (!isSupabaseConfigured) {
         setAuthError({ type: 'config_missing', message: 'Supabase no está configurado.' });
         setIsLoadingAuth(false);
         return;
       }
+
       try {
-        const { data } = await supabase.auth.getSession();
+        const { data, error } = await supabase.auth.getSession();
+        if (error) throw error;
         if (!mounted) return;
+
         if (data.session?.user) {
           await syncSession(data.session.user);
         } else {
-          bridgeUser(null, null);
-          setIsAuthenticated(false);
-          setUser(null);
-          setProfile(null);
+          clearSession();
         }
       } catch (error) {
         if (!mounted) return;
+        console.error('Session restore error:', error);
+        clearSession();
         setAuthError({ type: 'session_error', message: error.message || 'No se pudo restaurar la sesión.' });
       } finally {
         if (mounted) setIsLoadingAuth(false);
       }
     }
+
     init();
+
     const { data: listener } = isSupabaseConfigured
       ? supabase.auth.onAuthStateChange(async (_event, session) => {
+          if (!mounted) return;
           await syncSession(session?.user || null);
           setIsLoadingAuth(false);
         })
       : { data: { subscription: { unsubscribe() {} } } };
+
     return () => {
       mounted = false;
       listener?.subscription?.unsubscribe?.();
     };
-  }, [syncSession]);
+  }, [clearSession, syncSession]);
 
   const signIn = async (email, password) => {
     if (!supabase) throw new Error('Supabase no está configurado.');
     setAuthError(null);
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) throw error;
+    await syncSession(data?.user || data?.session?.user || null);
     setIsLoadingAuth(false);
-    if (data?.user) {
-      await syncSession(data.user);
-    } else {
-      const session = await supabase.auth.getSession();
-      await syncSession(session?.data?.session?.user || null);
-    }
     return data;
   };
 
@@ -177,10 +195,7 @@ export const AuthProvider = ({ children }) => {
   const logout = async () => {
     if (!supabase) return;
     await supabase.auth.signOut();
-    bridgeUser(null, null);
-    setUser(null);
-    setProfile(null);
-    setIsAuthenticated(false);
+    clearSession();
   };
 
   const navigateToLogin = () => {
@@ -188,6 +203,10 @@ export const AuthProvider = ({ children }) => {
   };
 
   const checkAppState = async () => {
+    if (!supabase) {
+      clearSession();
+      return;
+    }
     const { data } = await supabase.auth.getSession();
     await syncSession(data.session?.user || null);
   };
@@ -198,6 +217,7 @@ export const AuthProvider = ({ children }) => {
         user,
         profile,
         role: profile?.role || user?.role || 'user',
+        isAdmin: (profile?.role || user?.role) === 'admin',
         isAuthenticated,
         isLoadingAuth,
         isLoadingPublicSettings,
