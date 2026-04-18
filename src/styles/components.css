@@ -61,6 +61,10 @@
     overflow: hidden;
   }
 
+  .app-content--flush {
+    padding-bottom: 0 !important;
+  }
+
   @media (max-width: 767px) {
     .app-content--viewport {
       height: var(--viewport-height-mobile);

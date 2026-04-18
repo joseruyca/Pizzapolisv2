@@ -41,16 +41,19 @@ async function loadOrCreateProfile(sessionUser) {
   if (!supabase || !sessionUser) return null;
 
   const fallbackProfile = getFallbackProfile(sessionUser);
+  const selectProfile = async () => {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('id,email,username,avatar_url,role')
+      .eq('id', sessionUser.id)
+      .maybeSingle();
+    return { data, error };
+  };
 
-  const { data: existing, error: selectError } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', sessionUser.id)
-    .maybeSingle();
+  let { data: existing, error: selectError } = await selectProfile();
 
   if (selectError) {
     console.warn('Profile select failed:', selectError.message || selectError);
-    return fallbackProfile;
   }
 
   if (existing) {
@@ -64,20 +67,13 @@ async function loadOrCreateProfile(sessionUser) {
     avatar_url: fallbackProfile.avatar_url,
   };
 
-  const { error: insertError } = await supabase
-    .from('profiles')
-    .insert(insertPayload);
-
-  if (insertError) {
+  const { error: insertError } = await supabase.from('profiles').insert(insertPayload);
+  if (insertError && !String(insertError.message || '').toLowerCase().includes('duplicate')) {
     console.warn('Profile insert fallback:', insertError.message || insertError);
-    return fallbackProfile;
   }
 
-  const { data: created, error: createdError } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', sessionUser.id)
-    .maybeSingle();
+  await new Promise((resolve) => setTimeout(resolve, 120));
+  const { data: created, error: createdError } = await selectProfile();
 
   if (createdError) {
     console.warn('Profile reload fallback:', createdError.message || createdError);
@@ -249,6 +245,7 @@ export const AuthProvider = ({ children }) => {
         profile,
         role: profile?.role || user?.role || 'user',
         isAdmin: (profile?.role || user?.role) === 'admin',
+        refreshProfile: () => user?.id ? syncProfile({ id: user.id, email: user.email, user_metadata: { full_name: user.full_name, username: user.username, avatar_url: user.avatar_url } }) : Promise.resolve(),
         isAuthenticated,
         isLoadingAuth,
         isLoadingPublicSettings,

@@ -1,37 +1,80 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, ExternalLink, Info, MapPin, Send, X } from "lucide-react";
-import { base44 } from "@/api/base44Client";
+import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 import { useAuth } from "@/lib/AuthContext";
-import { formatHangoutDate, formatPrice, getGoogleMapsUrl } from "@/lib/place-helpers";
+import { createPageUrl } from "@/utils";
 
-const avatar = (user) => user?.full_name?.slice(0, 1)?.toUpperCase() || "?";
+const avatar = (name) => name?.slice(0, 1)?.toUpperCase() || "?";
 
-function enrichGroups(quedadas, intereses, places, users, messages, currentUserEmail) {
-  const likedIds = new Set(intereses.filter((item) => item.usuario_id === currentUserEmail && item.tipo_interes === "like").map((item) => item.quedada_id));
-  const placeById = Object.fromEntries(places.map((place) => [place.id, place]));
-  const userById = Object.fromEntries(users.map((person) => [person.id, person]));
-  const userByEmail = Object.fromEntries(users.map((person) => [person.email, person]));
+function fmtDate(date, time) {
+  if (!date) return "";
+  const d = new Date(`${date}T${time || "20:00"}`);
+  if (Number.isNaN(d.getTime())) return `${date} · ${String(time || "").slice(0, 5)}`;
+  return d.toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+}
 
-  return quedadas
-    .filter((hangout) => likedIds.has(hangout.id))
-    .map((hangout) => {
-      const likes = intereses.filter((item) => item.quedada_id === hangout.id && item.tipo_interes === "like");
-      const participants = likes.map((like) => userByEmail[like.usuario_id]).filter(Boolean);
-      const messageList = messages.filter((message) => message.quedada_id === hangout.id).sort((a, b) => new Date(a.created_date) - new Date(b.created_date));
-      const unreadCount = messageList.filter((message) => message.sender_id !== currentUserEmail && !message.leido).length;
-      return {
-        ...hangout,
-        place: placeById[hangout.pizzeria_id],
-        host: userById[hangout.creador_id],
-        participants,
-        messageList,
-        lastMessage: messageList[messageList.length - 1],
-        unreadCount,
-      };
-    })
-    .sort((a, b) => new Date(a.fecha_hora) - new Date(b.fecha_hora));
+function mapUrl(spot) {
+  if (!spot?.lat || !spot?.lng) return "https://maps.google.com";
+  return `https://www.google.com/maps?q=${spot.lat},${spot.lng}`;
+}
+
+async function fetchGroups(userId) {
+  const [{ data: owned }, { data: joined }] = await Promise.all([
+    supabase.from("plans").select("id").eq("created_by", userId),
+    supabase.from("plan_members").select("plan_id").eq("user_id", userId).eq("status", "joined"),
+  ]);
+
+  const planIds = Array.from(new Set([...(owned || []).map((r) => r.id), ...(joined || []).map((r) => r.plan_id)])).filter(Boolean);
+  if (!planIds.length) return [];
+
+  const { data: plans, error } = await supabase
+    .from("plans")
+    .select("id,title,plan_date,plan_time,max_people,quick_note,status,created_by,spot_id")
+    .in("id", planIds)
+    .order("plan_date", { ascending: true });
+  if (error) throw error;
+
+  const creatorIds = Array.from(new Set((plans || []).map((p) => p.created_by).filter(Boolean)));
+  const spotIds = Array.from(new Set((plans || []).map((p) => p.spot_id).filter(Boolean)));
+
+  const [{ data: profiles }, { data: spots }, { data: members }, { data: messages }] = await Promise.all([
+    creatorIds.length ? supabase.from("profiles").select("id,email,username,avatar_url,role").in("id", creatorIds) : Promise.resolve({ data: [] }),
+    spotIds.length ? supabase.from("spots").select("id,name,address,lat,lng,slice_price,best_slice,quick_note,photo_url,status").in("id", spotIds) : Promise.resolve({ data: [] }),
+    supabase.from("plan_members").select("plan_id,user_id,status").in("plan_id", planIds),
+    supabase.from("messages").select("id,plan_id,user_id,content,created_at").in("plan_id", planIds).order("created_at", { ascending: true }),
+  ]);
+
+  const memberIds = Array.from(new Set((members || []).map((m) => m.user_id).filter(Boolean)));
+  const memberProfiles = memberIds.length
+    ? (await supabase.from("profiles").select("id,email,username,avatar_url,role").in("id", memberIds)).data || []
+    : [];
+
+  const profileMap = new Map([...(profiles || []), ...memberProfiles].map((p) => [p.id, p]));
+  const spotMap = new Map((spots || []).map((s) => [s.id, s]));
+
+  return (plans || []).map((plan) => {
+    const planMembers = (members || []).filter((m) => m.plan_id === plan.id && m.status === "joined");
+    const planMessages = (messages || []).filter((m) => m.plan_id === plan.id);
+    const host = profileMap.get(plan.created_by);
+    return {
+      id: plan.id,
+      titulo: plan.title,
+      fecha_hora: `${plan.plan_date}T${String(plan.plan_time).slice(0, 5) || "20:00"}`,
+      plan_date: plan.plan_date,
+      plan_time: String(plan.plan_time).slice(0, 5),
+      max_participantes: plan.max_people,
+      descripcion: plan.quick_note || "",
+      status: plan.status,
+      place: spotMap.get(plan.spot_id),
+      pizzeria_nombre: spotMap.get(plan.spot_id)?.name || "Pizza spot",
+      host,
+      participants: planMembers.map((m) => profileMap.get(m.user_id)).filter(Boolean),
+      messageList: planMessages,
+      lastMessage: planMessages[planMessages.length - 1],
+    };
+  });
 }
 
 function GroupInfoSheet({ group, open, onClose }) {
@@ -40,10 +83,10 @@ function GroupInfoSheet({ group, open, onClose }) {
     <div className="fixed inset-0 z-[1400] bg-black/55 backdrop-blur-sm" onClick={onClose}>
       <div className="absolute inset-x-0 bottom-0 mx-auto max-w-lg overflow-hidden rounded-t-[30px] border border-white/10 bg-[#101010] text-white shadow-2xl" onClick={(e) => e.stopPropagation()}>
         <div className="relative h-44 border-b border-white/10 bg-black">
-          {group.place?.cover_image_url ? <img src={group.place.cover_image_url} alt={group.pizzeria_nombre} className="h-full w-full object-cover" /> : <div className="flex h-full items-center justify-center text-6xl">🍕</div>}
+          {group.place?.photo_url ? <img src={group.place.photo_url} alt={group.pizzeria_nombre} className="h-full w-full object-cover" /> : <div className="flex h-full items-center justify-center text-6xl">🍕</div>}
           <div className="absolute inset-0 bg-gradient-to-b from-black/15 via-black/35 to-black/85" />
           <div className="absolute inset-x-0 bottom-0 p-5">
-            <div className="inline-flex rounded-full bg-[#efbf3a] px-3 py-1 text-xs font-black uppercase tracking-[0.14em] text-[#141414]">{formatPrice(group.place?.standard_slice_price)} slice</div>
+            <div className="inline-flex rounded-full bg-[#efbf3a] px-3 py-1 text-xs font-black uppercase tracking-[0.14em] text-[#141414]">${Number(group.place?.slice_price || 0).toFixed(2)} slice</div>
             <h3 className="mt-3 text-2xl font-black leading-tight text-white">{group.titulo}</h3>
             <div className="mt-2 text-sm text-stone-200">{group.pizzeria_nombre}</div>
           </div>
@@ -54,7 +97,7 @@ function GroupInfoSheet({ group, open, onClose }) {
           <div className="grid grid-cols-2 gap-3">
             <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
               <div className="text-[11px] font-bold uppercase tracking-[0.14em] text-stone-500">When</div>
-              <div className="mt-2 text-sm font-bold">{formatHangoutDate(group.fecha_hora)}</div>
+              <div className="mt-2 text-sm font-bold">{fmtDate(group.plan_date, group.plan_time)}</div>
             </div>
             <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
               <div className="text-[11px] font-bold uppercase tracking-[0.14em] text-stone-500">People</div>
@@ -62,11 +105,11 @@ function GroupInfoSheet({ group, open, onClose }) {
             </div>
             <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
               <div className="text-[11px] font-bold uppercase tracking-[0.14em] text-stone-500">Best slice</div>
-              <div className="mt-2 text-sm font-bold">{group.place?.best_known_slice || 'Optional'}</div>
+              <div className="mt-2 text-sm font-bold">{group.place?.best_slice || 'Optional'}</div>
             </div>
             <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
               <div className="text-[11px] font-bold uppercase tracking-[0.14em] text-stone-500">Address</div>
-              <div className="mt-2 line-clamp-2 text-sm font-bold">{group.place?.address || group.place?.neighborhood || 'Open in maps'}</div>
+              <div className="mt-2 line-clamp-2 text-sm font-bold">{group.place?.address || 'Open in maps'}</div>
             </div>
           </div>
 
@@ -77,15 +120,15 @@ function GroupInfoSheet({ group, open, onClose }) {
 
           <div className="mt-4 flex flex-wrap gap-2">
             {group.participants.map((person) => (
-              <div key={person.email} className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-stone-200">
-                <div className={`grid h-7 w-7 place-items-center rounded-full bg-gradient-to-br ${person.avatar_color || "from-stone-500 to-stone-700"} text-[11px] font-bold text-white`}>{avatar(person)}</div>
-                {person.full_name}
+              <div key={person.id} className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-stone-200">
+                <div className="grid h-7 w-7 place-items-center rounded-full bg-gradient-to-br from-[#efbf3a] to-[#df5b43] text-[11px] font-bold text-white">{avatar(person.username || person.email)}</div>
+                {person.username || person.email}
               </div>
             ))}
           </div>
 
           <div className="mt-5 grid gap-3 sm:grid-cols-2">
-            <a href={getGoogleMapsUrl(group.place)} target="_blank" rel="noreferrer" className="inline-flex h-12 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] text-sm font-bold text-white">
+            <a href={mapUrl(group.place)} target="_blank" rel="noreferrer" className="inline-flex h-12 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] text-sm font-bold text-white">
               <MapPin className="mr-2 h-4 w-4" />Open in Google Maps
             </a>
             <button onClick={onClose} className="inline-flex h-12 items-center justify-center rounded-2xl bg-red-600 text-sm font-bold text-white">Back to chat</button>
@@ -96,14 +139,14 @@ function GroupInfoSheet({ group, open, onClose }) {
   );
 }
 
-function MessageRow({ message, currentUser, usersByEmail }) {
-  const own = message.sender_id === currentUser.email;
-  const sender = usersByEmail[message.sender_id];
+function MessageRow({ message, currentUserId, usersById }) {
+  const own = message.user_id === currentUserId;
+  const sender = usersById.get(message.user_id);
   return (
     <div className={`flex ${own ? "justify-end" : "justify-start"}`}>
       <div className={`max-w-[82%] rounded-[22px] px-4 py-3 ${own ? "rounded-br-md bg-[#e62f2f] text-white" : "rounded-bl-md border border-white/6 bg-[#171717] text-stone-100"}`}>
-        {!own ? <div className="mb-1 text-[11px] font-bold uppercase tracking-[0.12em] text-stone-500">{sender?.full_name || "User"}</div> : null}
-        <div className="text-sm leading-6">{message.texto}</div>
+        {!own ? <div className="mb-1 text-[11px] font-bold uppercase tracking-[0.12em] text-stone-500">{sender?.username || sender?.email || "User"}</div> : null}
+        <div className="text-sm leading-6">{message.content}</div>
       </div>
     </div>
   );
@@ -116,16 +159,15 @@ function GroupListItem({ group, active, onSelect }) {
       className={`w-full rounded-[22px] border px-3 py-3 text-left transition ${active ? "border-red-500/25 bg-red-500/[0.08]" : "border-white/6 bg-transparent hover:bg-white/[0.03]"}`}
     >
       <div className="flex items-start gap-3">
-        <div className={`grid h-12 w-12 shrink-0 place-items-center rounded-full bg-gradient-to-br ${group.host?.avatar_color || "from-red-500 to-orange-500"} text-sm font-black text-white`}>{avatar(group.host)}</div>
+        <div className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-gradient-to-br from-[#efbf3a] to-[#df5b43] text-sm font-black text-white">{avatar(group.host?.username || group.host?.email)}</div>
         <div className="min-w-0 flex-1">
           <div className="flex items-center justify-between gap-2">
             <div className="truncate font-bold text-white">{group.titulo}</div>
-            <div className="text-[11px] text-stone-500">{group.lastMessage ? new Date(group.lastMessage.created_date).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : new Date(group.fecha_hora).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</div>
+            <div className="text-[11px] text-stone-500">{group.lastMessage ? new Date(group.lastMessage.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : String(group.plan_time || "").slice(0,5)}</div>
           </div>
-          <div className="mt-1 truncate text-xs text-stone-400">{group.pizzeria_nombre} · {group.place?.neighborhood}</div>
+          <div className="mt-1 truncate text-xs text-stone-400">{group.pizzeria_nombre}</div>
           <div className="mt-2 flex items-center justify-between gap-3">
-            <div className="truncate text-sm text-stone-300">{group.lastMessage?.texto || group.descripcion || "No hay mensajes todavía"}</div>
-            {group.unreadCount > 0 ? <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-red-600 px-1 text-[10px] font-bold text-white">{group.unreadCount}</span> : null}
+            <div className="truncate text-sm text-stone-300">{group.lastMessage?.content || group.descripcion || "No hay mensajes todavía"}</div>
           </div>
         </div>
       </div>
@@ -142,46 +184,29 @@ export default function MisMatches() {
   const [messageText, setMessageText] = useState("");
   const queryClient = useQueryClient();
   const messagesEndRef = useRef(null);
-  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
-
-  const { data: queryData, isLoading } = useQuery({
-    queryKey: ["my-groups-v6", user?.email],
-    enabled: !!user,
-    queryFn: async () => {
-      const [quedadas, intereses, places, users, messages] = await Promise.all([
-        base44.entities.Quedada.list("fecha_hora", 100),
-        base44.asServiceRole.entities.Interes.list("created_date", 1000),
-        base44.entities.PizzaPlace.list("name", 100),
-        base44.asServiceRole.entities.User.list("full_name", 100),
-        base44.entities.Message.list("created_date", 1000),
-      ]);
-      return { groups: enrichGroups(quedadas, intereses, places, users, messages, user.email), users };
-    },
-    refetchInterval: 2500,
+  const { data: groups = [], isLoading } = useQuery({
+    queryKey: ["my-groups-supabase", user?.id],
+    enabled: Boolean(user?.id && isSupabaseConfigured && supabase),
+    queryFn: () => fetchGroups(user.id),
+    refetchInterval: 4000,
   });
 
-  const groups = queryData?.groups || [];
-  const users = queryData?.users || [];
-  const usersByEmail = useMemo(() => Object.fromEntries(users.map((person) => [person.email, person])), [users]);
   const requestedFocus = searchParams.get("focus");
-
   const now = new Date();
   const upcoming = useMemo(() => groups.filter((item) => new Date(item.fecha_hora) >= now), [groups]);
   const history = useMemo(() => groups.filter((item) => new Date(item.fecha_hora) < now), [groups]);
+  const allVisible = useMemo(() => [...upcoming, ...history], [upcoming, history]);
+  const visible = tab === "upcoming" ? upcoming : history;
+  const selected = visible.find((item) => item.id === selectedId) || allVisible.find((item) => item.id === selectedId) || visible[0] || null;
+  const usersById = useMemo(() => new Map(allVisible.flatMap((g) => [g.host, ...(g.participants || [])]).filter(Boolean).map((p) => [p.id, p])), [allVisible]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
     window.dispatchEvent(new CustomEvent('pizzapolis:group-chat-state', { detail: { open: Boolean(mobileChatOpen) } }));
-
-    return () => {
-      window.dispatchEvent(new CustomEvent('pizzapolis:group-chat-state', { detail: { open: false } }));
-    };
+    return () => window.dispatchEvent(new CustomEvent('pizzapolis:group-chat-state', { detail: { open: false } }));
   }, [mobileChatOpen]);
-  const allVisible = useMemo(() => [...upcoming, ...history], [upcoming, history]);
-  const visible = tab === "upcoming" ? upcoming : history;
-  const selected = visible.find((item) => item.id === selectedId) || allVisible.find((item) => item.id === selectedId) || visible[0] || null;
 
   useEffect(() => {
     if (!allVisible.length) {
@@ -189,7 +214,6 @@ export default function MisMatches() {
       setMobileChatOpen(false);
       return;
     }
-
     if (requestedFocus && allVisible.some((item) => item.id === requestedFocus)) {
       const focused = allVisible.find((item) => item.id === requestedFocus);
       setSelectedId(requestedFocus);
@@ -202,36 +226,29 @@ export default function MisMatches() {
       }, { replace: true });
       return;
     }
-
-    const selectedStillExists = selectedId && allVisible.some((item) => item.id === selectedId);
-    if (!selectedStillExists) {
+    if (!selectedId || !allVisible.some((item) => item.id === selectedId)) {
       const fallback = visible[0] || allVisible[0];
       if (fallback) setSelectedId(fallback.id);
     }
-  }, [selectedId, visible, allVisible, requestedFocus, now, setSearchParams]);
+  }, [selectedId, visible, allVisible, requestedFocus, setSearchParams, now]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [selected?.messageList?.length, selected?.id]);
 
-  useEffect(() => {
-    if (!selected || !user?.email) return;
-    const unread = selected.messageList.filter((message) => message.sender_id !== user.email && !message.leido);
-    if (!unread.length) return;
-
-    Promise.all(unread.map((message) => base44.entities.Message.update(message.id, { leido: true }))).then(() => {
-      queryClient.invalidateQueries({ queryKey: ["my-groups-v6", user.email] });
-    }).catch(() => null);
-  }, [selected?.id, user?.email]);
-
   const sendMutation = useMutation({
     mutationFn: async (text) => {
       if (!selected) throw new Error("No group selected");
-      return base44.entities.Message.create({ quedada_id: selected.id, sender_id: user.email, receiver_id: "group", texto: text, leido: false });
+      const { error } = await supabase.from("messages").insert({
+        plan_id: selected.id,
+        user_id: user.id,
+        content: text,
+      });
+      if (error) throw error;
     },
     onSuccess: () => {
       setMessageText("");
-      queryClient.invalidateQueries({ queryKey: ["my-groups-v6", user?.email] });
+      queryClient.invalidateQueries({ queryKey: ["my-groups-supabase", user?.id] });
     },
   });
 
@@ -248,7 +265,7 @@ export default function MisMatches() {
         <div className="mx-auto max-w-md rounded-[30px] border border-white/10 bg-[#111] p-8 text-center">
           <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-[28px] bg-white/[0.04] text-4xl">💬</div>
           <h1 className="mt-6 text-3xl font-black text-white">Todavía no te has unido a ningún grupo</h1>
-          <p className="mt-3 text-sm leading-7 text-stone-400">Cuando digas que sí a un plan en Descubrir, entrarás automáticamente a su grupo y aparecerá aquí.</p>
+          <p className="mt-3 text-sm leading-7 text-stone-400">Cuando digas que sí a un plan en Descubrir o crees uno, entrarás automáticamente a su grupo y aparecerá aquí.</p>
           <Link to={createPageUrl("Descubrir")} className="mt-6 inline-flex h-12 w-full items-center justify-center rounded-2xl bg-red-600 text-sm font-bold text-white">Ir a descubrir</Link>
         </div>
       </div>
@@ -264,7 +281,7 @@ export default function MisMatches() {
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <h1 className="text-[2rem] font-black tracking-tight text-white">Mis grupos</h1>
-                  <p className="mt-1 text-sm text-stone-400">Tus chats activos y planes guardados.</p>
+                  <p className="mt-1 text-sm text-stone-400">Tus chats y planes reales.</p>
                 </div>
                 <span className="inline-flex h-10 min-w-10 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] px-3 text-sm font-bold text-white">{visible.length}</span>
               </div>
@@ -273,18 +290,9 @@ export default function MisMatches() {
                 <button onClick={() => setTab("history")} className={`rounded-full px-4 py-2 text-sm font-semibold ${tab === "history" ? "bg-red-600 text-white" : "border border-white/10 bg-white/[0.04] text-stone-300"}`}>Historial</button>
               </div>
             </div>
-
             <div className="min-h-0 flex-1 overflow-y-auto px-2 py-2 space-y-2">
               {visible.map((hangout) => (
-                <GroupListItem
-                  key={hangout.id}
-                  group={hangout}
-                  active={selected?.id === hangout.id}
-                  onSelect={() => {
-                    setSelectedId(hangout.id);
-                    setMobileChatOpen(true);
-                  }}
-                />
+                <GroupListItem key={hangout.id} group={hangout} active={selected?.id === hangout.id} onSelect={() => { setSelectedId(hangout.id); setMobileChatOpen(true); }} />
               ))}
             </div>
           </aside>
@@ -295,47 +303,42 @@ export default function MisMatches() {
                 <button onClick={() => setMobileChatOpen(false)} className="grid h-10 w-10 place-items-center rounded-full border border-white/10 bg-white/[0.04] text-stone-300 lg:hidden"><ArrowLeft className="h-4 w-4" /></button>
                 <button onClick={() => setShowInfo(true)} className="min-w-0 flex-1 text-left">
                   <div className="truncate text-base font-black text-white">{selected.titulo}</div>
-                  <div className="truncate text-sm text-stone-400">{selected.pizzeria_nombre} · {selected.place?.neighborhood}</div>
+                  <div className="truncate text-sm text-stone-400">{selected.pizzeria_nombre}</div>
                 </button>
-                <a href={getGoogleMapsUrl(selected.place)} target="_blank" rel="noreferrer" className="grid h-10 w-10 place-items-center rounded-full border border-white/10 bg-white/[0.04] text-stone-300"><ExternalLink className="h-4 w-4" /></a>
+                <a href={mapUrl(selected.place)} target="_blank" rel="noreferrer" className="grid h-10 w-10 place-items-center rounded-full border border-white/10 bg-white/[0.04] text-stone-300"><ExternalLink className="h-4 w-4" /></a>
                 <button onClick={() => setShowInfo(true)} className="grid h-10 w-10 place-items-center rounded-full border border-white/10 bg-white/[0.04] text-stone-300"><Info className="h-4 w-4" /></button>
               </div>
 
               <div className="border-b border-white/6 px-4 py-3 text-sm text-stone-300">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="rounded-full bg-violet-500/20 px-3 py-1 text-[11px] font-bold text-violet-200">{formatHangoutDate(selected.fecha_hora)}</span>
+                  <span className="rounded-full bg-violet-500/20 px-3 py-1 text-[11px] font-bold text-violet-200">{fmtDate(selected.plan_date, selected.plan_time)}</span>
                   <span className="rounded-full bg-emerald-500/20 px-3 py-1 text-[11px] font-bold text-emerald-200">{selected.participants.length} / {selected.max_participantes}</span>
-                  <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[11px] font-bold text-stone-200">{selected.vibe || "Casual"}</span>
-                  <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[11px] font-bold text-stone-200">{formatPrice(selected.place?.standard_slice_price)}</span>
+                  <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[11px] font-bold text-stone-200">Slice plan</span>
+                  <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[11px] font-bold text-stone-200">${Number(selected.place?.slice_price || 0).toFixed(2)}</span>
                 </div>
               </div>
 
-              <div className="min-h-0 flex-1 overflow-y-auto bg-[radial-gradient(circle_at_top,rgba(220,38,38,0.12),transparent_24%),linear-gradient(180deg,#0b0b0b_0%,#0a0a0a_100%)] px-4 py-4 pb-6">
+              <div className="min-h-0 flex-1 overflow-y-auto bg-[radial-gradient(circle_at_top,rgba(220,38,38,0.12),transparent_24%),linear-gradient(180deg,#0b0b0b_0%,#0a0a0a_100%)] px-4 py-4 pb-4">
                 <div className="mb-4 flex flex-wrap gap-2">
                   {selected.participants.map((person) => (
-                    <div key={person.email} className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-2 text-xs text-stone-200">
-                      <div className={`grid h-6 w-6 place-items-center rounded-full bg-gradient-to-br ${person.avatar_color || "from-stone-500 to-stone-700"} text-[10px] font-bold text-white`}>{avatar(person)}</div>
-                      {person.full_name}
+                    <div key={person.id} className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-2 text-xs text-stone-200">
+                      <div className="grid h-6 w-6 place-items-center rounded-full bg-gradient-to-br from-[#efbf3a] to-[#df5b43] text-[10px] font-bold text-white">{avatar(person.username || person.email)}</div>
+                      {person.username || person.email}
                     </div>
                   ))}
                 </div>
                 <div className="space-y-3 pb-2">
-                  {selected.messageList.map((message) => <MessageRow key={message.id} message={message} currentUser={user} usersByEmail={usersByEmail} />)}
+                  {selected.messageList.map((message) => <MessageRow key={message.id} message={message} currentUserId={user.id} usersById={usersById} />)}
                   <div ref={messagesEndRef} />
                 </div>
               </div>
 
-              <div className="shrink-0 border-t border-white/6 px-4 py-3 bg-[#0a0a0a]" style={{ paddingBottom: "max(1rem, env(safe-area-inset-bottom))", paddingLeft: "max(1rem, env(safe-area-inset-left))", paddingRight: "max(1rem, env(safe-area-inset-right))" }}>
+              <div className="shrink-0 border-t border-white/6 px-4 py-3 bg-[#0a0a0a]" style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))", paddingLeft: "max(1rem, env(safe-area-inset-left))", paddingRight: "max(1rem, env(safe-area-inset-right))" }}>
                 <div className="flex w-full items-center gap-2 rounded-[24px] border border-white/10 bg-[#121212] p-2">
                   <input
                     value={messageText}
                     onChange={(e) => setMessageText(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" && !e.shiftKey) {
-                        e.preventDefault();
-                        handleSend();
-                      }
-                    }}
+                    onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
                     placeholder="Escribe un mensaje..."
                     className="h-11 min-w-0 flex-1 bg-transparent px-3 text-sm text-white outline-none placeholder:text-stone-500"
                   />

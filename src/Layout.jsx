@@ -10,7 +10,7 @@ import { useAuth } from '@/lib/AuthContext';
 export default function Layout({ children, currentPageName }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [groupChatOpen, setGroupChatOpen] = useState(false);
-  const { user, role, logout, isAuthenticated } = useAuth();
+  const { user, role, logout, isAuthenticated, refreshProfile } = useAuth();
 
   useEffect(() => {
     const handleChatState = (event) => {
@@ -26,6 +26,12 @@ export default function Layout({ children, currentPageName }) {
       setGroupChatOpen(false);
     }
   }, [currentPageName]);
+  useEffect(() => {
+    if (isAuthenticated && refreshProfile) {
+      void refreshProfile();
+    }
+  }, [isAuthenticated, refreshProfile]);
+
 
   const publicNavItems = [
     { label: 'Mapa', page: 'Home', icon: Map },
@@ -155,7 +161,7 @@ export default function Layout({ children, currentPageName }) {
           </div>
         </header>
       )}
-      <main className={`${hideHeader ? '' : `app-content ${viewportPages.has(currentPageName) ? 'app-content--viewport' : 'app-content--standard'}`}`}>{children}</main>
+      <main className={`${hideHeader ? '' : `app-content ${viewportPages.has(currentPageName) ? 'app-content--viewport' : 'app-content--standard'} ${hideBottomNav ? 'app-content--flush' : ''}`}`}>{children}</main>
       {!hideHeader && !hideBottomNav && (
         <nav className="mobile-tabbar">
           <div className="mobile-tabbar-grid">

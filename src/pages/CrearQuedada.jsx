@@ -2,22 +2,14 @@ import React, { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
+import { supabase, isSupabaseConfigured } from "@/lib/supabase";
+import { createPageUrl } from "@/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import {
-  ArrowRight,
-  CalendarDays,
-  CheckCircle2,
-  Clock3,
-  MapPin,
-  Search,
-  Users,
-} from "lucide-react";
-import { formatPrice } from "@/lib/place-helpers";
+import { ArrowRight, CalendarDays, CheckCircle2, Clock3, MapPin, Search, Users } from "lucide-react";
 
 const sizeOptions = [2, 4, 6, 8, 10];
 
@@ -26,20 +18,14 @@ function toLocalDateInput(value) {
   return date.toISOString().slice(0, 10);
 }
 
-function toLocalTimeInput(value) {
-  const date = value ? new Date(value) : new Date();
-  return `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
-}
-
 function combineDateTime(date, time) {
   if (!date) return "";
   return `${date}T${time || "20:00"}`;
 }
 
-function defaultTitle(place, date, time) {
+function defaultTitle(place, time) {
   if (!place) return "Pizza plan";
-  const hourLabel = time || "20:00";
-  return `${place.name} · ${hourLabel}`;
+  return `${place.name} · ${time || "20:00"}`;
 }
 
 function PlaceOption({ place, active, onClick }) {
@@ -52,13 +38,11 @@ function PlaceOption({ place, active, onClick }) {
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="truncate text-base font-bold text-white">{place.name}</div>
-          <div className="mt-1 truncate text-sm text-stone-400">{place.neighborhood || place.address || "NYC"}</div>
+          <div className="mt-1 truncate text-sm text-stone-400">{place.address || "NYC"}</div>
         </div>
-        <div className="shrink-0 rounded-full bg-[#efbf3a] px-3 py-1 text-xs font-black text-[#141414]">
-          {formatPrice(place.standard_slice_price || 0)}
-        </div>
+        <div className="shrink-0 rounded-full bg-[#efbf3a] px-3 py-1 text-xs font-black text-[#141414]">${Number(place.slice_price || 0).toFixed(2)}</div>
       </div>
-      {place.best_known_slice ? <div className="mt-3 text-sm text-stone-300">Best slice: {place.best_known_slice}</div> : null}
+      {place.best_slice ? <div className="mt-3 text-sm text-stone-300">Best slice: {place.best_slice}</div> : null}
     </button>
   );
 }
@@ -76,105 +60,104 @@ export default function CrearQuedada() {
   const [date, setDate] = useState(() => toLocalDateInput(new Date()));
   const [time, setTime] = useState("20:00");
   const [form, setForm] = useState({
-    pizzeria_id: "",
-    titulo: "",
-    fecha_hora: combineDateTime(toLocalDateInput(new Date()), "20:00"),
-    max_participantes: 4,
-    descripcion: "",
-    publicar: true,
+    spot_id: "",
+    title: "",
+    max_people: 4,
+    quick_note: "",
   });
 
   const { data: places = [] } = useQuery({
-    queryKey: ["create-plan-places-v4"],
-    queryFn: () => base44.entities.PizzaPlace.list("standard_slice_price", 150),
+    queryKey: ["create-plan-spots-supabase"],
+    enabled: Boolean(isSupabaseConfigured && supabase),
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("spots")
+        .select("id,name,address,slice_price,best_slice,photo_url,status")
+        .eq("status", "approved")
+        .order("created_at", { ascending: false })
+        .limit(100);
+      if (error) throw error;
+      return data || [];
+    },
   });
-
-  useEffect(() => {
-    setForm((prev) => ({ ...prev, fecha_hora: combineDateTime(date, time) }));
-  }, [date, time]);
 
   const filteredPlaces = useMemo(() => {
     const term = search.trim().toLowerCase();
     if (!term) return places.slice(0, 12);
-    return places.filter((place) => {
-      const haystack = `${place.name} ${place.neighborhood || ""} ${place.address || ""} ${place.best_known_slice || ""}`.toLowerCase();
-      return haystack.includes(term);
-    }).slice(0, 12);
+    return places.filter((place) => `${place.name} ${place.address || ""} ${place.best_slice || ""}`.toLowerCase().includes(term)).slice(0, 12);
   }, [places, search]);
 
   const selectedPlace = useMemo(() => {
-    return places.find((item) => item.id === form.pizzeria_id)
+    return places.find((item) => item.id === form.spot_id)
       || places.find((item) => item.id === urlPlaceId)
       || filteredPlaces[0]
       || places[0]
       || null;
-  }, [places, filteredPlaces, form.pizzeria_id, urlPlaceId]);
+  }, [places, filteredPlaces, form.spot_id, urlPlaceId]);
 
   useEffect(() => {
-    if (!places.length || form.pizzeria_id) return;
+    if (!places.length || form.spot_id) return;
     const place = places.find((item) => item.id === urlPlaceId) || places[0];
     if (!place) return;
-    setForm((prev) => ({
-      ...prev,
-      pizzeria_id: place.id,
-      titulo: prev.titulo || defaultTitle(place, date, time),
-    }));
-  }, [places, form.pizzeria_id, urlPlaceId, date, time]);
+    setForm((prev) => ({ ...prev, spot_id: place.id, title: prev.title || defaultTitle(place, time) }));
+  }, [places, form.spot_id, urlPlaceId, time]);
 
   useEffect(() => {
     if (!selectedPlace) return;
     setForm((prev) => ({
       ...prev,
-      pizzeria_id: selectedPlace.id,
-      titulo: prev.titulo?.trim() ? prev.titulo : defaultTitle(selectedPlace, date, time),
+      spot_id: selectedPlace.id,
+      title: prev.title?.trim() ? prev.title : defaultTitle(selectedPlace, time),
     }));
-  }, [selectedPlace, date, time]);
+  }, [selectedPlace, time]);
+
+  useEffect(() => {
+    if (!done || !createdId) return;
+    const timer = setTimeout(() => {
+      navigate(`${createPageUrl("Home")}?createdPlan=${createdId}`, { replace: true });
+    }, 1500);
+    return () => clearTimeout(timer);
+  }, [done, createdId, navigate]);
 
   if (!user) return <div className="min-h-[calc(100vh-64px)] bg-[#070707]" />;
 
-  const publishDisabled = !selectedPlace || !date || !time || !form.titulo.trim();
+  const publishDisabled = !selectedPlace || !date || !time || !form.title.trim();
 
   const submit = async (e) => {
     e?.preventDefault?.();
-    if (publishDisabled) return;
+    if (publishDisabled || !supabase) return;
 
-    const created = await base44.entities.Quedada.create({
-      creador_id: user.id,
-      creador_nombre: user.full_name,
-      titulo: form.titulo.trim(),
-      pizzeria_id: selectedPlace.id,
-      pizzeria_nombre: selectedPlace.name,
-      fecha_hora: form.fecha_hora,
-      max_participantes: Number(form.max_participantes),
-      descripcion: form.descripcion.trim(),
-      estado: form.publicar ? "activa" : "borrador",
-      vibe: "Pizza plan",
-      foto_url: selectedPlace.cover_image_url || "",
-    });
+    const { data: createdPlan, error: planError } = await supabase
+      .from("plans")
+      .insert({
+        spot_id: selectedPlace.id,
+        title: form.title.trim(),
+        plan_date: date,
+        plan_time: time,
+        max_people: Number(form.max_people),
+        quick_note: form.quick_note.trim() || null,
+        status: "active",
+        created_by: user.id,
+      })
+      .select("id")
+      .single();
 
-    await base44.entities.Interes.create({
-      quedada_id: created.id,
-      usuario_id: user.email,
-      tipo_interes: "like",
-      created_date: new Date().toISOString(),
-    });
-
-    await base44.entities.Message.create({
-      quedada_id: created.id,
-      sender_id: user.email,
-      receiver_id: "group",
-      texto: `${user.full_name} created this plan at ${selectedPlace.name}.`,
-      leido: true,
-    });
+    if (planError) {
+      console.error(planError);
+      return;
+    }
 
     await Promise.all([
-      queryClient.invalidateQueries({ queryKey: ["discover-hangouts-v5", user.email] }),
-      queryClient.invalidateQueries({ queryKey: ["my-groups-v6", user.email] }),
-      queryClient.invalidateQueries({ queryKey: ["active-hangouts"] }),
-      queryClient.invalidateQueries({ queryKey: ["place-hangouts", selectedPlace.id] }),
+      supabase.from("plan_members").upsert({ plan_id: createdPlan.id, user_id: user.id, status: "joined" }, { onConflict: "plan_id,user_id" }),
+      supabase.from("messages").insert({ plan_id: createdPlan.id, user_id: user.id, content: `${user.full_name || user.email} created this plan at ${selectedPlace.name}.` }),
     ]);
 
-    setCreatedId(created.id);
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ["my-groups-supabase", user.id] }),
+      queryClient.invalidateQueries({ queryKey: ["create-plan-spots-supabase"] }),
+    ]);
+
+    setCreatedId(createdPlan.id);
     setDone(true);
   };
 
@@ -192,75 +175,58 @@ export default function CrearQuedada() {
             </Button>
           </div>
 
-          {done ? (
-            <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="rounded-[28px] border border-emerald-500/20 bg-emerald-500/10 p-7 text-center">
-              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-[24px] bg-emerald-500/20 text-emerald-300"><CheckCircle2 className="h-8 w-8" /></div>
-              <div className="mt-5 text-2xl font-black">Plan published</div>
-              <p className="mt-3 text-sm leading-7 text-stone-300">Your plan is live and you joined the group automatically.</p>
-              <div className="mt-6 grid gap-3 sm:grid-cols-2">
-                <button type="button" onClick={() => navigate(`${createPageUrl("MisMatches")}${createdId ? `?focus=${createdId}` : ""}`)} className="inline-flex h-12 items-center justify-center rounded-2xl bg-red-600 font-bold text-white">Go to my groups</button>
-                <button type="button" onClick={() => navigate(`${createPageUrl("Descubrir")}${createdId ? `?focus=${createdId}` : ""}`)} className="inline-flex h-12 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] font-bold text-stone-200">See in discover</button>
+          <form onSubmit={submit} className="space-y-5">
+            <section className="rounded-[28px] border border-white/10 bg-white/[0.03] p-4">
+              <div className="mb-3 text-xs font-bold uppercase tracking-[0.16em] text-stone-500">1 · Choose the spot</div>
+              <div className="relative mb-4">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-stone-500" />
+                <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search pizza spot" className="h-11 border-white/10 bg-white/[0.04] pl-10 text-white" />
               </div>
-            </motion.div>
-          ) : (
-            <form onSubmit={submit} className="space-y-5">
-              <section className="rounded-[28px] border border-white/10 bg-white/[0.03] p-4">
-                <div className="mb-3 text-xs font-bold uppercase tracking-[0.16em] text-stone-500">1 · Choose the spot</div>
-                <div className="relative mb-4">
-                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-stone-500" />
-                  <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search pizza spot" className="h-11 border-white/10 bg-white/[0.04] pl-10 text-white" />
-                </div>
-                <div className="grid gap-3 max-h-[360px] overflow-y-auto pr-1">
-                  {filteredPlaces.map((place) => (
-                    <PlaceOption key={place.id} place={place} active={selectedPlace?.id === place.id} onClick={() => setForm((prev) => ({ ...prev, pizzeria_id: place.id, titulo: prev.titulo?.trim() ? prev.titulo : defaultTitle(place, date, time) }))} />
-                  ))}
-                </div>
-              </section>
+              <div className="grid gap-3 max-h-[360px] overflow-y-auto pr-1">
+                {filteredPlaces.map((place) => (
+                  <PlaceOption key={place.id} place={place} active={selectedPlace?.id === place.id} onClick={() => setForm((prev) => ({ ...prev, spot_id: place.id, title: prev.title?.trim() ? prev.title : defaultTitle(place, time) }))} />
+                ))}
+              </div>
+            </section>
 
-              <section className="rounded-[28px] border border-white/10 bg-white/[0.03] p-4">
-                <div className="mb-3 text-xs font-bold uppercase tracking-[0.16em] text-stone-500">2 · When</div>
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div>
-                    <Label className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-stone-500"><CalendarDays className="h-3.5 w-3.5" />Date *</Label>
-                    <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="h-11 border-white/10 bg-white/[0.04] text-white" />
-                  </div>
-                  <div>
-                    <Label className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-stone-500"><Clock3 className="h-3.5 w-3.5" />Time *</Label>
-                    <Input type="time" value={time} onChange={(e) => setTime(e.target.value)} className="h-11 border-white/10 bg-white/[0.04] text-white" />
-                  </div>
+            <section className="rounded-[28px] border border-white/10 bg-white/[0.03] p-4">
+              <div className="mb-3 text-xs font-bold uppercase tracking-[0.16em] text-stone-500">2 · When</div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <Label className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-stone-500"><CalendarDays className="h-3.5 w-3.5" />Date *</Label>
+                  <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="h-11 border-white/10 bg-white/[0.04] text-white" />
                 </div>
-              </section>
+                <div>
+                  <Label className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-stone-500"><Clock3 className="h-3.5 w-3.5" />Time *</Label>
+                  <Input type="time" value={time} onChange={(e) => setTime(e.target.value)} className="h-11 border-white/10 bg-white/[0.04] text-white" />
+                </div>
+              </div>
+            </section>
 
-              <section className="rounded-[28px] border border-white/10 bg-white/[0.03] p-4">
-                <div className="mb-3 text-xs font-bold uppercase tracking-[0.16em] text-stone-500">3 · Plan details</div>
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div>
-                    <Label className="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-stone-500">Title *</Label>
-                    <Input value={form.titulo} onChange={(e) => setForm((prev) => ({ ...prev, titulo: e.target.value }))} placeholder="Joe's Pizza · 20:00" className="h-11 border-white/10 bg-white/[0.04] text-white" />
-                  </div>
-                  <div>
-                    <Label className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-stone-500"><Users className="h-3.5 w-3.5" />Max people</Label>
-                    <div className="grid grid-cols-5 gap-2">
-                      {sizeOptions.map((option) => (
-                        <button
-                          key={option}
-                          type="button"
-                          onClick={() => setForm((prev) => ({ ...prev, max_participantes: option }))}
-                          className={`h-11 rounded-2xl border text-sm font-black transition ${Number(form.max_participantes) === option ? "border-red-400 bg-red-500/15 text-white" : "border-white/10 bg-white/[0.04] text-stone-300"}`}
-                        >
-                          {option}
-                        </button>
-                      ))}
-                    </div>
+            <section className="rounded-[28px] border border-white/10 bg-white/[0.03] p-4">
+              <div className="mb-3 text-xs font-bold uppercase tracking-[0.16em] text-stone-500">3 · Plan details</div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <Label className="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-stone-500">Title *</Label>
+                  <Input value={form.title} onChange={(e) => setForm((prev) => ({ ...prev, title: e.target.value }))} placeholder="Joe's Pizza · 20:00" className="h-11 border-white/10 bg-white/[0.04] text-white" />
+                </div>
+                <div>
+                  <Label className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-stone-500"><Users className="h-3.5 w-3.5" />Max people</Label>
+                  <div className="grid grid-cols-5 gap-2">
+                    {sizeOptions.map((option) => (
+                      <button key={option} type="button" onClick={() => setForm((prev) => ({ ...prev, max_people: option }))} className={`h-11 rounded-2xl border text-sm font-black transition ${Number(form.max_people) === option ? "border-red-400 bg-red-500/15 text-white" : "border-white/10 bg-white/[0.04] text-stone-300"}`}>
+                        {option}
+                      </button>
+                    ))}
                   </div>
                 </div>
-                <div className="mt-4">
-                  <Label className="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-stone-500">Quick note</Label>
-                  <Textarea value={form.descripcion} onChange={(e) => setForm((prev) => ({ ...prev, descripcion: e.target.value }))} className="min-h-[96px] border-white/10 bg-white/[0.04] text-white" placeholder="Casual slice stop, anyone welcome, easy plan after work..." />
-                </div>
-              </section>
-            </form>
-          )}
+              </div>
+              <div className="mt-4">
+                <Label className="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-stone-500">Quick note</Label>
+                <Textarea value={form.quick_note} onChange={(e) => setForm((prev) => ({ ...prev, quick_note: e.target.value }))} className="min-h-[96px] border-white/10 bg-white/[0.04] text-white" placeholder="Casual slice stop, anyone welcome, easy plan after work..." />
+              </div>
+            </section>
+          </form>
         </div>
 
         <aside className="p-4 lg:p-5">
@@ -268,38 +234,36 @@ export default function CrearQuedada() {
             <div className="text-[11px] font-bold uppercase tracking-[0.18em] text-red-300">Preview</div>
             <div className="mt-4 overflow-hidden rounded-[26px] border border-white/10 bg-[#171717]">
               <div className="relative h-52 border-b border-white/10 bg-black">
-                {selectedPlace?.cover_image_url ? (
-                  <img src={selectedPlace.cover_image_url} alt={selectedPlace.name} className="h-full w-full object-cover" />
+                {selectedPlace?.photo_url ? (
+                  <img src={selectedPlace.photo_url} alt={selectedPlace.name} className="h-full w-full object-cover" />
                 ) : (
                   <div className="flex h-full items-center justify-center text-6xl">🍕</div>
                 )}
                 <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-black/70" />
-                <div className="absolute left-4 bottom-4 rounded-full bg-[#efbf3a] px-3 py-1 text-xs font-black text-[#141414]">
-                  {selectedPlace ? formatPrice(selectedPlace.standard_slice_price || 0) : "$0.00"}
-                </div>
+                <div className="absolute left-4 bottom-4 rounded-full bg-[#efbf3a] px-3 py-1 text-xs font-black text-[#141414]">${Number(selectedPlace?.slice_price || 0).toFixed(2)}</div>
               </div>
 
               <div className="p-5">
                 <div className="text-[11px] font-black uppercase tracking-[0.18em] text-stone-500">{date || "Date"} · {time || "Time"}</div>
-                <h2 className="mt-3 text-3xl font-black leading-none text-white">{form.titulo?.trim() || (selectedPlace ? defaultTitle(selectedPlace, date, time) : "Pizza plan")}</h2>
+                <h2 className="mt-3 text-3xl font-black leading-none text-white">{form.title?.trim() || (selectedPlace ? defaultTitle(selectedPlace, time) : "Pizza plan")}</h2>
                 <div className="mt-4 flex items-start gap-3 rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-4">
                   <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-red-400" />
                   <div className="min-w-0">
                     <div className="truncate font-semibold text-white">{selectedPlace?.name || "Choose a place"}</div>
-                    <div className="truncate text-sm text-stone-400">{selectedPlace?.neighborhood || selectedPlace?.address || "Pick the spot first"}</div>
+                    <div className="truncate text-sm text-stone-400">{selectedPlace?.address || "Pick the spot first"}</div>
                   </div>
                 </div>
                 <div className="mt-4 grid grid-cols-2 gap-3">
                   <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-4">
                     <div className="text-[11px] font-bold uppercase tracking-[0.16em] text-stone-500">People</div>
-                    <div className="mt-1 text-xl font-black text-white">{form.max_participantes}</div>
+                    <div className="mt-1 text-xl font-black text-white">{form.max_people}</div>
                   </div>
                   <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-4">
                     <div className="text-[11px] font-bold uppercase tracking-[0.16em] text-stone-500">Best slice</div>
-                    <div className="mt-1 truncate text-base font-black text-white">{selectedPlace?.best_known_slice || "Optional"}</div>
+                    <div className="mt-1 truncate text-base font-black text-white">{selectedPlace?.best_slice || "Optional"}</div>
                   </div>
                 </div>
-                <p className="mt-4 text-sm leading-7 text-stone-300">{form.descripcion?.trim() || "Short, simple plan. Pick the place, set the time and let people join fast."}</p>
+                <p className="mt-4 text-sm leading-7 text-stone-300">{form.quick_note?.trim() || "Short, simple plan. Pick the place, set the time and let people join fast."}</p>
                 <button type="button" onClick={submit} disabled={publishDisabled} className="mt-6 inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-red-600 font-bold text-white disabled:opacity-50">
                   Create plan
                   <ArrowRight className="h-4 w-4" />
@@ -309,6 +273,20 @@ export default function CrearQuedada() {
           </div>
         </aside>
       </div>
+
+      {done ? (
+        <div className="fixed inset-0 z-[2200] grid place-items-center bg-black/55 px-4 backdrop-blur-sm">
+          <motion.div initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} className="w-full max-w-md rounded-[32px] border border-emerald-500/20 bg-[#07150f] p-7 text-center shadow-[0_24px_80px_rgba(0,0,0,0.45)]">
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-[24px] bg-emerald-500/20 text-emerald-300"><CheckCircle2 className="h-8 w-8" /></div>
+            <div className="mt-5 text-2xl font-black text-white">Plan created</div>
+            <p className="mt-3 text-sm leading-7 text-stone-300">Todo correcto. Te mandamos al mapa y ya entraste automáticamente al grupo.</p>
+            <div className="mt-6 grid gap-3 sm:grid-cols-2">
+              <button type="button" onClick={() => navigate(`${createPageUrl("Home")}?createdPlan=${createdId}`, { replace: true })} className="inline-flex h-12 items-center justify-center rounded-2xl bg-red-600 font-bold text-white">Go to map</button>
+              <button type="button" onClick={() => navigate(`${createPageUrl("MisMatches")}?focus=${createdId}`, { replace: true })} className="inline-flex h-12 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] font-bold text-stone-200">Open group</button>
+            </div>
+          </motion.div>
+        </div>
+      ) : null}
     </div>
   );
 }

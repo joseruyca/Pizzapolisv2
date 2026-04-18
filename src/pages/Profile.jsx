@@ -1,53 +1,73 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useMemo } from "react";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { useQuery } from "@tanstack/react-query";
-import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
-import { Bell, Bookmark, CircleHelp, Settings, Star, Users } from "lucide-react";
+import { supabase, isSupabaseConfigured } from "@/lib/supabase";
+import { Bell, CalendarDays, CircleHelp, MapPin, Settings, Shield, Users } from "lucide-react";
 
 function avatarLabel(name) {
   return name?.slice(0, 1)?.toUpperCase() || "?";
 }
 
+async function getProfileData(userId) {
+  const [{ count: createdPlansCount = 0 }, { count: joinedCount = 0 }, { count: spotsCount = 0 }, joinedPlansRes] = await Promise.all([
+    supabase.from("plans").select("id", { count: "exact", head: true }).eq("created_by", userId),
+    supabase.from("plan_members").select("id", { count: "exact", head: true }).eq("user_id", userId).eq("status", "joined"),
+    supabase.from("spots").select("id", { count: "exact", head: true }).eq("created_by", userId),
+    supabase.from("plan_members").select("plan_id").eq("user_id", userId).eq("status", "joined"),
+  ]);
+
+  const joinedPlanIds = (joinedPlansRes.data || []).map((row) => row.plan_id).filter(Boolean);
+  const ownedPlansRes = await supabase
+    .from("plans")
+    .select("id,title,plan_date,plan_time,spot_id")
+    .eq("created_by", userId)
+    .order("plan_date", { ascending: true })
+    .limit(3);
+
+  const joinedOnlyIds = joinedPlanIds.filter((id) => !(ownedPlansRes.data || []).some((plan) => plan.id === id)).slice(0, 3);
+  const joinedOnlyRes = joinedOnlyIds.length
+    ? await supabase.from("plans").select("id,title,plan_date,plan_time,spot_id").in("id", joinedOnlyIds)
+    : { data: [] };
+
+  const plans = [...(ownedPlansRes.data || []), ...(joinedOnlyRes.data || [])].slice(0, 3);
+  const spotIds = plans.map((plan) => plan.spot_id).filter(Boolean);
+  const spotsRes = spotIds.length ? await supabase.from("spots").select("id,name,address").in("id", spotIds) : { data: [] };
+  const spotMap = new Map((spotsRes.data || []).map((spot) => [spot.id, spot]));
+
+  return {
+    createdPlansCount,
+    joinedCount,
+    spotsCount,
+    upcomingPlans: plans.map((plan) => ({ ...plan, spots: spotMap.get(plan.spot_id) || null })),
+  };
+}
+
 export default function Profile() {
-  const { user, role } = useAuth();
+  const { user, profile, role } = useAuth();
 
-
-  const { data: groups = [] } = useQuery({
-    queryKey: ["profile-groups-count", user?.email],
-    enabled: !!user,
-    queryFn: async () => {
-      const [hangouts, intereses] = await Promise.all([
-        base44.entities.Quedada.list("fecha_hora", 100),
-        base44.asServiceRole.entities.Interes.list("created_date", 1000),
-      ]);
-      const joinedIds = new Set(intereses.filter((i) => i.usuario_id === user?.email && i.tipo_interes === "like").map((i) => i.quedada_id));
-      return hangouts.filter((item) => joinedIds.has(item.id));
-    },
+  const { data, isLoading } = useQuery({
+    queryKey: ["profile-supabase", user?.id],
+    enabled: Boolean(user?.id && isSupabaseConfigured && supabase),
+    queryFn: () => getProfileData(user.id),
+    staleTime: 10_000,
   });
 
-  const { data: ratings = [] } = useQuery({
-    queryKey: ["profile-ratings", user?.email],
-    enabled: !!user,
-    queryFn: () => base44.entities.Rating.filter({ user_email: user.email }, "-created_date"),
-  });
-
-  const stats = useMemo(() => {
-    const ratingAvg = ratings.length ? (ratings.reduce((sum, r) => sum + Number(r.score || 0), 0) / ratings.length).toFixed(1) : "4.8";
-    return {
-      groups: groups.length,
-      slices: ratings.length,
-      rating: ratingAvg,
-    };
-  }, [groups, ratings]);
+  const stats = useMemo(() => ({
+    created: data?.createdPlansCount || 0,
+    joined: data?.joinedCount || 0,
+    spots: data?.spotsCount || 0,
+  }), [data]);
 
   if (!user) return <div className="min-h-[calc(100vh-64px)] bg-[#060606]" />;
 
+  const displayName = profile?.username || user.full_name || user.email?.split("@")[0] || "Usuario";
+  const handle = (profile?.username || user.email?.split("@")[0] || "usuario").toLowerCase().replace(/\s+/g, "_");
+
   const items = [
-    { icon: Bell, label: "Actividad reciente", page: "RecentActivity" },
-    { icon: Bookmark, label: "Plan guardados", page: "SavedPlans" },
-    { icon: Users, label: "Amigos", page: "FriendsPage" },
+    { icon: CalendarDays, label: "Mis grupos", page: "MisMatches" },
+    { icon: MapPin, label: "Añadir spot", page: "Home" },
     { icon: Settings, label: "Ajustes", page: "SettingsPage" },
     { icon: CircleHelp, label: "Ayuda y soporte", page: "SupportPage" },
   ];
@@ -57,13 +77,13 @@ export default function Profile() {
       <div className="mx-auto max-w-md rounded-[30px] border border-white/10 bg-[#101010] p-5 shadow-[0_20px_60px_rgba(0,0,0,0.35)]">
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-4">
-            <div className={`flex h-20 w-20 items-center justify-center rounded-full border border-white/10 bg-gradient-to-br ${user.avatar_color || "from-red-500 to-orange-500"} text-2xl font-black text-white`}>
-              {avatarLabel(user.full_name)}
+            <div className="flex h-20 w-20 items-center justify-center rounded-full border border-white/10 bg-gradient-to-br from-[#efbf3a] to-[#df5b43] text-2xl font-black text-white">
+              {avatarLabel(displayName)}
             </div>
             <div>
-              <div className="text-[1.8rem] font-black tracking-tight">{user.full_name || "Javier"}</div>
-              <div className="text-sm text-stone-500">@{(user.full_name || "javi_slice").toLowerCase().replace(/\s+/g, "_")}</div>
-              <div className="mt-2 text-sm text-stone-400">{user.tagline || "Siempre buscando el mejor slice barato."}</div>
+              <div className="text-[1.8rem] font-black tracking-tight text-white">{displayName}</div>
+              <div className="text-sm text-stone-500">@{handle}</div>
+              <div className="mt-2 text-sm text-stone-400">{role === "admin" ? "Admin de Pizzapolis" : "Pizza plans, cheap slices y grupos reales."}</div>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -72,48 +92,52 @@ export default function Profile() {
           </div>
         </div>
 
-        <div className="mt-8 grid grid-cols-3 gap-3 rounded-[26px] border border-white/8 bg-white/[0.03] p-4 text-center">
+        {role === "admin" ? (
+          <Link
+            to={createPageUrl("Admin")}
+            className="mt-6 flex items-center justify-between rounded-[26px] border border-[#efbf3a]/30 bg-[#111111] px-5 py-5 text-white shadow-[0_20px_45px_rgba(17,17,17,0.18)]"
+          >
+            <div>
+              <div className="text-[11px] font-black uppercase tracking-[0.16em] text-[#efbf3a]">Admin</div>
+              <div className="mt-2 text-lg font-black">Open moderation panel</div>
+              <div className="mt-1 text-sm text-white/70">Manage spots, plans, comments, photos and chat.</div>
+            </div>
+            <div className="rounded-2xl bg-white/10 px-4 py-3 text-sm font-bold"><Shield className="h-4 w-4" /></div>
+          </Link>
+        ) : null}
+
+        <div className="mt-6 grid grid-cols-3 gap-3 rounded-[26px] border border-white/8 bg-white/[0.03] p-4 text-center">
           <div>
-            <div className="text-3xl font-black text-white">{stats.groups}</div>
+            <div className="text-3xl font-black text-white">{isLoading ? "…" : stats.joined}</div>
             <div className="mt-1 text-xs uppercase tracking-[0.14em] text-stone-500">Grupos</div>
           </div>
           <div>
-            <div className="text-3xl font-black text-white">{stats.slices}</div>
-            <div className="mt-1 text-xs uppercase tracking-[0.14em] text-stone-500">Slices probados</div>
+            <div className="text-3xl font-black text-white">{isLoading ? "…" : stats.created}</div>
+            <div className="mt-1 text-xs uppercase tracking-[0.14em] text-stone-500">Planes</div>
           </div>
           <div>
-            <div className="text-3xl font-black text-white">{stats.rating}</div>
-            <div className="mt-1 text-xs uppercase tracking-[0.14em] text-stone-500">Valoración</div>
+            <div className="text-3xl font-black text-white">{isLoading ? "…" : stats.spots}</div>
+            <div className="mt-1 text-xs uppercase tracking-[0.14em] text-stone-500">Spots</div>
           </div>
         </div>
 
         <div className="mt-8">
           <div className="flex items-center justify-between">
-            <div className="text-sm font-bold uppercase tracking-[0.16em] text-stone-500">Actividad reciente</div>
-            <Link to={createPageUrl("RecentActivity")} className="text-sm font-semibold text-red-400">Ver todo</Link>
+            <div className="text-sm font-bold uppercase tracking-[0.16em] text-stone-500">Próximos planes</div>
+            <Link to={createPageUrl("MisMatches")} className="text-sm font-semibold text-red-400">Ver grupos</Link>
           </div>
           <div className="mt-4 space-y-3 rounded-[26px] border border-white/8 bg-white/[0.03] p-4">
-            <div className="flex items-center gap-3 text-sm text-stone-300"><div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-white/[0.04]"><Users className="h-4 w-4 text-red-400" /></div><span>Te uniste a NYC Cheap Slice Run</span></div>
-            <div className="flex items-center gap-3 text-sm text-stone-300"><div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-white/[0.04]"><Star className="h-4 w-4 text-red-400" /></div><span>Valoraste Scarr's Pizza con 4.7</span></div>
-            <div className="flex items-center gap-3 text-sm text-stone-300"><div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-white/[0.04]"><Bookmark className="h-4 w-4 text-red-400" /></div><span>Guardaste Brooklyn Square &amp; Chill</span></div>
+            {(data?.upcomingPlans?.length ? data.upcomingPlans : []).slice(0, 3).map((plan) => (
+              <div key={plan.id} className="rounded-2xl border border-white/8 bg-white/[0.03] px-4 py-3 text-sm text-stone-300">
+                <div className="font-bold text-white">{plan.title}</div>
+                <div className="mt-1 text-stone-400">{plan.spots?.name || "Spot"} · {plan.plan_date} · {String(plan.plan_time).slice(0,5)}</div>
+              </div>
+            ))}
+            {!data?.upcomingPlans?.length && !isLoading ? (
+              <div className="text-sm leading-7 text-stone-400">Todavía no tienes planes reales creados o unidos.</div>
+            ) : null}
           </div>
         </div>
-
-
-
-        {role === "admin" ? (
-          <Link
-            to={createPageUrl("Admin")}
-            className="mt-8 flex items-center justify-between rounded-[26px] border border-[#efbf3a]/30 bg-[#111111] px-5 py-5 text-white shadow-[0_20px_45px_rgba(17,17,17,0.18)]"
-          >
-            <div>
-              <div className="text-[11px] font-black uppercase tracking-[0.16em] text-[#efbf3a]">Admin</div>
-              <div className="mt-2 text-lg font-black">Open moderation panel</div>
-              <div className="mt-1 text-sm text-white/70">Manage spots, plans, comments, photos and chat from one place.</div>
-            </div>
-            <div className="rounded-2xl bg-white/10 px-4 py-3 text-sm font-bold">Open</div>
-          </Link>
-        ) : null}
 
         <div className="mt-8 space-y-2">
           {items.map((item) => {
