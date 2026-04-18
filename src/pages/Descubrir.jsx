@@ -216,7 +216,7 @@ function normalizeHangout(hangout) {
   const title = hangout.titulo || hangout.title || "Pizza plan";
   const description = hangout.descripcion || hangout.description || "Casual slice plan with good pizza and easy vibes.";
   const hostName = hangout.host?.full_name || hangout.creador_nombre || hangout.host_name || "Host";
-  const vibe = hangout.vibe || "Chill & Social";
+  const vibe = hangout.vibe || "Pizza plan";
   const cover = hangout.place?.cover_image_url || hangout.cover_image_url || imageForVibe(vibe);
   return {
     ...hangout,
@@ -230,7 +230,8 @@ function normalizeHangout(hangout) {
     description,
     hostName,
     vibe,
-    vibeEmoji: vibe.toLowerCase().includes("late") ? "🌙" : vibe.toLowerCase().includes("budget") ? "💸" : vibe.toLowerCase().includes("premium") ? "🍷" : "🍕",
+    vibeEmoji: "🍕",
+    bestSlice: hangout.place?.best_known_slice || hangout.best_known_slice || "",
     cover,
     priceLabel: hangout.priceLabel || formatPrice(hangout.place?.standard_slice_price || hangout.precio_slice || 4),
   };
@@ -290,43 +291,41 @@ function SwipeCard({ hangout, disabled, onDecision }) {
         >
           <motion.div className="absolute inset-0 z-0" style={{ background: overlay }} />
           <div className="relative z-10 flex h-full flex-col overflow-hidden">
-            <div className="relative h-[30%] min-h-[150px] shrink-0 overflow-hidden border-b border-black/8">
+            <div className="relative h-[34%] min-h-[170px] shrink-0 overflow-hidden border-b border-white/10">
               <img src={item.cover} alt={item.placeName} className="h-full w-full object-cover" />
-              <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-white/96" />
+              <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-black/30 to-black/85" />
               <div className="absolute left-4 top-4 inline-flex max-w-[80%] items-center gap-2 rounded-full border border-white/10 bg-black/70 px-3 py-2 text-xs font-bold uppercase tracking-[0.16em] text-[#fff7dd] backdrop-blur-md">
-                <span>{item.vibeEmoji}</span>
-                <span className="truncate">{item.vibe}</span>
+                <span>{item.when.toLocaleDateString([], { day: "2-digit", month: "short" }).toUpperCase()}</span>
+                <span>·</span>
+                <span>{item.when.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
+              </div>
+              <div className="absolute right-4 top-4 rounded-full bg-emerald-500/18 px-3 py-2 text-xs font-black uppercase tracking-[0.14em] text-emerald-300">{item.spotsLeft} spots left</div>
+              <div className="absolute inset-x-4 bottom-4">
+                <div className="inline-flex rounded-full bg-[#efbf3a] px-3 py-1 text-xs font-black uppercase tracking-[0.14em] text-[#141414]">{item.priceLabel} slice</div>
+                <h1 className="mt-3 text-[clamp(1.65rem,5vw,2.3rem)] font-black leading-[0.94] tracking-[-0.045em] text-white line-clamp-2">{item.title}</h1>
+                <div className="mt-3 flex items-start gap-2 text-[15px] text-white/95">
+                  <MapPin className="mt-1 h-4 w-4 shrink-0 text-red-400" />
+                  <div className="min-w-0">
+                    <div className="truncate font-semibold text-white">{item.placeName}</div>
+                    <div className="truncate text-sm text-white/65">{item.neighborhood}</div>
+                  </div>
+                </div>
               </div>
             </div>
 
-            <div className="flex min-h-0 flex-1 flex-col px-5 pb-5 pt-4">
-              <div className="flex items-start justify-between gap-3 text-[12px] font-black uppercase tracking-[0.18em] text-[#b6ad9d]">
-                <div className="leading-5">{item.when.toLocaleDateString([], { day: "2-digit", month: "short" }).toUpperCase()} · {item.when.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</div>
-                <div className="rounded-full bg-emerald-500/18 px-3 py-1 text-emerald-300">{item.spotsLeft} spots left</div>
-              </div>
-
-              <h1 className="mt-3 text-[clamp(1.65rem,5vw,2.3rem)] font-black leading-[0.94] tracking-[-0.045em] text-[#fffaf2] line-clamp-2">{item.title}</h1>
-
-              <div className="mt-3 flex items-start gap-2 text-[15px] text-[#fffaf2]">
-                <MapPin className="mt-1 h-4 w-4 shrink-0 text-red-400" />
-                <div className="min-w-0">
-                  <div className="truncate font-semibold text-[#fffaf2]">{item.placeName}</div>
-                  <div className="truncate text-sm text-[#bbb2a2]">{item.neighborhood}</div>
-                </div>
-              </div>
-
-              <div className="mt-4 grid grid-cols-2 gap-3">
-                <div className="rounded-2xl border border-white/10 bg-[#1b1b1b] px-3 py-3">
-                  <div className="text-[11px] font-bold uppercase tracking-[0.16em] text-[#a89f90]">Price</div>
-                  <div className="mt-1 text-lg font-black text-[#fffaf2]">{item.priceLabel}</div>
-                </div>
+            <div className="flex min-h-0 flex-1 flex-col bg-[#111111] px-5 pb-5 pt-4">
+              <div className="grid grid-cols-2 gap-3">
                 <div className="rounded-2xl border border-white/10 bg-[#1b1b1b] px-3 py-3">
                   <div className="text-[11px] font-bold uppercase tracking-[0.16em] text-[#a89f90]">People</div>
                   <div className="mt-1 text-lg font-black text-[#fffaf2]">{item.joinedCount} / {item.maxParticipants || item.joinedCount}</div>
                 </div>
+                <div className="rounded-2xl border border-white/10 bg-[#1b1b1b] px-3 py-3">
+                  <div className="text-[11px] font-bold uppercase tracking-[0.16em] text-[#a89f90]">Best slice</div>
+                  <div className="mt-1 truncate text-base font-black text-[#fffaf2]">{item.bestSlice || "Optional"}</div>
+                </div>
               </div>
 
-              <p className="mt-4 text-[15px] leading-6 text-[#d0c8bb] flex-1 min-h-0 overflow-hidden line-clamp-4">{item.description}</p>
+              <p className="mt-4 text-[15px] leading-6 text-[#d0c8bb] flex-1 min-h-0 overflow-hidden line-clamp-4">{item.description || "Easy pizza plan. Pick a good spot, show up and join the table."}</p>
 
               <div className="mt-4 flex items-center gap-3 border-t border-white/10 pt-4">
                 <div className={`flex h-11 w-11 items-center justify-center rounded-full bg-[#efbf3a] text-sm font-bold text-[#141414] shadow-[0_12px_30px_rgba(239,191,58,0.22)]`}>

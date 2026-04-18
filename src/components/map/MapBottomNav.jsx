@@ -15,7 +15,7 @@ export default function MapBottomNav({ onAddPin }) {
         </button>
 
         <Link
-          to="/Descubrir"
+          to={createPageUrl("Descubrir")}
           className="flex-1 sm:flex-none flex flex-col items-center justify-center gap-1 py-2 px-4 rounded-lg text-stone-400 hover:text-white hover:bg-white/5 transition-colors"
         >
           <Flame className="w-5 h-5" />
@@ -23,7 +23,7 @@ export default function MapBottomNav({ onAddPin }) {
         </Link>
 
         <Link
-          to="/MisMatches"
+          to={createPageUrl("MisMatches")}
           className="flex-1 sm:flex-none flex flex-col items-center justify-center gap-1 py-2 px-4 rounded-lg text-stone-400 hover:text-white hover:bg-white/5 transition-colors"
         >
           <Heart className="w-5 h-5" />
@@ -31,7 +31,7 @@ export default function MapBottomNav({ onAddPin }) {
         </Link>
 
         <Link
-          to="/Profile"
+          to={createPageUrl("Profile")}
           className="flex-1 sm:flex-none flex flex-col items-center justify-center gap-1 py-2 px-4 rounded-lg text-stone-400 hover:text-white hover:bg-white/5 transition-colors"
         >
           <User className="w-5 h-5" />

@@ -140,7 +140,7 @@ export default function GlobalSearch({ user }) {
                       <button
                         key={q.id}
                         onClick={() => {
-                          navigate("/Descubrir");
+                          navigate(createPageUrl("Descubrir"));
                           setQuery("");
                           setOpen(false);
                         }}

@@ -87,6 +87,7 @@ const AppRoutes = () => (
         />
         <Route path={kebabAlias(path)} element={<Navigate to={lowerAlias(path)} replace />} />
         <Route path={`/${path}`} element={<Navigate to={lowerAlias(path)} replace />} />
+        <Route path={`/${path.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase()}`} element={<Navigate to={lowerAlias(path)} replace />} />
       </React.Fragment>
     ))}
     <Route path="/favorites" element={<ProtectedPage pageName="Favorites" Component={Favorites} />} />
@@ -104,6 +105,9 @@ const AppRoutes = () => (
     <Route path="/leaderboards" element={<LayoutWrapper currentPageName="Leaderboards"><Leaderboards /></LayoutWrapper>} />
     <Route path="/Leaderboards" element={<Navigate to="/leaderboards" replace />} />
     <Route path="/guides" element={<LayoutWrapper currentPageName="Guides"><Guides /></LayoutWrapper>} />
+    <Route path="/mis-matches" element={<Navigate to="/mismatches" replace />} />
+    <Route path="/crear-quedada" element={<Navigate to="/crearquedada" replace />} />
+    <Route path="/settings" element={<Navigate to="/settingspage" replace />} />
     <Route path="/Guides" element={<Navigate to="/guides" replace />} />
     <Route path="*" element={<PageNotFound />} />
   </Routes>

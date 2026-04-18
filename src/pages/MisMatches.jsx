@@ -38,44 +38,58 @@ function GroupInfoSheet({ group, open, onClose }) {
   if (!group || !open) return null;
   return (
     <div className="fixed inset-0 z-[1400] bg-black/55 backdrop-blur-sm" onClick={onClose}>
-      <div className="absolute inset-x-0 bottom-0 mx-auto max-w-lg rounded-t-[30px] border border-white/10 bg-[#101010] p-5 text-white shadow-2xl" onClick={(e) => e.stopPropagation()}>
-        <div className="mx-auto mb-4 h-1.5 w-12 rounded-full bg-white/15" />
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <div className="text-[11px] font-bold uppercase tracking-[0.16em] text-stone-500">Info del grupo</div>
-            <h3 className="mt-2 text-2xl font-black leading-tight">{group.titulo}</h3>
-            <div className="mt-2 text-sm text-stone-400">{group.pizzeria_nombre} · {group.place?.neighborhood}</div>
+      <div className="absolute inset-x-0 bottom-0 mx-auto max-w-lg overflow-hidden rounded-t-[30px] border border-white/10 bg-[#101010] text-white shadow-2xl" onClick={(e) => e.stopPropagation()}>
+        <div className="relative h-44 border-b border-white/10 bg-black">
+          {group.place?.cover_image_url ? <img src={group.place.cover_image_url} alt={group.pizzeria_nombre} className="h-full w-full object-cover" /> : <div className="flex h-full items-center justify-center text-6xl">🍕</div>}
+          <div className="absolute inset-0 bg-gradient-to-b from-black/15 via-black/35 to-black/85" />
+          <div className="absolute inset-x-0 bottom-0 p-5">
+            <div className="inline-flex rounded-full bg-[#efbf3a] px-3 py-1 text-xs font-black uppercase tracking-[0.14em] text-[#141414]">{formatPrice(group.place?.standard_slice_price)} slice</div>
+            <h3 className="mt-3 text-2xl font-black leading-tight text-white">{group.titulo}</h3>
+            <div className="mt-2 text-sm text-stone-200">{group.pizzeria_nombre}</div>
           </div>
-          <button onClick={onClose} className="grid h-10 w-10 place-items-center rounded-full border border-white/10 bg-white/[0.04] text-stone-300"><X className="h-4 w-4" /></button>
+          <button onClick={onClose} className="absolute right-4 top-4 grid h-10 w-10 place-items-center rounded-full border border-white/10 bg-black/40 text-stone-100"><X className="h-4 w-4" /></button>
         </div>
 
-        <div className="mt-5 grid grid-cols-2 gap-3">
-          <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
-            <div className="text-[11px] font-bold uppercase tracking-[0.14em] text-stone-500">Cuándo</div>
-            <div className="mt-2 text-sm font-bold">{formatHangoutDate(group.fecha_hora)}</div>
-          </div>
-          <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
-            <div className="text-[11px] font-bold uppercase tracking-[0.14em] text-stone-500">Slice</div>
-            <div className="mt-2 text-sm font-bold">{formatPrice(group.place?.standard_slice_price)}</div>
-          </div>
-        </div>
-
-        <div className="mt-4 rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-sm leading-7 text-stone-300">{group.descripcion}</div>
-
-        <div className="mt-4 flex flex-wrap gap-2">
-          {group.participants.map((person) => (
-            <div key={person.email} className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-stone-200">
-              <div className={`grid h-7 w-7 place-items-center rounded-full bg-gradient-to-br ${person.avatar_color || "from-stone-500 to-stone-700"} text-[11px] font-bold text-white`}>{avatar(person)}</div>
-              {person.full_name}
+        <div className="p-5">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+              <div className="text-[11px] font-bold uppercase tracking-[0.14em] text-stone-500">When</div>
+              <div className="mt-2 text-sm font-bold">{formatHangoutDate(group.fecha_hora)}</div>
             </div>
-          ))}
-        </div>
+            <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+              <div className="text-[11px] font-bold uppercase tracking-[0.14em] text-stone-500">People</div>
+              <div className="mt-2 text-sm font-bold">{group.participants.length} / {group.max_participantes}</div>
+            </div>
+            <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+              <div className="text-[11px] font-bold uppercase tracking-[0.14em] text-stone-500">Best slice</div>
+              <div className="mt-2 text-sm font-bold">{group.place?.best_known_slice || 'Optional'}</div>
+            </div>
+            <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+              <div className="text-[11px] font-bold uppercase tracking-[0.14em] text-stone-500">Address</div>
+              <div className="mt-2 line-clamp-2 text-sm font-bold">{group.place?.address || group.place?.neighborhood || 'Open in maps'}</div>
+            </div>
+          </div>
 
-        <div className="mt-5 grid gap-3 sm:grid-cols-2">
-          <a href={getGoogleMapsUrl(group.place)} target="_blank" rel="noreferrer" className="inline-flex h-12 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] text-sm font-bold text-white">
-            <MapPin className="mr-2 h-4 w-4" />Abrir en Google Maps
-          </a>
-          <button onClick={onClose} className="inline-flex h-12 items-center justify-center rounded-2xl bg-red-600 text-sm font-bold text-white">Volver al chat</button>
+          <div className="mt-4 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+            <div className="text-[11px] font-bold uppercase tracking-[0.14em] text-stone-500">Quick note</div>
+            <div className="mt-2 text-sm leading-7 text-stone-300">{group.descripcion || 'Simple pizza plan. Good spot, clear time, easy join.'}</div>
+          </div>
+
+          <div className="mt-4 flex flex-wrap gap-2">
+            {group.participants.map((person) => (
+              <div key={person.email} className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-stone-200">
+                <div className={`grid h-7 w-7 place-items-center rounded-full bg-gradient-to-br ${person.avatar_color || "from-stone-500 to-stone-700"} text-[11px] font-bold text-white`}>{avatar(person)}</div>
+                {person.full_name}
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-5 grid gap-3 sm:grid-cols-2">
+            <a href={getGoogleMapsUrl(group.place)} target="_blank" rel="noreferrer" className="inline-flex h-12 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] text-sm font-bold text-white">
+              <MapPin className="mr-2 h-4 w-4" />Open in Google Maps
+            </a>
+            <button onClick={onClose} className="inline-flex h-12 items-center justify-center rounded-2xl bg-red-600 text-sm font-bold text-white">Back to chat</button>
+          </div>
         </div>
       </div>
     </div>
@@ -235,7 +249,7 @@ export default function MisMatches() {
           <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-[28px] bg-white/[0.04] text-4xl">💬</div>
           <h1 className="mt-6 text-3xl font-black text-white">Todavía no te has unido a ningún grupo</h1>
           <p className="mt-3 text-sm leading-7 text-stone-400">Cuando digas que sí a un plan en Descubrir, entrarás automáticamente a su grupo y aparecerá aquí.</p>
-          <Link to="/Descubrir" className="mt-6 inline-flex h-12 w-full items-center justify-center rounded-2xl bg-red-600 text-sm font-bold text-white">Ir a descubrir</Link>
+          <Link to={createPageUrl("Descubrir")} className="mt-6 inline-flex h-12 w-full items-center justify-center rounded-2xl bg-red-600 text-sm font-bold text-white">Ir a descubrir</Link>
         </div>
       </div>
     );

@@ -215,28 +215,28 @@ export default function PlacePanel({ place, onClose, user }) {
                 {getValueLabel(place)}
               </span>
               {place.featured ? <Badge className="border-0 bg-white text-black">Featured</Badge> : null}
-              {place.category ? <Badge variant="outline" className="border-white/15 text-stone-300">{place.category}</Badge> : null}
+              {place.best_known_slice ? <Badge variant="outline" className="border-white/15 text-stone-300">Best slice · {place.best_known_slice}</Badge> : null}
             </div>
 
             <h2 className="text-[2rem] font-black leading-tight text-white">{place.name}</h2>
             <p className="mt-2 flex items-center gap-1.5 text-sm text-stone-400">
               <MapPin className="h-4 w-4" />
-              {place.neighborhood}{place.borough ? `, ${place.borough}` : ""}
+              {place.address || [place.neighborhood, place.borough].filter(Boolean).join(", ") || "Open in maps"}
             </p>
 
             <div className="mt-5 grid grid-cols-2 gap-3">
               <InfoCard label="Slice price" value={formatPrice(place.standard_slice_price)} icon={Coins} accent="text-stone-500" />
               <InfoCard label="Rating" value={avgRating} icon={Star} accent="text-red-300" />
               <InfoCard label="Open status" value={statusLabel} icon={Clock} accent={statusLabel === "Open now" ? "text-emerald-300" : "text-stone-500"} />
-              <InfoCard label="Price update" value={formatUpdateRecency(place.last_price_update)} icon={Sparkles} accent="text-stone-500" />
+              <InfoCard label="Best slice" value={place.best_known_slice || "Optional"} icon={Sparkles} accent="text-stone-500" />
             </div>
 
             <div className="mt-4 rounded-[24px] border border-red-500/15 bg-black/30 p-4">
               <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.16em] text-red-300">
                 <Sparkles className="h-3.5 w-3.5" />
-                Quick take
+                Quick note
               </div>
-              <p className="mt-2 text-sm leading-6 text-stone-300">{quickTake}</p>
+              <p className="mt-2 text-sm leading-6 text-stone-300">{place.description || quickTake}</p>
             </div>
 
             <div className="mt-4 grid gap-2 sm:grid-cols-2">
@@ -407,12 +407,12 @@ export default function PlacePanel({ place, onClose, user }) {
                   <p className="text-sm leading-6 text-stone-300">Pizzapolis treats the standard slice price as the main comparison point. This makes it easier to compare cheap spots, premium stops and places that only make sense for a planned visit.</p>
                 </div>
                 <div className="grid gap-3 sm:grid-cols-2">
-                  <a href={`/CrearQuedada?place=${place.id}`} className="block">
+                  <Link to={`${createPageUrl('CrearQuedada')}?place=${place.id}`} className="block">
                     <Button className="h-12 w-full rounded-2xl bg-red-600 text-white font-semibold hover:bg-red-500">
                       <Plus className="mr-2 h-4 w-4" />
                       Create hangout here
                     </Button>
-                  </a>
+                  </Link>
                   <a href={googleMapsUrl} target="_blank" rel="noreferrer" className="block">
                     <Button className="h-12 w-full rounded-2xl bg-white text-black font-semibold hover:bg-stone-200">
                     <Navigation className="mr-2 h-4 w-4" />

@@ -4,10 +4,10 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
-import PizzaMap from "@/components/map/PizzaMap";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import {
   ArrowRight,
   CalendarDays,
@@ -15,65 +15,52 @@ import {
   Clock3,
   MapPin,
   Search,
-  Sparkles,
   Users,
 } from "lucide-react";
-import {
-  formatHangoutDate,
-  formatPrice,
-  getValueLabel,
-  getValueTone,
-} from "@/lib/place-helpers";
+import { formatPrice } from "@/lib/place-helpers";
 
-const vibes = ["Quick bite", "Budget run", "Slice crawl", "Late night", "Chill group", "Premium try", "New people"];
 const sizeOptions = [2, 4, 6, 8, 10];
-const dayPresets = [
-  { key: "today", label: "Today", offset: 0 },
-  { key: "tomorrow", label: "Tomorrow", offset: 1 },
-  { key: "weekend", label: "Weekend", offset: 2 },
-];
-const timePresets = ["18:30", "20:00", "21:30"];
-const MAP_STYLE = "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png";
 
-function buildDateTime(dayOffset = 0, time = "20:00") {
-  const [hour, minute] = time.split(":").map(Number);
-  const d = new Date();
-  d.setDate(d.getDate() + dayOffset);
-  d.setHours(hour, minute, 0, 0);
-  return d.toISOString().slice(0, 16);
+function toLocalDateInput(value) {
+  const date = value ? new Date(value) : new Date();
+  return date.toISOString().slice(0, 10);
 }
 
-function getDayKey(dateTime) {
-  if (!dateTime) return "today";
-  const target = new Date(dateTime);
-  const today = new Date();
-  const tomorrow = new Date();
-  tomorrow.setDate(today.getDate() + 1);
-  const weekend = new Date();
-  weekend.setDate(today.getDate() + 2);
-  const sameDay = (a, b) => a.toDateString() === b.toDateString();
-  if (sameDay(target, today)) return "today";
-  if (sameDay(target, tomorrow)) return "tomorrow";
-  if (sameDay(target, weekend)) return "weekend";
-  return "today";
+function toLocalTimeInput(value) {
+  const date = value ? new Date(value) : new Date();
+  return `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
 }
 
-function getTimeValue(dateTime) {
-  if (!dateTime) return "20:00";
-  const d = new Date(dateTime);
-  return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+function combineDateTime(date, time) {
+  if (!date) return "";
+  return `${date}T${time || "20:00"}`;
 }
 
-function buildSuggestedTitle(place, vibe) {
+function defaultTitle(place, date, time) {
   if (!place) return "Pizza plan";
-  const base = vibe === "Budget run"
-    ? `${place.name} budget run`
-    : vibe === "Slice crawl"
-      ? `${place.name} slice crawl`
-      : vibe === "Late night"
-        ? `${place.name} late-night plan`
-        : `${place.name} hangout`;
-  return base;
+  const hourLabel = time || "20:00";
+  return `${place.name} · ${hourLabel}`;
+}
+
+function PlaceOption({ place, active, onClick }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`w-full rounded-[22px] border px-4 py-4 text-left transition ${active ? "border-red-500/50 bg-red-500/10" : "border-white/10 bg-white/[0.03] hover:bg-white/[0.05]"}`}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className="truncate text-base font-bold text-white">{place.name}</div>
+          <div className="mt-1 truncate text-sm text-stone-400">{place.neighborhood || place.address || "NYC"}</div>
+        </div>
+        <div className="shrink-0 rounded-full bg-[#efbf3a] px-3 py-1 text-xs font-black text-[#141414]">
+          {formatPrice(place.standard_slice_price || 0)}
+        </div>
+      </div>
+      {place.best_known_slice ? <div className="mt-3 text-sm text-stone-300">Best slice: {place.best_known_slice}</div> : null}
+    </button>
+  );
 }
 
 export default function CrearQuedada() {
@@ -86,36 +73,33 @@ export default function CrearQuedada() {
   const urlPlaceId = searchParams.get("place");
 
   const [search, setSearch] = useState("");
-  const [selectedDay, setSelectedDay] = useState("today");
-  const [selectedTime, setSelectedTime] = useState("20:00");
+  const [date, setDate] = useState(() => toLocalDateInput(new Date()));
+  const [time, setTime] = useState("20:00");
   const [form, setForm] = useState({
     pizzeria_id: "",
     titulo: "",
-    fecha_hora: buildDateTime(0, "20:00"),
-    max_participantes: 6,
-    vibe: "Quick bite",
-    descripcion: "One good slice, a relaxed vibe and space for new people to join.",
+    fecha_hora: combineDateTime(toLocalDateInput(new Date()), "20:00"),
+    max_participantes: 4,
+    descripcion: "",
     publicar: true,
   });
 
-
   const { data: places = [] } = useQuery({
     queryKey: ["create-plan-places-v4"],
-    queryFn: () => base44.entities.PizzaPlace.list("standard_slice_price", 100),
+    queryFn: () => base44.entities.PizzaPlace.list("standard_slice_price", 150),
   });
 
   useEffect(() => {
-    const day = dayPresets.find((item) => item.key === selectedDay)?.offset ?? 0;
-    setForm((prev) => ({ ...prev, fecha_hora: buildDateTime(day, selectedTime) }));
-  }, [selectedDay, selectedTime]);
+    setForm((prev) => ({ ...prev, fecha_hora: combineDateTime(date, time) }));
+  }, [date, time]);
 
   const filteredPlaces = useMemo(() => {
     const term = search.trim().toLowerCase();
-    if (!term) return places;
+    if (!term) return places.slice(0, 12);
     return places.filter((place) => {
-      const haystack = `${place.name} ${place.neighborhood} ${place.borough} ${place.address}`.toLowerCase();
+      const haystack = `${place.name} ${place.neighborhood || ""} ${place.address || ""} ${place.best_known_slice || ""}`.toLowerCase();
       return haystack.includes(term);
-    });
+    }).slice(0, 12);
   }, [places, search]);
 
   const selectedPlace = useMemo(() => {
@@ -133,30 +117,22 @@ export default function CrearQuedada() {
     setForm((prev) => ({
       ...prev,
       pizzeria_id: place.id,
-      titulo: prev.titulo || buildSuggestedTitle(place, prev.vibe),
+      titulo: prev.titulo || defaultTitle(place, date, time),
     }));
-  }, [places, form.pizzeria_id, urlPlaceId]);
+  }, [places, form.pizzeria_id, urlPlaceId, date, time]);
 
   useEffect(() => {
     if (!selectedPlace) return;
     setForm((prev) => ({
       ...prev,
       pizzeria_id: selectedPlace.id,
-      titulo: prev.titulo?.trim() ? prev.titulo : buildSuggestedTitle(selectedPlace, prev.vibe),
+      titulo: prev.titulo?.trim() ? prev.titulo : defaultTitle(selectedPlace, date, time),
     }));
-  }, [selectedPlace]);
-
-  useEffect(() => {
-    if (!selectedPlace) return;
-    setForm((prev) => ({
-      ...prev,
-      titulo: buildSuggestedTitle(selectedPlace, prev.vibe),
-    }));
-  }, [form.vibe, selectedPlace?.id]);
+  }, [selectedPlace, date, time]);
 
   if (!user) return <div className="min-h-[calc(100vh-64px)] bg-[#070707]" />;
 
-  const publishDisabled = !selectedPlace || !form.titulo.trim();
+  const publishDisabled = !selectedPlace || !date || !time || !form.titulo.trim();
 
   const submit = async (e) => {
     e?.preventDefault?.();
@@ -172,7 +148,7 @@ export default function CrearQuedada() {
       max_participantes: Number(form.max_participantes),
       descripcion: form.descripcion.trim(),
       estado: form.publicar ? "activa" : "borrador",
-      vibe: form.vibe,
+      vibe: "Pizza plan",
       foto_url: selectedPlace.cover_image_url || "",
     });
 
@@ -204,12 +180,12 @@ export default function CrearQuedada() {
 
   return (
     <div className="min-h-[calc(100vh-64px)] bg-[#050505] px-3 py-3 text-white sm:px-4">
-      <div className="mx-auto max-w-6xl overflow-hidden rounded-[32px] border border-white/10 bg-[linear-gradient(180deg,#0d0d0d_0%,#070707_100%)] shadow-[0_24px_80px_rgba(0,0,0,0.45)] lg:grid lg:grid-cols-[1.05fr,0.95fr]">
+      <div className="mx-auto max-w-6xl overflow-hidden rounded-[32px] border border-white/10 bg-[linear-gradient(180deg,#0d0d0d_0%,#070707_100%)] shadow-[0_24px_80px_rgba(0,0,0,0.45)] lg:grid lg:grid-cols-[1.08fr,0.92fr]">
         <div className="border-b border-white/8 p-4 lg:border-b-0 lg:border-r lg:p-5">
           <div className="mb-4 flex items-center justify-between gap-3">
             <div>
               <div className="text-[11px] font-bold uppercase tracking-[0.18em] text-red-300">Create plan</div>
-              <h1 className="mt-1 text-2xl font-black tracking-tight">Pick a spot. Set the vibe.</h1>
+              <h1 className="mt-1 text-2xl font-black tracking-tight">Make it feel instant</h1>
             </div>
             <Button disabled={publishDisabled} onClick={submit} className="h-11 rounded-2xl bg-red-600 px-4 font-bold text-white hover:bg-red-500 disabled:opacity-50">
               Publish
@@ -220,153 +196,118 @@ export default function CrearQuedada() {
             <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="rounded-[28px] border border-emerald-500/20 bg-emerald-500/10 p-7 text-center">
               <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-[24px] bg-emerald-500/20 text-emerald-300"><CheckCircle2 className="h-8 w-8" /></div>
               <div className="mt-5 text-2xl font-black">Plan published</div>
-              <p className="mt-3 text-sm leading-7 text-stone-300">Your plan is live, you joined the group automatically and other users can now discover it.</p>
+              <p className="mt-3 text-sm leading-7 text-stone-300">Your plan is live and you joined the group automatically.</p>
               <div className="mt-6 grid gap-3 sm:grid-cols-2">
-                <button type="button" onClick={() => navigate(`/MisMatches${createdId ? `?focus=${createdId}` : ""}`)} className="inline-flex h-12 items-center justify-center rounded-2xl bg-red-600 font-bold text-white">Go to my groups</button>
-                <button type="button" onClick={() => navigate(`/Descubrir${createdId ? `?focus=${createdId}` : ""}`)} className="inline-flex h-12 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] font-bold text-stone-200">See in discover</button>
+                <button type="button" onClick={() => navigate(`${createPageUrl("MisMatches")}${createdId ? `?focus=${createdId}` : ""}`)} className="inline-flex h-12 items-center justify-center rounded-2xl bg-red-600 font-bold text-white">Go to my groups</button>
+                <button type="button" onClick={() => navigate(`${createPageUrl("Descubrir")}${createdId ? `?focus=${createdId}` : ""}`)} className="inline-flex h-12 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] font-bold text-stone-200">See in discover</button>
               </div>
             </motion.div>
           ) : (
-            <>
-              <div className="relative overflow-hidden rounded-[28px] border border-white/10 bg-black/25">
-                <div className="absolute inset-x-0 top-0 z-[401] p-3">
-                  <div className="flex items-center gap-2 rounded-[22px] border border-white/10 bg-black/70 p-2 backdrop-blur-md">
-                    <div className="flex h-11 flex-1 items-center gap-2 rounded-[18px] bg-white/[0.05] px-3">
-                      <Search className="h-4 w-4 text-stone-400" />
-                      <input
-                        value={search}
-                        onChange={(e) => setSearch(e.target.value)}
-                        placeholder="Search spot or neighborhood"
-                        className="w-full bg-transparent text-sm text-white outline-none placeholder:text-stone-500"
-                      />
-                    </div>
-                    <div className="rounded-[18px] border border-white/10 bg-white/[0.05] px-3 py-2 text-[11px] font-bold uppercase tracking-[0.14em] text-stone-300">
-                      {filteredPlaces.length} spots
+            <form onSubmit={submit} className="space-y-5">
+              <section className="rounded-[28px] border border-white/10 bg-white/[0.03] p-4">
+                <div className="mb-3 text-xs font-bold uppercase tracking-[0.16em] text-stone-500">1 · Choose the spot</div>
+                <div className="relative mb-4">
+                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-stone-500" />
+                  <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search pizza spot" className="h-11 border-white/10 bg-white/[0.04] pl-10 text-white" />
+                </div>
+                <div className="grid gap-3 max-h-[360px] overflow-y-auto pr-1">
+                  {filteredPlaces.map((place) => (
+                    <PlaceOption key={place.id} place={place} active={selectedPlace?.id === place.id} onClick={() => setForm((prev) => ({ ...prev, pizzeria_id: place.id, titulo: prev.titulo?.trim() ? prev.titulo : defaultTitle(place, date, time) }))} />
+                  ))}
+                </div>
+              </section>
+
+              <section className="rounded-[28px] border border-white/10 bg-white/[0.03] p-4">
+                <div className="mb-3 text-xs font-bold uppercase tracking-[0.16em] text-stone-500">2 · When</div>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div>
+                    <Label className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-stone-500"><CalendarDays className="h-3.5 w-3.5" />Date *</Label>
+                    <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="h-11 border-white/10 bg-white/[0.04] text-white" />
+                  </div>
+                  <div>
+                    <Label className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-stone-500"><Clock3 className="h-3.5 w-3.5" />Time *</Label>
+                    <Input type="time" value={time} onChange={(e) => setTime(e.target.value)} className="h-11 border-white/10 bg-white/[0.04] text-white" />
+                  </div>
+                </div>
+              </section>
+
+              <section className="rounded-[28px] border border-white/10 bg-white/[0.03] p-4">
+                <div className="mb-3 text-xs font-bold uppercase tracking-[0.16em] text-stone-500">3 · Plan details</div>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div>
+                    <Label className="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-stone-500">Title *</Label>
+                    <Input value={form.titulo} onChange={(e) => setForm((prev) => ({ ...prev, titulo: e.target.value }))} placeholder="Joe's Pizza · 20:00" className="h-11 border-white/10 bg-white/[0.04] text-white" />
+                  </div>
+                  <div>
+                    <Label className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-stone-500"><Users className="h-3.5 w-3.5" />Max people</Label>
+                    <div className="grid grid-cols-5 gap-2">
+                      {sizeOptions.map((option) => (
+                        <button
+                          key={option}
+                          type="button"
+                          onClick={() => setForm((prev) => ({ ...prev, max_participantes: option }))}
+                          className={`h-11 rounded-2xl border text-sm font-black transition ${Number(form.max_participantes) === option ? "border-red-400 bg-red-500/15 text-white" : "border-white/10 bg-white/[0.04] text-stone-300"}`}
+                        >
+                          {option}
+                        </button>
+                      ))}
                     </div>
                   </div>
                 </div>
-
-                <div className="h-[260px] pt-[70px]">
-                  <PizzaMap
-                    places={filteredPlaces}
-                    selectedPlace={selectedPlace}
-                    onSelectPlace={(place) => setForm((prev) => ({ ...prev, pizzeria_id: place.id }))}
-                    controlsHidden
-                    mapStyleUrl={MAP_STYLE}
-                  />
+                <div className="mt-4">
+                  <Label className="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-stone-500">Quick note</Label>
+                  <Textarea value={form.descripcion} onChange={(e) => setForm((prev) => ({ ...prev, descripcion: e.target.value }))} className="min-h-[96px] border-white/10 bg-white/[0.04] text-white" placeholder="Casual slice stop, anyone welcome, easy plan after work..." />
                 </div>
-
-                {selectedPlace ? (
-                  <div className="pointer-events-none absolute inset-x-3 bottom-3 z-[401]">
-                    <div className="pointer-events-auto rounded-[24px] border border-white/10 bg-[#0c0c0c]/95 p-4 shadow-[0_16px_46px_rgba(0,0,0,0.5)] backdrop-blur-xl">
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <div className="truncate text-lg font-black text-white">{selectedPlace.name}</div>
-                          <div className="mt-1 flex items-center gap-2 text-sm text-stone-400">
-                            <MapPin className="h-3.5 w-3.5" />
-                            <span className="truncate">{selectedPlace.neighborhood}</span>
-                          </div>
-                        </div>
-                        <div className="rounded-full bg-white px-3 py-1 text-sm font-black text-black">{formatPrice(selectedPlace.standard_slice_price)}</div>
-                      </div>
-                      <div className="mt-3 flex items-center gap-2 overflow-x-auto">
-                        <span className={`shrink-0 rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.14em] ${getValueTone(selectedPlace)}`}>{getValueLabel(selectedPlace)}</span>
-                        <span className="shrink-0 rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-stone-300">{selectedPlace.best_known_slice || "Cheese slice"}</span>
-                      </div>
-                    </div>
-                  </div>
-                ) : null}
-              </div>
-
-              <div className="mt-4 grid gap-3">
-                <div className="rounded-[24px] border border-white/10 bg-white/[0.03] p-4">
-                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                    <div>
-                      <div className="mb-2 flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.14em] text-stone-500"><CalendarDays className="h-3.5 w-3.5" />Day</div>
-                      <div className="flex flex-wrap gap-2">
-                        {dayPresets.map((day) => (
-                          <button key={day.key} type="button" onClick={() => setSelectedDay(day.key)} className={`rounded-full px-3 py-2 text-xs font-semibold ${selectedDay === day.key ? "bg-red-600 text-white" : "border border-white/10 bg-white/[0.04] text-stone-300"}`}>{day.label}</button>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div>
-                      <div className="mb-2 flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.14em] text-stone-500"><Clock3 className="h-3.5 w-3.5" />Time</div>
-                      <div className="flex flex-wrap gap-2">
-                        {timePresets.map((time) => (
-                          <button key={time} type="button" onClick={() => setSelectedTime(time)} className={`rounded-full px-3 py-2 text-xs font-semibold ${selectedTime === time ? "bg-red-600 text-white" : "border border-white/10 bg-white/[0.04] text-stone-300"}`}>{time}</button>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div>
-                      <div className="mb-2 flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.14em] text-stone-500"><Users className="h-3.5 w-3.5" />Group size</div>
-                      <div className="flex flex-wrap gap-2">
-                        {sizeOptions.map((size) => (
-                          <button key={size} type="button" onClick={() => setForm((prev) => ({ ...prev, max_participantes: size }))} className={`rounded-full px-3 py-2 text-xs font-semibold ${Number(form.max_participantes) === size ? "bg-red-600 text-white" : "border border-white/10 bg-white/[0.04] text-stone-300"}`}>{size}</button>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div>
-                      <div className="mb-2 flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.14em] text-stone-500"><Sparkles className="h-3.5 w-3.5" />Vibe</div>
-                      <div className="flex flex-wrap gap-2">
-                        {vibes.slice(0, 4).map((vibe) => (
-                          <button key={vibe} type="button" onClick={() => setForm((prev) => ({ ...prev, vibe }))} className={`rounded-full px-3 py-2 text-xs font-semibold ${form.vibe === vibe ? "bg-red-600 text-white" : "border border-white/10 bg-white/[0.04] text-stone-300"}`}>{vibe}</button>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="rounded-[24px] border border-white/10 bg-white/[0.03] p-4">
-                  <div className="mb-2 text-[11px] font-bold uppercase tracking-[0.14em] text-stone-500">Short note</div>
-                  <Textarea
-                    value={form.descripcion}
-                    onChange={(e) => setForm((prev) => ({ ...prev, descripcion: e.target.value }))}
-                    className="min-h-[88px] rounded-[20px] border-white/10 bg-black/25 text-white placeholder:text-stone-500"
-                    placeholder="One or two slices, relaxed vibe, easy plan."
-                  />
-                </div>
-              </div>
-            </>
+              </section>
+            </form>
           )}
         </div>
 
-        <div className="p-4 lg:p-5">
-          <div className="inline-flex items-center rounded-full border border-red-500/20 bg-red-500/10 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.16em] text-red-300">
-            <Sparkles className="mr-2 h-3.5 w-3.5" />Preview
-          </div>
-          {selectedPlace ? (
-            <div className="mt-4 overflow-hidden rounded-[28px] border border-white/10 bg-[radial-gradient(circle_at_top,rgba(239,68,68,0.18),transparent_34%),linear-gradient(180deg,#161616_0%,#090909_100%)] p-4 shadow-[0_26px_70px_rgba(0,0,0,0.45)]">
-              <div className="flex flex-wrap gap-2">
-                <span className="rounded-full bg-violet-500/20 px-3 py-1 text-[11px] font-bold text-violet-200">{formatHangoutDate(form.fecha_hora)}</span>
-                <span className="rounded-full bg-emerald-500/20 px-3 py-1 text-[11px] font-bold text-emerald-200">{form.max_participantes} spots max</span>
-              </div>
-              <div className="mt-4 rounded-[24px] border border-white/10 bg-black/30 p-4">
-                <div className="flex items-center justify-between gap-3">
-                  <div className="inline-flex rounded-full bg-white/[0.08] px-3 py-1 text-[11px] font-bold uppercase tracking-[0.14em] text-stone-200">{form.vibe}</div>
-                  <div className="rounded-full bg-white px-3 py-1 text-sm font-black text-black">{formatPrice(selectedPlace.standard_slice_price)}</div>
+        <aside className="p-4 lg:p-5">
+          <div className="rounded-[30px] border border-white/10 bg-[#121212] p-5 shadow-[0_20px_50px_rgba(0,0,0,0.3)]">
+            <div className="text-[11px] font-bold uppercase tracking-[0.18em] text-red-300">Preview</div>
+            <div className="mt-4 overflow-hidden rounded-[26px] border border-white/10 bg-[#171717]">
+              <div className="relative h-52 border-b border-white/10 bg-black">
+                {selectedPlace?.cover_image_url ? (
+                  <img src={selectedPlace.cover_image_url} alt={selectedPlace.name} className="h-full w-full object-cover" />
+                ) : (
+                  <div className="flex h-full items-center justify-center text-6xl">🍕</div>
+                )}
+                <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-black/70" />
+                <div className="absolute left-4 bottom-4 rounded-full bg-[#efbf3a] px-3 py-1 text-xs font-black text-[#141414]">
+                  {selectedPlace ? formatPrice(selectedPlace.standard_slice_price || 0) : "$0.00"}
                 </div>
-                <h2 className="mt-4 text-3xl font-black leading-none tracking-tight text-white">{form.titulo || buildSuggestedTitle(selectedPlace, form.vibe)}</h2>
-                <div className="mt-3 flex items-center gap-2 text-sm text-stone-300"><MapPin className="h-4 w-4 text-red-300" />{selectedPlace.name} · {selectedPlace.neighborhood}</div>
-                <p className="mt-4 text-sm leading-7 text-stone-200">{form.descripcion || "Easy pizza plan with a clear spot and a good reason to join."}</p>
-                <div className="mt-4 flex items-center justify-between rounded-[20px] border border-white/10 bg-black/25 px-4 py-3">
-                  <div>
-                    <div className="text-[10px] font-bold uppercase tracking-[0.16em] text-stone-500">Created by</div>
-                    <div className="mt-1 text-sm font-semibold text-white">{user.full_name}</div>
+              </div>
+
+              <div className="p-5">
+                <div className="text-[11px] font-black uppercase tracking-[0.18em] text-stone-500">{date || "Date"} · {time || "Time"}</div>
+                <h2 className="mt-3 text-3xl font-black leading-none text-white">{form.titulo?.trim() || (selectedPlace ? defaultTitle(selectedPlace, date, time) : "Pizza plan")}</h2>
+                <div className="mt-4 flex items-start gap-3 rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-4">
+                  <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-red-400" />
+                  <div className="min-w-0">
+                    <div className="truncate font-semibold text-white">{selectedPlace?.name || "Choose a place"}</div>
+                    <div className="truncate text-sm text-stone-400">{selectedPlace?.neighborhood || selectedPlace?.address || "Pick the spot first"}</div>
                   </div>
-                  <div className="flex items-center gap-2 text-sm text-stone-300"><Users className="h-4 w-4" />{form.max_participantes} going max</div>
                 </div>
-              </div>
-              <div className="mt-4 flex gap-3">
-                <Button disabled={publishDisabled} onClick={submit} className="h-12 flex-1 rounded-2xl bg-red-600 font-bold text-white hover:bg-red-500 disabled:opacity-50">
-                  Publish plan <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
+                <div className="mt-4 grid grid-cols-2 gap-3">
+                  <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-4">
+                    <div className="text-[11px] font-bold uppercase tracking-[0.16em] text-stone-500">People</div>
+                    <div className="mt-1 text-xl font-black text-white">{form.max_participantes}</div>
+                  </div>
+                  <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-4">
+                    <div className="text-[11px] font-bold uppercase tracking-[0.16em] text-stone-500">Best slice</div>
+                    <div className="mt-1 truncate text-base font-black text-white">{selectedPlace?.best_known_slice || "Optional"}</div>
+                  </div>
+                </div>
+                <p className="mt-4 text-sm leading-7 text-stone-300">{form.descripcion?.trim() || "Short, simple plan. Pick the place, set the time and let people join fast."}</p>
+                <button type="button" onClick={submit} disabled={publishDisabled} className="mt-6 inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-red-600 font-bold text-white disabled:opacity-50">
+                  Create plan
+                  <ArrowRight className="h-4 w-4" />
+                </button>
               </div>
             </div>
-          ) : null}
-        </div>
+          </div>
+        </aside>
       </div>
     </div>
   );

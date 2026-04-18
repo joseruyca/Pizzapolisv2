@@ -1,26 +1,14 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
-import { MapContainer, Marker, TileLayer, useMapEvents } from "react-leaflet";
+import { MapContainer, Marker, TileLayer, useMapEvents, useMap } from "react-leaflet";
 import L from "leaflet";
-import { CheckCircle, Loader2, MapPin, Search, X } from "lucide-react";
+import { CheckCircle, ImagePlus, Loader2, MapPin, Search, X } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-
-const BOROUGHS = ["Manhattan", "Brooklyn", "Queens", "Bronx", "Staten Island"];
-const CATEGORIES = [
-  "Classic NY Slice",
-  "Neapolitan",
-  "Square/Sicilian",
-  "Detroit Style",
-  "Grandma Style",
-  "Late Night",
-  "Artisan",
-];
 
 const markerIcon = L.icon({
   iconUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png",
@@ -28,9 +16,61 @@ const markerIcon = L.icon({
   iconAnchor: [12, 41],
 });
 
+const initialForm = {
+  name: "",
+  neighborhood: "NYC",
+  borough: "",
+  address: "",
+  standard_slice_price: "3.50",
+  best_known_slice: "",
+  description: "",
+  photo_url: "",
+  latitude: 40.7128,
+  longitude: -74.006,
+};
+
+function readFileAsDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(typeof reader.result === "string" ? reader.result : "");
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+function inferPlaceMeta(item) {
+  const address = item?.address || {};
+  const rawDisplay = item?.display_name || "";
+  const parts = rawDisplay.split(",").map((part) => part.trim()).filter(Boolean);
+  const borough =
+    address.borough ||
+    parts.find((part) => ["Manhattan", "Brooklyn", "Queens", "Bronx", "Staten Island"].includes(part)) ||
+    "";
+
+  const neighborhood =
+    address.neighbourhood ||
+    address.suburb ||
+    address.city_district ||
+    address.quarter ||
+    address.hamlet ||
+    address.city ||
+    parts[0] ||
+    "NYC";
+
+  return { neighborhood, borough };
+}
+
+function MapViewport({ position }) {
+  const map = useMap();
+  useEffect(() => {
+    map.setView(position, map.getZoom(), { animate: true });
+    const id = window.setTimeout(() => map.invalidateSize(), 120);
+    return () => window.clearTimeout(id);
+  }, [map, position]);
+  return null;
+}
+
 function MapPicker({ value, onChange }) {
-  const [address, setAddress] = useState("");
-  const [searching, setSearching] = useState(false);
   const position = useMemo(() => [value.latitude, value.longitude], [value.latitude, value.longitude]);
 
   function MapEvents() {
@@ -40,69 +80,97 @@ function MapPicker({ value, onChange }) {
     return null;
   }
 
-  async function handleSearch(nextValue) {
-    setAddress(nextValue);
-    if (nextValue.trim().length < 3) return;
-    setSearching(true);
-    try {
-      const response = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(`${nextValue}, New York City`)}&format=json&limit=1`);
-      const [first] = await response.json();
-      if (first) onChange({ latitude: Number(first.lat), longitude: Number(first.lon) });
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setSearching(false);
-    }
-  }
-
   return (
     <div className="space-y-3">
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-stone-500" />
-        <Input
-          value={address}
-          onChange={(event) => handleSearch(event.target.value)}
-          placeholder="Buscar dirección en NYC"
-          className="h-11 border-white/10 bg-white/[0.04] pl-10 text-white"
-        />
-        {searching ? <Loader2 className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-red-400" /> : null}
-      </div>
-
-      <div className="h-60 overflow-hidden rounded-2xl border border-white/10">
-        <MapContainer center={position} zoom={13} className="h-full w-full">
-          <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution="" />
+      <div className="h-64 overflow-hidden rounded-[24px] border border-white/10 bg-black/20">
+        <MapContainer center={position} zoom={14} className="h-full w-full">
+          <TileLayer url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png" attribution="" />
           <Marker position={position} icon={markerIcon} />
+          <MapViewport position={position} />
           <MapEvents />
         </MapContainer>
       </div>
-      <p className="text-xs text-stone-500">Pulsa en el mapa o busca una dirección para fijar el spot.</p>
+      <p className="text-xs leading-5 text-stone-500">Search for the street first, then tap the map if you want to fine-tune the pin.</p>
     </div>
   );
 }
-
-const initialForm = {
-  name: "",
-  neighborhood: "",
-  borough: "",
-  category: "Classic NY Slice",
-  address: "",
-  price_range: "$",
-  standard_slice_price: "3.50",
-  best_known_slice: "Cheese slice",
-  description: "",
-  latitude: 40.7128,
-  longitude: -74.006,
-};
 
 export default function AddPinModal({ open, onClose, user }) {
   const queryClient = useQueryClient();
   const [form, setForm] = useState(initialForm);
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
+  const [locationQuery, setLocationQuery] = useState("");
+  const [searching, setSearching] = useState(false);
+  const [suggestions, setSuggestions] = useState([]);
+  const [photoName, setPhotoName] = useState("");
+
+  useEffect(() => {
+    if (!open) return;
+    const query = locationQuery.trim();
+    if (query.length < 3) {
+      setSuggestions([]);
+      setSearching(false);
+      return;
+    }
+
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(async () => {
+      setSearching(true);
+      try {
+        const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1&limit=5&countrycodes=us&q=${encodeURIComponent(`${query}, New York City`)}`;
+        const response = await fetch(url, {
+          signal: controller.signal,
+          headers: { Accept: "application/json" },
+        });
+        const results = await response.json();
+        setSuggestions(Array.isArray(results) ? results : []);
+      } catch (error) {
+        if (error?.name !== "AbortError") {
+          console.error(error);
+          setSuggestions([]);
+        }
+      } finally {
+        setSearching(false);
+      }
+    }, 280);
+
+    return () => {
+      controller.abort();
+      window.clearTimeout(timeoutId);
+    };
+  }, [locationQuery, open]);
 
   if (!open) return null;
 
   const update = (key, value) => setForm((current) => ({ ...current, [key]: value }));
+
+  function handleSelectSuggestion(item) {
+    const meta = inferPlaceMeta(item);
+    const addressLabel = item.display_name || "";
+    setForm((current) => ({
+      ...current,
+      address: addressLabel,
+      latitude: Number(item.lat),
+      longitude: Number(item.lon),
+      neighborhood: meta.neighborhood || current.neighborhood || "NYC",
+      borough: meta.borough || current.borough || "",
+    }));
+    setLocationQuery(addressLabel);
+    setSuggestions([]);
+  }
+
+  async function handlePhotoChange(event) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    try {
+      const dataUrl = await readFileAsDataUrl(file);
+      setPhotoName(file.name);
+      setForm((current) => ({ ...current, photo_url: dataUrl }));
+    } catch (error) {
+      console.error(error);
+    }
+  }
 
   async function handleSubmit(event) {
     event.preventDefault();
@@ -111,13 +179,13 @@ export default function AddPinModal({ open, onClose, user }) {
     try {
       await base44.entities.PizzaPlace.create({
         name: form.name.trim(),
-        neighborhood: form.neighborhood.trim(),
-        borough: form.borough,
-        category: form.category,
-        address: form.address.trim(),
-        price_range: form.price_range,
+        neighborhood: form.neighborhood.trim() || "NYC",
+        borough: form.borough || "",
+        category: "Classic NY Slice",
+        address: form.address.trim() || locationQuery.trim(),
+        price_range: "$",
         standard_slice_price: Number(form.standard_slice_price || 0),
-        best_known_slice: form.best_known_slice.trim() || "Cheese slice",
+        best_known_slice: form.best_known_slice.trim() || "",
         description: form.description.trim(),
         latitude: Number(form.latitude),
         longitude: Number(form.longitude),
@@ -125,7 +193,7 @@ export default function AddPinModal({ open, onClose, user }) {
         ratings_count: 0,
         featured: false,
         status: "active",
-        cover_image_url: "",
+        cover_image_url: form.photo_url.trim(),
         hours: "",
         last_price_update: new Date().toISOString().slice(0, 10),
         submitted_by: user.email,
@@ -143,8 +211,11 @@ export default function AddPinModal({ open, onClose, user }) {
 
   function handleClose() {
     setForm(initialForm);
+    setLocationQuery("");
+    setSuggestions([]);
     setDone(false);
     setSubmitting(false);
+    setPhotoName("");
     onClose();
   }
 
@@ -170,99 +241,110 @@ export default function AddPinModal({ open, onClose, user }) {
               <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-[24px] bg-emerald-500/15 text-emerald-300">
                 <CheckCircle className="h-8 w-8" />
               </div>
-              <h3 className="text-2xl font-black text-white">Spot publicado</h3>
-              <p className="mt-3 text-sm leading-7 text-stone-400">Ya se ha añadido al mapa con el precio del slice y aparecerá en comparar spots.</p>
-              <Button onClick={handleClose} className="mt-6 h-11 w-full rounded-2xl bg-red-600 text-white hover:bg-red-500">Cerrar</Button>
+              <h3 className="text-2xl font-black text-white">Spot published</h3>
+              <p className="mt-3 text-sm leading-7 text-stone-400">The pin is now on the map with the slice price and the short note you added.</p>
+              <Button onClick={handleClose} className="mt-6 h-11 w-full rounded-2xl bg-red-600 text-white hover:bg-red-500">Close</Button>
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="p-6">
               <div className="mb-6 flex items-start justify-between gap-4">
                 <div>
-                  <div className="text-[11px] font-bold uppercase tracking-[0.16em] text-red-300">Mapa colaborativo</div>
-                  <h3 className="mt-1 text-2xl font-black text-white">Añadir spot</h3>
-                  <p className="mt-1 text-sm text-stone-500">Sube un pin con precio real del slice para que otros puedan verlo en el mapa.</p>
+                  <div className="text-[11px] font-bold uppercase tracking-[0.16em] text-red-300">Add spot</div>
+                  <h3 className="mt-1 text-2xl font-black text-white">Fast pin, real slice price</h3>
+                  <p className="mt-1 text-sm text-stone-500">Keep it quick: location, name, price and a small extra if you have it.</p>
                 </div>
                 <button type="button" onClick={handleClose} className="grid h-10 w-10 place-items-center rounded-full border border-white/10 bg-white/[0.04] text-stone-300">
                   <X className="h-4 w-4" />
                 </button>
               </div>
 
-              <div className="space-y-4">
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div>
-                    <Label className="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-stone-500">Nombre del sitio *</Label>
-                    <Input required value={form.name} onChange={(e) => update("name", e.target.value)} className="h-11 border-white/10 bg-white/[0.04] text-white" />
+              <div className="space-y-5">
+                <section className="rounded-[24px] border border-white/10 bg-white/[0.03] p-4">
+                  <div className="mb-3 text-xs font-bold uppercase tracking-[0.16em] text-stone-500">1 · Find the place</div>
+                  <div className="relative">
+                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-stone-500" />
+                    <Input
+                      value={locationQuery}
+                      onChange={(event) => setLocationQuery(event.target.value)}
+                      placeholder="Search street or pizza place"
+                      className="h-11 border-white/10 bg-white/[0.04] pl-10 text-white"
+                    />
+                    {searching ? <Loader2 className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-red-400" /> : null}
                   </div>
-                  <div>
-                    <Label className="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-stone-500">Barrio *</Label>
-                    <Input required value={form.neighborhood} onChange={(e) => update("neighborhood", e.target.value)} className="h-11 border-white/10 bg-white/[0.04] text-white" />
+
+                  {suggestions.length > 0 ? (
+                    <div className="mt-3 overflow-hidden rounded-2xl border border-white/10 bg-[#171717]">
+                      {suggestions.map((item) => (
+                        <button
+                          key={`${item.place_id}-${item.lat}-${item.lon}`}
+                          type="button"
+                          onClick={() => handleSelectSuggestion(item)}
+                          className="flex w-full items-start gap-3 border-b border-white/8 px-3 py-3 text-left transition last:border-b-0 hover:bg-white/[0.04]"
+                        >
+                          <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-red-400" />
+                          <div className="min-w-0">
+                            <div className="line-clamp-1 text-sm font-semibold text-white">{item.display_name}</div>
+                            <div className="mt-1 text-xs text-stone-500">Tap to use this address</div>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  ) : null}
+
+                  <div className="mt-3 rounded-2xl border border-white/10 bg-black/20 px-3 py-3 text-sm text-stone-300">
+                    {form.address || "Pick a suggestion to lock the address, then adjust the pin if needed."}
                   </div>
-                </div>
 
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div>
-                    <Label className="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-stone-500">Borough *</Label>
-                    <Select value={form.borough} onValueChange={(value) => update("borough", value)}>
-                      <SelectTrigger className="h-11 border-white/10 bg-white/[0.04] text-white"><SelectValue placeholder="Selecciona" /></SelectTrigger>
-                      <SelectContent className="border-white/10 bg-[#1a1a1a] text-white">
-                        {BOROUGHS.map((borough) => <SelectItem key={borough} value={borough}>{borough}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
+                  <div className="mt-4">
+                    <MapPicker value={form} onChange={(coords) => setForm((current) => ({ ...current, ...coords }))} />
                   </div>
-                  <div>
-                    <Label className="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-stone-500">Categoría</Label>
-                    <Select value={form.category} onValueChange={(value) => update("category", value)}>
-                      <SelectTrigger className="h-11 border-white/10 bg-white/[0.04] text-white"><SelectValue /></SelectTrigger>
-                      <SelectContent className="border-white/10 bg-[#1a1a1a] text-white">
-                        {CATEGORIES.map((category) => <SelectItem key={category} value={category}>{category}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
+                </section>
+
+                <section className="rounded-[24px] border border-white/10 bg-white/[0.03] p-4">
+                  <div className="mb-3 text-xs font-bold uppercase tracking-[0.16em] text-stone-500">2 · Spot details</div>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div>
+                      <Label className="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-stone-500">Spot name *</Label>
+                      <Input required value={form.name} onChange={(e) => update("name", e.target.value)} placeholder="Joe's Pizza" className="h-11 border-white/10 bg-white/[0.04] text-white" />
+                    </div>
+                    <div>
+                      <Label className="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-stone-500">Slice price *</Label>
+                      <Input required type="number" min="0.5" step="0.01" value={form.standard_slice_price} onChange={(e) => update("standard_slice_price", e.target.value)} placeholder="3.50" className="h-11 border-white/10 bg-white/[0.04] text-white" />
+                    </div>
                   </div>
-                </div>
 
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div>
-                    <Label className="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-stone-500">Precio del slice *</Label>
-                    <Input required type="number" min="0.5" step="0.01" value={form.standard_slice_price} onChange={(e) => update("standard_slice_price", e.target.value)} className="h-11 border-white/10 bg-white/[0.04] text-white" />
+                  <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                    <div>
+                      <Label className="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-stone-500">Best known slice</Label>
+                      <Input value={form.best_known_slice} onChange={(e) => update("best_known_slice", e.target.value)} placeholder="Vodka slice" className="h-11 border-white/10 bg-white/[0.04] text-white" />
+                    </div>
+                    <div>
+                      <Label className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-stone-500"><ImagePlus className="h-3.5 w-3.5" />Photo</Label>
+                      <label className="flex h-11 cursor-pointer items-center justify-between rounded-2xl border border-dashed border-white/10 bg-white/[0.04] px-3 text-sm text-stone-300 transition hover:bg-white/[0.06]">
+                        <span className="truncate">{photoName || "Choose from gallery"}</span>
+                        <span className="shrink-0 rounded-full bg-white/10 px-2 py-1 text-[11px] font-bold text-white">Browse</span>
+                        <input type="file" accept="image/*" onChange={handlePhotoChange} className="hidden" />
+                      </label>
+                      {form.photo_url ? (
+                        <div className="mt-3 overflow-hidden rounded-2xl border border-white/10 bg-black/30">
+                          <img src={form.photo_url} alt="Selected spot" className="h-28 w-full object-cover" />
+                        </div>
+                      ) : null}
+                    </div>
                   </div>
-                  <div>
-                    <Label className="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-stone-500">Rango de precio</Label>
-                    <Select value={form.price_range} onValueChange={(value) => update("price_range", value)}>
-                      <SelectTrigger className="h-11 border-white/10 bg-white/[0.04] text-white"><SelectValue /></SelectTrigger>
-                      <SelectContent className="border-white/10 bg-[#1a1a1a] text-white">
-                        <SelectItem value="$">$ · Budget</SelectItem>
-                        <SelectItem value="$$">$$ · Mid-range</SelectItem>
-                        <SelectItem value="$$$">$$$ · Premium</SelectItem>
-                      </SelectContent>
-                    </Select>
+
+                  <div className="mt-4">
+                    <Label className="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-stone-500">Quick note</Label>
+                    <Textarea value={form.description} onChange={(e) => update("description", e.target.value)} className="min-h-[96px] border-white/10 bg-white/[0.04] text-white" placeholder="Best value late at night, fast service, crispy base..." maxLength={160} />
+                    <div className="mt-2 text-right text-[11px] font-medium text-stone-500">{form.description.length}/160</div>
                   </div>
-                </div>
-
-                <div>
-                  <Label className="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-stone-500">Mejor slice conocido</Label>
-                  <Input value={form.best_known_slice} onChange={(e) => update("best_known_slice", e.target.value)} className="h-11 border-white/10 bg-white/[0.04] text-white" />
-                </div>
-
-                <div>
-                  <Label className="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-stone-500">Dirección</Label>
-                  <Input value={form.address} onChange={(e) => update("address", e.target.value)} className="h-11 border-white/10 bg-white/[0.04] text-white" />
-                </div>
-
-                <div>
-                  <Label className="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-stone-500">Comentario rápido</Label>
-                  <Textarea value={form.description} onChange={(e) => update("description", e.target.value)} className="min-h-[96px] border-white/10 bg-white/[0.04] text-white" placeholder="Qué merece la pena, si compensa por precio, ambiente, cola..." />
-                </div>
-
-                <div>
-                  <Label className="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-stone-500">Ubicación</Label>
-                  <MapPicker value={form} onChange={(coords) => setForm((current) => ({ ...current, ...coords }))} />
-                </div>
+                </section>
               </div>
 
               <div className="mt-6 flex gap-3">
-                <Button type="button" variant="outline" onClick={handleClose} className="h-11 flex-1 rounded-2xl border-white/10 bg-white/[0.04] text-white hover:bg-white/[0.08]">Cancelar</Button>
+                <Button type="button" variant="outline" onClick={handleClose} className="h-11 flex-1 rounded-2xl border-white/10 bg-white/[0.04] text-white hover:bg-white/[0.08]">Cancel</Button>
                 <Button type="submit" disabled={submitting} className="h-11 flex-1 rounded-2xl bg-red-600 text-white hover:bg-red-500">
-                  {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <MapPin className="mr-2 h-4 w-4" />}Publicar spot
+                  {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <MapPin className="mr-2 h-4 w-4" />}Publish spot
                 </Button>
               </div>
             </form>
