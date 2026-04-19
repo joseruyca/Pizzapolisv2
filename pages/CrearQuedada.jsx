@@ -31,11 +31,14 @@ async function resolveSpotPhoto(value) {
 }
 
 function PlaceOption({ place, active, onClick }) {
+  const clickable = typeof onClick === "function";
+
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`w-full rounded-[22px] border px-4 py-4 text-left transition ${active ? "border-red-500/50 bg-red-500/10" : "border-white/10 bg-white/[0.03] hover:bg-white/[0.05]"}`}
+      disabled={!clickable}
+      className={`w-full rounded-[22px] border px-4 py-4 text-left transition ${active ? "border-red-500/50 bg-red-500/10" : "border-white/10 bg-white/[0.03] hover:bg-white/[0.05]"} ${clickable ? "" : "cursor-default"}`}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
@@ -87,21 +90,17 @@ export default function CrearQuedada() {
     },
   });
 
-  const filteredPlaces = useMemo(() => {
-    const term = search.trim().toLowerCase();
-    if (!term) return places.slice(0, 8);
-    return places.filter((place) => `${place.name} ${place.address || ""} ${place.best_slice || ""}`.toLowerCase().includes(term)).slice(0, 12);
-  }, [places, search]);
-
   const autocompletePlaces = useMemo(() => {
     const term = search.trim().toLowerCase();
     if (!term) return [];
-    return places.filter((place) => `${place.name} ${place.address || ""} ${place.best_slice || ""}`.toLowerCase().includes(term)).slice(0, 5);
+    return places
+      .filter((place) => `${place.name} ${place.address || ""} ${place.best_slice || ""}`.toLowerCase().includes(term))
+      .slice(0, 8);
   }, [places, search]);
 
   const selectedPlace = useMemo(
-    () => places.find((item) => item.id === form.spot_id) || places.find((item) => item.id === urlPlaceId) || filteredPlaces[0] || places[0] || null,
-    [places, filteredPlaces, form.spot_id, urlPlaceId]
+    () => places.find((item) => item.id === form.spot_id) || places.find((item) => item.id === urlPlaceId) || places[0] || null,
+    [places, form.spot_id, urlPlaceId]
   );
 
   useEffect(() => {
@@ -207,7 +206,7 @@ export default function CrearQuedada() {
                 <Input
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Search by name, area or address"
+                  placeholder="Search pizza spot"
                   className="h-11 border-white/10 bg-white/[0.04] pl-10 text-white"
                 />
                 {autocompletePlaces.length ? (
@@ -238,16 +237,20 @@ export default function CrearQuedada() {
                 ) : null}
               </div>
 
-              <div className="mb-3 space-y-1 text-xs text-stone-400">
-                {search.trim() ? "Showing the closest matches from approved spots already on the map." : "Search by spot name, address or best slice. Below you see a small selection of top approved spots."}
-                              {!search.trim() ? <div className="text-[11px] font-bold uppercase tracking-[0.16em] text-stone-500">Top approved spots</div> : null}
+              <div className="mb-3 text-xs leading-6 text-stone-400">
+                Search the exact spot name or area. We only show fast autocomplete results while you type, so this still feels clean when the map has thousands of spots.
               </div>
 
-              <div className="grid max-h-[360px] gap-3 overflow-y-auto pr-1">
-                {filteredPlaces.map((place) => (
-                  <PlaceOption key={place.id} place={place} active={selectedPlace?.id === place.id} onClick={() => handleSelectPlace(place)} />
-                ))}
-              </div>
+              {selectedPlace ? (
+                <div className="rounded-[22px] border border-white/10 bg-white/[0.03] p-4">
+                  <div className="mb-2 text-[11px] font-bold uppercase tracking-[0.16em] text-stone-500">Selected spot</div>
+                  <PlaceOption place={selectedPlace} active />
+                </div>
+              ) : (
+                <div className="rounded-[22px] border border-dashed border-white/10 bg-white/[0.02] px-4 py-5 text-sm text-stone-400">
+                  Start typing to find one approved spot from the map.
+                </div>
+              )}
             </section>
 
             <section className="rounded-[28px] border border-white/10 bg-white/[0.03] p-4">

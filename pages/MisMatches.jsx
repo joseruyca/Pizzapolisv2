@@ -261,12 +261,14 @@ export default function MisMatches() {
 
   if (!groups.length) {
     return (
-      <div className="min-h-[calc(100vh-64px)] bg-[#060606] px-4 py-8">
-        <div className="mx-auto max-w-md rounded-[30px] border border-white/10 bg-[#111] p-8 text-center">
+      <div className="h-[calc(100dvh-var(--header-height)-5.5rem)] overflow-hidden bg-[#060606] px-4 py-6">
+        <div className="mx-auto flex h-full max-w-md items-center">
+          <div className="w-full rounded-[30px] border border-white/10 bg-[#111] p-8 text-center">
           <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-[28px] bg-white/[0.04] text-4xl">💬</div>
           <h1 className="mt-6 text-3xl font-black text-white">Todavía no te has unido a ningún grupo</h1>
           <p className="mt-3 text-sm leading-7 text-stone-400">Cuando digas que sí a un plan en Descubrir o crees uno, entrarás automáticamente a su grupo y aparecerá aquí.</p>
           <Link to={createPageUrl("Descubrir")} className="mt-6 inline-flex h-12 w-full items-center justify-center rounded-2xl bg-red-600 text-sm font-bold text-white">Ir a descubrir</Link>
+          </div>
         </div>
       </div>
     );
@@ -274,7 +276,7 @@ export default function MisMatches() {
 
   return (
     <>
-      <div className="groups-screen overflow-hidden bg-[#070707] text-white" style={{ height: mobileChatOpen ? "calc(100dvh - var(--header-height))" : "calc(100dvh - var(--header-height) - 6rem)" }}>
+      <div className="groups-screen overflow-hidden bg-[#070707] text-white" style={{ height: "calc(100dvh - var(--header-height) - 5.5rem)" }}>
         <div className="mx-auto grid h-full max-w-6xl lg:grid-cols-[360px,1fr]">
           <aside className={`${mobileChatOpen ? "hidden lg:flex" : "flex"} min-h-0 flex-col border-r border-white/6 bg-[#0f0f0f]`}>
             <div className="border-b border-white/6 px-4 py-4">

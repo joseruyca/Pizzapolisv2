@@ -13,14 +13,14 @@ import { formatPrice, getGoogleMapsUrl } from "@/lib/place-helpers";
 import { supabase } from "@/lib/supabase";
 import { createPageUrl } from "@/utils";
 
-function InfoCard({ label, value, icon: Icon, accent = "text-stone-400" }) {
+function InfoCard({ label, value, icon: Icon, accent = "text-stone-400", children }) {
   return (
     <div className="rounded-[22px] border border-white/10 bg-white/[0.04] p-4">
       <div className={`flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.16em] ${accent}`}>
         {Icon ? <Icon className="h-3.5 w-3.5" /> : null}
         {label}
       </div>
-      <div className="mt-2 text-lg font-black leading-tight text-white">{value}</div>
+      {children ? children : <div className="mt-2 text-lg font-black leading-tight text-white">{value}</div>}
     </div>
   );
 }
@@ -103,6 +103,9 @@ export default function PlacePanel({ place, onClose, user }) {
   const approvedComments = useMemo(() => comments.filter((comment) => comment.status === "approved" || comment.user_id === user?.id), [comments, user?.id]);
   const approvedPhotos = useMemo(() => photos.filter((photo) => photo.status === "approved" || photo.user_id === user?.id), [photos, user?.id]);
   const googleMapsUrl = getGoogleMapsUrl(place);
+  const displaySlicePrice = place.standard_slice_price ?? place.slice_price ?? 0;
+  const displayBestSlice = place.best_known_slice || place.best_slice || "Optional";
+  const displayRating = Number(place.average_rating || 0);
 
   useEffect(() => {
     setRatingSaved(false);
@@ -161,7 +164,7 @@ export default function PlacePanel({ place, onClose, user }) {
 
             <div className="mb-3 flex flex-wrap items-center gap-2">
               <span className="inline-flex items-center rounded-full border border-red-500/20 bg-red-500/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-red-300">Spot</span>
-              {place.best_known_slice ? <span className="inline-flex items-center rounded-full border border-white/15 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-stone-300">Best slice · {place.best_known_slice}</span> : null}
+              {displayBestSlice ? <span className="inline-flex items-center rounded-full border border-white/15 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-stone-300">Best slice · {displayBestSlice}</span> : null}
             </div>
 
             <h2 className="text-[2rem] font-black leading-tight text-white">{place.name}</h2>
@@ -171,9 +174,14 @@ export default function PlacePanel({ place, onClose, user }) {
             </p>
 
             <div className="mt-5 grid grid-cols-2 gap-3">
-              <InfoCard label="Slice price" value={formatPrice(place.standard_slice_price)} icon={Coins} accent="text-stone-500" />
-              <InfoCard label="Rating" value={Number(place.average_rating || 0).toFixed(1)} icon={Star} accent="text-red-300" />
-              <InfoCard label="Best slice" value={place.best_known_slice || "Optional"} icon={Sparkles} accent="text-stone-500" />
+              <InfoCard label="Slice price" value={formatPrice(displaySlicePrice)} icon={Coins} accent="text-stone-500" />
+              <InfoCard label="Rating" icon={Star} accent="text-red-300">
+                <div className="mt-2 flex items-center gap-3">
+                  <div className="text-2xl font-black leading-none text-white">{displayRating.toFixed(1)}</div>
+                  <StarRating rating={displayRating} size="md" showValue={false} />
+                </div>
+              </InfoCard>
+              <InfoCard label="Best slice" value={displayBestSlice} icon={Sparkles} accent="text-stone-500" />
               <InfoCard label="Comments" value={String(approvedComments.length)} icon={MessageCircle} accent="text-stone-500" />
             </div>
 
@@ -209,7 +217,7 @@ export default function PlacePanel({ place, onClose, user }) {
                   <div className="text-[11px] font-bold uppercase tracking-[0.16em] text-stone-500">Your rating</div>
                   <div className="mt-3 flex flex-wrap items-center gap-3">
                     <StarRating rating={myRating} onRate={handleRatePlace} interactive step={0.5} size="lg" showValue />
-                    <span className="text-sm text-stone-400">Tap the left or right side of each star for 0.5 steps.</span>
+                    <span className="text-sm text-stone-400">Rate from 0 to 5 in 0.5 steps.</span>
                   </div>
                   <div className="mt-2 text-xs text-stone-500">This saves your personal rating on this device for now.</div>
                   {ratingSaved ? <div className="mt-3 inline-flex rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-[11px] font-semibold text-emerald-200">Rating saved</div> : null}

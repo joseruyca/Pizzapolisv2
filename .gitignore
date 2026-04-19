@@ -1,9 +1,0 @@
-node_modules/
-dist/
-.vite/
-.vscode/
-.DS_Store
-*.log
-.env
-.env.*
-!.env.example
