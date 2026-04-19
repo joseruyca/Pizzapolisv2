@@ -55,10 +55,10 @@ export default function PlaceListPanel({
           animate={{ y: 0 }}
           exit={{ y: "100%" }}
           transition={{ type: "spring", damping: 30, stiffness: 260 }}
-          className="fixed inset-x-0 bottom-0 top-14 sm:top-14 sm:left-auto sm:right-auto sm:w-[390px] sm:h-[calc(100vh-72px)] overflow-hidden rounded-t-[28px] border-t border-black/8 bg-[#fffaf1] sm:rounded-none sm:border-r sm:border-t-0"
+          className="fixed inset-x-0 bottom-0 top-14 sm:top-14 sm:left-auto sm:right-auto sm:w-[390px] sm:h-[calc(100dvh-72px)] overflow-hidden rounded-t-[28px] border-t border-black/8 bg-[#fffaf1] sm:rounded-none sm:border-r sm:border-t-0"
           style={{ zIndex: ZINDEX.MAP_CONTROLS }}
         >
-          <div className="flex h-full flex-col">
+          <div className="flex h-full min-h-0 flex-col">
             <div className="border-b border-black/8 bg-[#fffaf1] px-4 pb-3 pt-3">
               <div className="mx-auto mb-2 h-1.5 w-10 rounded-full bg-black/10 sm:hidden" />
               <div className="flex items-center justify-between gap-3">
@@ -86,7 +86,7 @@ export default function PlaceListPanel({
               </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto px-3 py-3 space-y-2">
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 py-3 space-y-2 touch-pan-y">
               {sortedPlaces.map((place) => (
                 <button
                   key={place.id}

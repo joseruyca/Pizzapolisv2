@@ -261,8 +261,8 @@ export default function MisMatches() {
 
   if (!groups.length) {
     return (
-      <div className="h-[calc(100dvh-var(--header-height)-5.5rem)] overflow-hidden bg-[#060606] px-4 py-6">
-        <div className="mx-auto flex h-full max-w-md items-center">
+      <div className="h-[calc(100dvh-var(--header-height)-5.5rem)] overflow-hidden bg-[#060606] px-4 py-4">
+        <div className="mx-auto flex h-full max-w-md items-center overflow-hidden">
           <div className="w-full rounded-[30px] border border-white/10 bg-[#111] p-8 text-center">
           <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-[28px] bg-white/[0.04] text-4xl">💬</div>
           <h1 className="mt-6 text-3xl font-black text-white">Todavía no te has unido a ningún grupo</h1>
@@ -276,8 +276,8 @@ export default function MisMatches() {
 
   return (
     <>
-      <div className="groups-screen overflow-hidden bg-[#070707] text-white" style={{ height: "calc(100dvh - var(--header-height) - 5.5rem)" }}>
-        <div className="mx-auto grid h-full max-w-6xl lg:grid-cols-[360px,1fr]">
+      <div className="groups-screen overflow-hidden bg-[#070707] text-white" style={{ height: "calc(100dvh - var(--header-height) - 5.5rem)", minHeight: 0 }}>
+        <div className="mx-auto grid h-full min-h-0 max-w-6xl lg:grid-cols-[360px,1fr]">
           <aside className={`${mobileChatOpen ? "hidden lg:flex" : "flex"} min-h-0 flex-col border-r border-white/6 bg-[#0f0f0f]`}>
             <div className="border-b border-white/6 px-4 py-4">
               <div className="flex items-center justify-between gap-3">
@@ -292,7 +292,7 @@ export default function MisMatches() {
                 <button onClick={() => setTab("history")} className={`rounded-full px-4 py-2 text-sm font-semibold ${tab === "history" ? "bg-red-600 text-white" : "border border-white/10 bg-white/[0.04] text-stone-300"}`}>Historial</button>
               </div>
             </div>
-            <div className="min-h-0 flex-1 overflow-y-auto px-2 py-2 space-y-2">
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-2 py-2 space-y-2 touch-pan-y">
               {visible.map((hangout) => (
                 <GroupListItem key={hangout.id} group={hangout} active={selected?.id === hangout.id} onSelect={() => { setSelectedId(hangout.id); setMobileChatOpen(true); }} />
               ))}
@@ -320,7 +320,7 @@ export default function MisMatches() {
                 </div>
               </div>
 
-              <div className="min-h-0 flex-1 overflow-y-auto bg-[radial-gradient(circle_at_top,rgba(220,38,38,0.12),transparent_24%),linear-gradient(180deg,#0b0b0b_0%,#0a0a0a_100%)] px-4 py-4 pb-4">
+              <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain bg-[radial-gradient(circle_at_top,rgba(220,38,38,0.12),transparent_24%),linear-gradient(180deg,#0b0b0b_0%,#0a0a0a_100%)] px-4 py-4 pb-4 touch-pan-y">
                 <div className="mb-4 flex flex-wrap gap-2">
                   {selected.participants.map((person) => (
                     <div key={person.id} className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-2 text-xs text-stone-200">

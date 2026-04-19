@@ -99,13 +99,13 @@ export default function CrearQuedada() {
   }, [places, search]);
 
   const selectedPlace = useMemo(
-    () => places.find((item) => item.id === form.spot_id) || places.find((item) => item.id === urlPlaceId) || places[0] || null,
+    () => places.find((item) => item.id === form.spot_id) || places.find((item) => item.id === urlPlaceId) || null,
     [places, form.spot_id, urlPlaceId]
   );
 
   useEffect(() => {
-    if (!places.length || form.spot_id) return;
-    const place = places.find((item) => item.id === urlPlaceId) || places[0];
+    if (!places.length || form.spot_id || !urlPlaceId) return;
+    const place = places.find((item) => item.id === urlPlaceId);
     if (!place) return;
     setForm((prev) => ({ ...prev, spot_id: place.id, title: prev.title || defaultTitle(place, time) }));
   }, [places, form.spot_id, urlPlaceId, time]);
