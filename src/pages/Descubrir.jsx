@@ -2,7 +2,7 @@ import React, { useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Check, Clock3, DollarSign, MapPin, Settings2, Users, X } from "lucide-react";
+import { ArrowLeft, Check, Clock3, DollarSign, MapPin, Settings2, Users, X } from "lucide-react";
 import LoginPrompt from "@/components/shared/LoginPrompt";
 import { useAuth } from "@/lib/AuthContext";
 import { createPageUrl } from "@/utils";
@@ -206,10 +206,29 @@ export default function Descubrir() {
             </AnimatePresence>
           ) : (
             <div className="rounded-[30px] border border-black/8 bg-white p-8 text-center">
-              <div className="text-5xl">🍕</div>
+              <div className="flex justify-start">
+                <button
+                  type="button"
+                  onClick={() => navigate(createPageUrl("Home"))}
+                  className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-black/10 bg-[#fffaf2] text-[#141414] transition hover:bg-white"
+                  aria-label="Back to map"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                </button>
+              </div>
+              <div className="mt-4 text-5xl">🍕</div>
               <h2 className="mt-4 text-2xl font-black text-[#141414]">No plans match now</h2>
               <p className="mt-2 text-sm leading-7 text-[#6d665b]">Try relaxing the filters or create your own plan.</p>
-              <Link to={createPageUrl("CrearQuedada")} className="mt-5 inline-flex h-12 items-center justify-center rounded-2xl bg-[#efbf3a] px-5 text-sm font-black text-[#141414]">Create plan</Link>
+              <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => navigate(createPageUrl("Home"))}
+                  className="inline-flex h-12 items-center justify-center rounded-2xl border border-black/10 bg-white px-5 text-sm font-black text-[#141414]"
+                >
+                  Back to map
+                </button>
+                <Link to={createPageUrl("CrearQuedada")} className="inline-flex h-12 items-center justify-center rounded-2xl bg-[#efbf3a] px-5 text-sm font-black text-[#141414]">Create plan</Link>
+              </div>
             </div>
           )}
         </div>
