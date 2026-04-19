@@ -2,7 +2,7 @@ import React, { useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence, useMotionValue, useTransform } from "framer-motion";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Check, DollarSign, MapPin, Settings2, Star, Users, X } from "lucide-react";
+import { ArrowLeft, Check, ChevronLeft, ChevronRight, DollarSign, MapPin, Settings2, Star, Users, X } from "lucide-react";
 import LoginPrompt from "@/components/shared/LoginPrompt";
 import { useAuth } from "@/lib/AuthContext";
 import { createPageUrl } from "@/utils";
@@ -65,7 +65,7 @@ function FilterChip({ active, children, onClick }) {
     <button
       type="button"
       onClick={onClick}
-      className={`rounded-full px-4 py-2.5 text-sm font-semibold transition whitespace-nowrap ${active ? "bg-[#efbf3a] text-[#141414] shadow-[0_10px_26px_rgba(239,191,58,0.22)]" : "bg-white text-[#6d665b] border border-black/8"}`}
+      className={`rounded-full px-4 py-2.5 text-sm font-semibold transition whitespace-nowrap ${active ? "bg-[#efbf3a] text-[#141414] shadow-[0_10px_26px_rgba(239,191,58,0.22)]" : "bg-white/8 text-white border border-white/10"}`}
     >
       {children}
     </button>
@@ -103,7 +103,7 @@ function SwipeBadge({ side, active }) {
   );
 }
 
-function DiscoverCard({ current, index, total, onSkip, onJoin, onBack, joinPending }) {
+function DiscoverCard({ current, index, total, onSkip, onJoin, onBack, onNext, joinPending }) {
   const x = useMotionValue(0);
   const rotate = useTransform(x, [-180, 0, 180], [-8, 0, 8]);
   const leftOpacity = useTransform(x, [-180, -70, 0], [1, 0.75, 0]);
@@ -111,7 +111,7 @@ function DiscoverCard({ current, index, total, onSkip, onJoin, onBack, joinPendi
   const borderColor = useTransform(
     x,
     [-180, -70, 0, 70, 180],
-    ["rgba(217,75,61,0.95)", "rgba(217,75,61,0.6)", "rgba(0,0,0,0.08)", "rgba(67,160,71,0.6)", "rgba(67,160,71,0.95)"]
+    ["rgba(217,75,61,0.95)", "rgba(217,75,61,0.6)", "rgba(255,255,255,0.08)", "rgba(67,160,71,0.6)", "rgba(67,160,71,0.95)"]
   );
   const glow = useTransform(
     x,
@@ -119,7 +119,7 @@ function DiscoverCard({ current, index, total, onSkip, onJoin, onBack, joinPendi
     [
       "0 24px 60px rgba(217,75,61,0.18)",
       "0 24px 60px rgba(217,75,61,0.12)",
-      "0 24px 60px rgba(39,29,14,0.12)",
+      "0 24px 60px rgba(0,0,0,0.32)",
       "0 24px 60px rgba(67,160,71,0.12)",
       "0 24px 60px rgba(67,160,71,0.18)",
     ]
@@ -144,37 +144,37 @@ function DiscoverCard({ current, index, total, onSkip, onJoin, onBack, joinPendi
           return;
         }
       }}
-      initial={{ opacity: 0, y: 18, scale: 0.985 }}
+      initial={{ opacity: 0, y: 16, scale: 0.985 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, y: -12, scale: 0.985 }}
       transition={{ type: "spring", damping: 28, stiffness: 320 }}
-      className="relative flex h-full min-h-0 flex-col overflow-hidden rounded-[30px] border bg-[#fbf6ed] p-3"
+      className="relative flex h-full min-h-0 flex-col overflow-hidden rounded-[32px] border bg-[#f5efe5] p-3"
     >
       <motion.div style={{ opacity: leftOpacity }}><SwipeBadge side="left" active /></motion.div>
       <motion.div style={{ opacity: rightOpacity }}><SwipeBadge side="right" active /></motion.div>
 
-      <div className="relative h-[28vh] min-h-[160px] max-h-[210px] shrink-0 overflow-hidden rounded-[24px] border border-black/8 bg-black">
+      <div className="relative h-[25vh] min-h-[150px] max-h-[210px] shrink-0 overflow-hidden rounded-[24px] border border-black/10 bg-black">
         {current.spot?.photo_url ? (
           <img src={current.spot.photo_url} alt={current.spot?.name} className="h-full w-full object-cover" />
         ) : (
           <div className="flex h-full items-center justify-center text-6xl">🍕</div>
         )}
-        <div className="absolute inset-0 bg-gradient-to-b from-black/15 via-transparent to-black/70" />
-        <div className="absolute left-3 top-3 rounded-full bg-black/78 px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-[#efbf3a]">Slice plan</div>
-        <div className="absolute right-3 top-3 rounded-full bg-black/78 px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-[#7bc18a]">{seatsLeft} spots left</div>
+        <div className="absolute inset-0 bg-gradient-to-b from-black/15 via-black/10 to-black/70" />
+        <div className="absolute left-3 top-3 rounded-full bg-black/82 px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-[#efbf3a]">Slice plan</div>
+        <div className="absolute right-3 top-3 rounded-full bg-black/82 px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-[#7bc18a]">{seatsLeft} spots left</div>
       </div>
 
-      <div className="mt-3 flex min-h-0 flex-1 flex-col gap-2.5">
+      <div className="mt-3 flex min-h-0 flex-1 flex-col gap-3">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
             <div className="text-[10px] font-black uppercase tracking-[0.18em] text-[#8a8174]">
               {current.plan_date} · {String(current.plan_time).slice(0, 5)}
             </div>
-            <h2 className="mt-1.5 text-[clamp(2rem,6vw,2.4rem)] font-black leading-[0.92] text-[#141414]" style={clampTwoLines}>
+            <h2 className="mt-1 text-[clamp(1.8rem,7vw,2.35rem)] font-black leading-[0.92] tracking-[-0.05em] text-[#141414]" style={clampTwoLines}>
               {current.title}
             </h2>
           </div>
-          <div className="shrink-0 rounded-full border border-black/8 bg-white px-3 py-2 text-base font-black text-[#141414]">
+          <div className="shrink-0 rounded-full border border-black/10 bg-white px-3 py-2 text-base font-black text-[#141414]">
             {formatPrice(current.slice_price)}
           </div>
         </div>
@@ -190,56 +190,53 @@ function DiscoverCard({ current, index, total, onSkip, onJoin, onBack, joinPendi
         <div className="grid grid-cols-3 gap-2.5">
           <div className="rounded-[20px] border border-black/8 bg-[#fffaf2] p-3">
             <div className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#8a8174]">People</div>
-            <div className="mt-1.5 text-lg font-black text-[#141414]">{current.joined_count}/{current.max_people}</div>
+            <div className="mt-1 text-lg font-black text-[#141414]">{current.joined_count}/{current.max_people}</div>
           </div>
           <div className="rounded-[20px] border border-black/8 bg-[#fffaf2] p-3">
             <div className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#8a8174]">Rating</div>
-            <div className="mt-1.5 flex items-center gap-1 text-lg font-black text-[#141414]"><Star className="h-4 w-4 fill-[#efbf3a] text-[#efbf3a]" />{Number(current.average_rating || 0).toFixed(1)}</div>
+            <div className="mt-1 flex items-center gap-1 text-lg font-black text-[#141414]"><Star className="h-4 w-4 fill-[#efbf3a] text-[#efbf3a]" />{Number(current.average_rating || 0).toFixed(1)}</div>
           </div>
           <div className="rounded-[20px] border border-black/8 bg-[#fffaf2] p-3">
             <div className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#8a8174]">Best</div>
-            <div className="mt-1.5 text-sm font-black leading-tight text-[#141414]" style={clampTwoLines}>{current.best_slice}</div>
+            <div className="mt-1 text-sm font-black leading-tight text-[#141414]" style={clampTwoLines}>{current.best_slice}</div>
           </div>
         </div>
 
         <div className="rounded-[20px] border border-black/8 bg-[#fffaf2] p-3">
           <div className="flex items-center gap-3">
             <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[#efbf3a] text-sm font-black text-[#141414]">{avatarLabel(current.host?.username || current.host?.email)}</div>
-            <div className="min-w-0">
+            <div className="min-w-0 flex-1">
               <div className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#8a8174]">Hosted by</div>
               <div className="truncate text-base font-black text-[#141414]">{current.host?.username || current.host?.email || "Host"}</div>
             </div>
           </div>
-          {current.quick_note ? <p className="mt-2 text-sm leading-6 text-[#605747]" style={clampTwoLines}>{current.quick_note}</p> : null}
+          <p className="mt-2 text-sm leading-6 text-[#605747]" style={clampTwoLines}>
+            {current.quick_note || "Quick pizza plan. Easy join, clear time, no vueltas."}
+          </p>
         </div>
 
-        <div className="mt-auto grid grid-cols-3 gap-2.5 pt-1">
+        <div className="mt-auto flex items-center justify-between gap-3 rounded-[22px] border border-black/8 bg-[#111111] px-3 py-2 text-white">
           <button
             type="button"
             onClick={onBack}
-            disabled={index === 0}
-            className="inline-flex h-14 items-center justify-center rounded-full border border-black/10 bg-white text-[#8a8174] disabled:opacity-40"
+            disabled={index <= 0}
+            className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-white/6 text-white disabled:opacity-35"
             aria-label="Previous plan"
           >
-            <ArrowLeft className="h-6 w-6" />
+            <ChevronLeft className="h-5 w-5" />
           </button>
+          <div className="text-center">
+            <div className="text-[10px] font-black uppercase tracking-[0.16em] text-white/48">deck</div>
+            <div className="text-sm font-bold text-white">{index + 1} / {total}</div>
+          </div>
           <button
             type="button"
-            onClick={onSkip}
-            disabled={total <= 1 || index >= total - 1}
-            className="inline-flex h-14 items-center justify-center rounded-full bg-[#f3dcd8] text-[#d94b3d] shadow-[0_16px_32px_rgba(217,75,61,0.12)] disabled:opacity-40"
-            aria-label="Skip plan"
+            onClick={onNext}
+            disabled={index >= total - 1}
+            className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-white/6 text-white disabled:opacity-35"
+            aria-label="Next plan"
           >
-            <X className="h-7 w-7" />
-          </button>
-          <button
-            type="button"
-            onClick={onJoin}
-            disabled={joinPending}
-            className="inline-flex h-14 items-center justify-center rounded-full bg-[#43a047] text-white shadow-[0_16px_32px_rgba(67,160,71,0.28)] disabled:opacity-60"
-            aria-label="Join plan"
-          >
-            {joinPending ? <Users className="h-6 w-6 animate-pulse" /> : <Check className="h-7 w-7" />}
+            <ChevronRight className="h-5 w-5" />
           </button>
         </div>
       </div>
@@ -302,7 +299,8 @@ export default function Descubrir() {
     },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["discover-plans"] });
-      navigate(createPageUrl("MisMatches"));
+      await queryClient.invalidateQueries({ queryKey: ["my-groups-supabase", user?.id] });
+      navigate(`${createPageUrl("MisMatches")}?focus=${current.id}`);
     },
   });
 
@@ -315,7 +313,8 @@ export default function Descubrir() {
   };
 
   const handleSkip = () => {
-    if (filtered.length <= 1) return;
+    if (!filtered.length) return;
+    if (index >= filtered.length - 1) return;
     setIndex((prev) => Math.min(prev + 1, filtered.length - 1));
   };
 
@@ -323,105 +322,142 @@ export default function Descubrir() {
     setIndex((prev) => Math.max(prev - 1, 0));
   };
 
+  const handleNextCard = () => {
+    setIndex((prev) => Math.min(prev + 1, Math.max(filtered.length - 1, 0)));
+  };
+
   return (
-    <div className="h-dvh overflow-hidden bg-[#f3eee6] text-[#141414]">
-      <div className="mx-auto flex h-dvh w-full max-w-[430px] flex-col overflow-hidden border-x border-black/6 bg-[#f3eee6] px-4 pt-5 pb-4">
-        <div className="shrink-0">
+    <div className="h-dvh overflow-hidden bg-[#050505] text-white">
+      <div className="mx-auto flex h-dvh w-full max-w-[430px] flex-col overflow-hidden bg-[#050505] px-4 pb-4 pt-5">
+        <div className="relative shrink-0">
           <div className="flex items-center justify-between gap-3">
             <button
               type="button"
               onClick={() => navigate(createPageUrl("Home"))}
-              className="grid h-12 w-12 shrink-0 place-items-center rounded-full border border-black/10 bg-white text-[#141414]"
+              className="grid h-12 w-12 shrink-0 place-items-center rounded-full border border-white/10 bg-white/6 text-white backdrop-blur-sm"
               aria-label="Back to map"
             >
               <ArrowLeft className="h-5 w-5" />
             </button>
-            <div className="flex-1 text-center text-[11px] font-black uppercase tracking-[0.24em] text-[#8a8174]">Tonight plans</div>
+            <div className="text-center text-[11px] font-black uppercase tracking-[0.24em] text-white/48">Discover tonight</div>
             <button
               type="button"
               onClick={() => setFiltersOpen((prev) => !prev)}
-              className={`grid h-12 w-12 shrink-0 place-items-center rounded-full border border-black/10 ${filtersOpen ? "bg-[#141414] text-white" : "bg-white text-[#141414]"}`}
+              className={`grid h-12 w-12 shrink-0 place-items-center rounded-full border border-white/10 ${filtersOpen ? "bg-[#efbf3a] text-[#141414]" : "bg-white/6 text-white"}`}
               aria-label="Toggle filters"
             >
               <Settings2 className="h-5 w-5" />
             </button>
           </div>
 
-          {filtersOpen ? (
-            <div className="mt-4 rounded-[28px] border border-black/8 bg-white p-4 shadow-[0_12px_30px_rgba(39,29,14,0.06)]">
-              <div className="space-y-4">
-                <div>
-                  <div className="mb-2 flex items-center gap-2 text-sm font-bold text-[#141414]">
-                    <DollarSign className="h-4 w-4 text-[#dbab23]" />
-                    Max slice price
+          <AnimatePresence>
+            {filtersOpen ? (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="absolute inset-x-0 top-[calc(100%+12px)] z-30 rounded-[28px] border border-white/10 bg-[#111111] p-4 shadow-[0_24px_60px_rgba(0,0,0,0.42)]"
+              >
+                <div className="space-y-4">
+                  <div>
+                    <div className="mb-2 flex items-center gap-2 text-sm font-bold text-white">
+                      <DollarSign className="h-4 w-4 text-[#dbab23]" />
+                      Max slice price
+                    </div>
+                    <input type="range" min="3" max="15" step="0.5" value={maxPrice} onChange={(e) => setMaxPrice(Number(e.target.value))} className="w-full accent-[#df5b43]" />
+                    <div className="mt-1 flex items-center justify-between text-sm text-white/50"><span>$3</span><span className="font-black text-white">${maxPrice.toFixed(0)}</span><span>$15</span></div>
                   </div>
-                  <input type="range" min="3" max="15" step="0.5" value={maxPrice} onChange={(e) => setMaxPrice(Number(e.target.value))} className="w-full accent-red-500" />
-                  <div className="mt-1 flex items-center justify-between text-sm text-[#8e8578]"><span>$3</span><span className="font-black text-[#141414]">${maxPrice.toFixed(0)}</span><span>$15</span></div>
-                </div>
 
-                <div>
-                  <div className="mb-2 flex items-center gap-2 text-sm font-bold text-[#141414]">
-                    <Users className="h-4 w-4 text-[#dbab23]" />
-                    Minimum free spots
+                  <div>
+                    <div className="mb-2 flex items-center gap-2 text-sm font-bold text-white">
+                      <Users className="h-4 w-4 text-[#dbab23]" />
+                      Minimum free spots
+                    </div>
+                    <input type="range" min="1" max="6" step="1" value={minSeatsLeft} onChange={(e) => setMinSeatsLeft(Number(e.target.value))} className="w-full accent-[#df5b43]" />
+                    <div className="mt-1 flex items-center justify-between text-sm text-white/50"><span>1</span><span className="font-black text-white">{minSeatsLeft}+</span><span>6</span></div>
                   </div>
-                  <input type="range" min="1" max="6" step="1" value={minSeatsLeft} onChange={(e) => setMinSeatsLeft(Number(e.target.value))} className="w-full accent-red-500" />
-                  <div className="mt-1 flex items-center justify-between text-sm text-[#8e8578]"><span>1</span><span className="font-black text-[#141414]">{minSeatsLeft}+</span><span>6</span></div>
-                </div>
 
-                <div>
-                  <div className="mb-2 flex items-center gap-2 text-sm font-bold text-[#141414]">
-                    <Star className="h-4 w-4 text-[#dbab23]" />
-                    Minimum rating
+                  <div>
+                    <div className="mb-2 flex items-center gap-2 text-sm font-bold text-white">
+                      <Star className="h-4 w-4 text-[#dbab23]" />
+                      Minimum rating
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {[0, 3, 4, 4.5].map((value) => (
+                        <FilterChip key={value} active={minRating === value} onClick={() => setMinRating(value)}>
+                          {value === 0 ? "Any" : `${value}+`}
+                        </FilterChip>
+                      ))}
+                    </div>
                   </div>
-                  <div className="flex flex-wrap gap-2">
-                    {[0, 3, 4, 4.5].map((value) => (
-                      <FilterChip key={value} active={minRating === value} onClick={() => setMinRating(value)}>
-                        {value === 0 ? "Any" : `${value}+`}
-                      </FilterChip>
-                    ))}
-                  </div>
-                </div>
 
-                <div>
-                  <div className="mb-2 text-sm font-bold text-[#141414]">Sort plans</div>
-                  <div className="flex flex-wrap gap-2">
-                    <FilterChip active={sortMode === "cheap"} onClick={() => setSortMode("cheap")}>Cheap first</FilterChip>
-                    <FilterChip active={sortMode === "mid"} onClick={() => setSortMode("mid")}>Mid range</FilterChip>
-                    <FilterChip active={sortMode === "all"} onClick={() => setSortMode("all")}>All plans</FilterChip>
-                    <FilterChip active={sortMode === "top"} onClick={() => setSortMode("top")}>Top rated</FilterChip>
-                    <FilterChip active={sortMode === "spots"} onClick={() => setSortMode("spots")}>More spots</FilterChip>
+                  <div>
+                    <div className="mb-2 text-sm font-bold text-white">Sort plans</div>
+                    <div className="flex flex-wrap gap-2">
+                      <FilterChip active={sortMode === "all"} onClick={() => setSortMode("all")}>All plans</FilterChip>
+                      <FilterChip active={sortMode === "cheap"} onClick={() => setSortMode("cheap")}>Cheap first</FilterChip>
+                      <FilterChip active={sortMode === "mid"} onClick={() => setSortMode("mid")}>Mid range</FilterChip>
+                      <FilterChip active={sortMode === "top"} onClick={() => setSortMode("top")}>Top rated</FilterChip>
+                      <FilterChip active={sortMode === "spots"} onClick={() => setSortMode("spots")}>More spots</FilterChip>
+                    </div>
                   </div>
                 </div>
-              </div>
-            </div>
-          ) : null}
+              </motion.div>
+            ) : null}
+          </AnimatePresence>
         </div>
 
-        <div className="mt-4 min-h-0 flex-1 overflow-hidden">
+        <div className="relative mt-4 flex min-h-0 flex-1 flex-col overflow-hidden pt-2">
           {isLoading ? (
-            <div className="grid h-full place-items-center rounded-[30px] border border-black/8 bg-white">
-              <div className="h-10 w-10 animate-spin rounded-full border-4 border-stone-300 border-t-red-500" />
+            <div className="grid h-full place-items-center rounded-[32px] border border-white/10 bg-[#111111]">
+              <div className="h-10 w-10 animate-spin rounded-full border-4 border-stone-700 border-t-[#df5b43]" />
             </div>
           ) : current ? (
-            <AnimatePresence mode="wait">
-              <DiscoverCard
-                key={current.id}
-                current={current}
-                index={index}
-                total={filtered.length}
-                onSkip={handleSkip}
-                onJoin={handleJoin}
-                onBack={handleBackCard}
-                joinPending={joinMutation.isPending}
-              />
-            </AnimatePresence>
+            <>
+              <div className="min-h-0 flex-1 overflow-hidden pb-24">
+                <AnimatePresence mode="wait">
+                  <DiscoverCard
+                    key={current.id}
+                    current={current}
+                    index={index}
+                    total={filtered.length}
+                    onSkip={handleSkip}
+                    onJoin={handleJoin}
+                    onBack={handleBackCard}
+                    onNext={handleNextCard}
+                    joinPending={joinMutation.isPending}
+                  />
+                </AnimatePresence>
+              </div>
+
+              <div className="absolute inset-x-0 bottom-0 z-20 flex items-center gap-3 px-1 pb-1 pt-3 bg-gradient-to-t from-[#050505] via-[#050505] to-transparent">
+                <button
+                  type="button"
+                  onClick={handleSkip}
+                  disabled={index >= filtered.length - 1}
+                  className="flex h-14 flex-1 items-center justify-center gap-2 rounded-[22px] border border-[#d94b3d]/25 bg-[#2a120f] text-[#ffb5ad] shadow-[0_16px_32px_rgba(217,75,61,0.12)] disabled:opacity-40"
+                >
+                  <X className="h-5 w-5" />
+                  <span className="text-sm font-black uppercase tracking-[0.16em]">Nope</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={handleJoin}
+                  disabled={joinMutation.isPending}
+                  className="flex h-14 flex-1 items-center justify-center gap-2 rounded-[22px] bg-[#43a047] text-white shadow-[0_16px_32px_rgba(67,160,71,0.28)] disabled:opacity-60"
+                >
+                  {joinMutation.isPending ? <Users className="h-5 w-5 animate-pulse" /> : <Check className="h-5 w-5" />}
+                  <span className="text-sm font-black uppercase tracking-[0.16em]">Like</span>
+                </button>
+              </div>
+            </>
           ) : (
-            <div className="flex h-full flex-col justify-center rounded-[30px] border border-black/8 bg-white p-8 text-center">
+            <div className="flex h-full flex-col justify-center rounded-[32px] border border-white/10 bg-[#111111] p-8 text-center">
               <div className="mx-auto text-5xl">🍕</div>
-              <h2 className="mt-4 text-2xl font-black text-[#141414]">No plans match now</h2>
-              <p className="mt-2 text-sm leading-7 text-[#6d665b]">Try relaxing the filters or create your own plan.</p>
+              <h2 className="mt-4 text-2xl font-black text-white">No plans match now</h2>
+              <p className="mt-2 text-sm leading-7 text-white/58">Try relaxing the filters or create your own plan.</p>
               <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
-                <button type="button" onClick={() => navigate(createPageUrl("Home"))} className="inline-flex h-12 items-center justify-center rounded-2xl border border-black/10 bg-white px-5 text-sm font-black text-[#141414]">Back to map</button>
+                <button type="button" onClick={() => navigate(createPageUrl("Home"))} className="inline-flex h-12 items-center justify-center rounded-2xl border border-white/10 bg-white/8 px-5 text-sm font-black text-white">Back to map</button>
                 <Link to={createPageUrl("CrearQuedada")} className="inline-flex h-12 items-center justify-center rounded-2xl bg-[#efbf3a] px-5 text-sm font-black text-[#141414]">Create plan</Link>
               </div>
             </div>
