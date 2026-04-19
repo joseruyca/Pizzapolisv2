@@ -117,10 +117,17 @@ export default function PlacePanel({ place, onClose, user }) {
           animate={{ x: 0, opacity: 1 }}
           exit={{ x: "100%", opacity: 0 }}
           transition={{ type: "spring", damping: 30, stiffness: 300 }}
-          className="fixed top-14 right-0 bottom-0 w-full sm:w-[470px] overflow-y-auto border-l border-white/5 bg-[#0d0d0d]"
+          className="fixed top-14 right-0 bottom-[82px] w-full sm:bottom-0 sm:w-[470px] overflow-y-auto border-l border-white/5 bg-[#0d0d0d]"
           style={{ zIndex: ZINDEX.PLACE_PANEL }}
         >
           <div className="border-b border-white/5 bg-[radial-gradient(circle_at_top_left,rgba(220,38,38,0.22),transparent_34%),linear-gradient(180deg,#131313_0%,#0d0d0d_100%)] px-5 pb-6 pt-5">
+            {place.photo_url ? (
+              <div className="mb-5 overflow-hidden rounded-[24px] border border-white/10 bg-black">
+                <div className="aspect-[4/3]">
+                  <img src={place.photo_url} alt={place.name} className="h-full w-full object-cover" />
+                </div>
+              </div>
+            ) : null}
             <button onClick={onClose} className="mb-5 inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-black/40 text-white transition hover:bg-black/60">
               <ChevronLeft className="h-4 w-4" />
             </button>
@@ -133,7 +140,7 @@ export default function PlacePanel({ place, onClose, user }) {
             <h2 className="text-[2rem] font-black leading-tight text-white">{place.name}</h2>
             <p className="mt-2 flex items-center gap-1.5 text-sm text-stone-400">
               <MapPin className="h-4 w-4" />
-              {place.address || "Open in maps"}
+              {place.address || "Location pinned on map"}
             </p>
 
             <div className="mt-5 grid grid-cols-2 gap-3">
@@ -145,7 +152,7 @@ export default function PlacePanel({ place, onClose, user }) {
 
             <div className="mt-4 rounded-[24px] border border-red-500/15 bg-black/30 p-4">
               <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.16em] text-red-300"><Sparkles className="h-3.5 w-3.5" />Quick note</div>
-              <p className="mt-2 text-sm leading-6 text-stone-300">{place.description || place.quick_note || "No quick note yet."}</p>
+              <p className="mt-2 text-sm leading-6 text-stone-300">{place.quick_note || place.description || "No quick note yet."}</p>
             </div>
 
             <div className="mt-4 grid gap-2 sm:grid-cols-2">
@@ -168,7 +175,7 @@ export default function PlacePanel({ place, onClose, user }) {
             </div>
           </div>
 
-          <div className="px-5 py-5">
+          <div className="px-5 py-5 pb-28 sm:pb-8">
             {activeTab === "info" ? (
               <div className="space-y-5">
                 <div className="rounded-[24px] border border-white/10 bg-white/[0.03] p-4">

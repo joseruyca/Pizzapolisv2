@@ -76,6 +76,20 @@ async function fetchExistingSpots() {
   return data || [];
 }
 
+
+
+async function reverseGeocode(lat, lng) {
+  try {
+    const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lng)}`;
+    const response = await fetch(url, { headers: { Accept: "application/json" } });
+    const result = await response.json();
+    return result?.display_name || "Pinned location";
+  } catch (error) {
+    console.error(error);
+    return "Pinned location";
+  }
+}
+
 async function uploadSpotPhoto(file, userId) {
   const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
   const fileName = `${Date.now()}.${ext}`;
@@ -198,7 +212,7 @@ export default function AddPinModal({ open, onClose, user }) {
       if (photoFile) uploaded = await uploadSpotPhoto(photoFile, user.id);
       const payload = {
         name: form.name.trim(),
-        address: form.address.trim() || locationQuery.trim(),
+        address: form.address.trim() || locationQuery.trim() || await reverseGeocode(form.lat, form.lng),
         lat: Number(form.lat),
         lng: Number(form.lng),
         slice_price: Number(form.slice_price || 0),
@@ -296,7 +310,7 @@ export default function AddPinModal({ open, onClose, user }) {
                 {errorMessage ? <div className="rounded-2xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-100">{errorMessage}</div> : null}
               </div>
 
-              <Button type="submit" disabled={submitting || existingSpot || !form.name.trim() || !(form.address.trim() || locationQuery.trim())} className="mt-6 h-12 w-full rounded-2xl bg-red-600 text-white hover:bg-red-500">
+              <Button type="submit" disabled={submitting || existingSpot || !form.name.trim()} className="mt-6 h-12 w-full rounded-2xl bg-red-600 text-white hover:bg-red-500">
                 {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                 Add spot
               </Button>

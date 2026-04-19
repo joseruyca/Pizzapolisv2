@@ -29,8 +29,10 @@ function normalizeSpot(row) {
     best_known_slice: row.best_slice ?? "",
     average_rating: Number(row.average_rating ?? 0),
     ratings_count: Number(row.ratings_count ?? 0),
-    neighborhood: "NYC",
+    neighborhood: row.address || "NYC",
     borough: "",
+    description: row.quick_note || "",
+    quick_note: row.quick_note || "",
   };
 }
 
