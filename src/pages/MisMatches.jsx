@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, ExternalLink, Info, MapPin, Send, X } from "lucide-react";
+import { toast } from "@/components/ui/use-toast";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 import { useAuth } from "@/lib/AuthContext";
 import { createPageUrl } from "@/utils";
@@ -258,6 +259,13 @@ export default function MisMatches() {
     onSuccess: () => {
       setMessageText("");
       queryClient.invalidateQueries({ queryKey: ["my-groups-supabase", user?.id] });
+    },
+    onError: (error) => {
+      toast({
+        title: "No se pudo enviar el mensaje",
+        description: error?.message || "Revisa permisos o vuelve a intentarlo.",
+        variant: "destructive",
+      });
     },
   });
 
