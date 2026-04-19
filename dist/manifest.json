@@ -1,0 +1,9 @@
+{
+  "name": "Pizzapolis",
+  "short_name": "Pizzapolis",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#09090b",
+  "theme_color": "#dc2626",
+  "icons": []
+}

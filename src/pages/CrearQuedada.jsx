@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { ArrowRight, CalendarDays, CheckCircle2, Clock3, MapPin, Search, Users, Loader2 } from "lucide-react";
+import { ArrowRight, CalendarDays, CheckCircle2, Clock3, MapPin, Search, Star, Users, Loader2 } from "lucide-react";
 
 const sizeOptions = [2, 4, 6, 8, 10];
 
@@ -42,8 +42,14 @@ function PlaceOption({ place, active, onClick }) {
           <div className="truncate text-base font-bold text-white">{place.name}</div>
           <div className="mt-1 truncate text-sm text-stone-400">{place.address || "NYC"}</div>
         </div>
-        <div className="shrink-0 rounded-full bg-[#efbf3a] px-3 py-1 text-xs font-black text-[#141414]">
-          ${Number(place.slice_price || 0).toFixed(2)}
+        <div className="shrink-0 space-y-2 text-right">
+          <div className="rounded-full bg-[#efbf3a] px-3 py-1 text-xs font-black text-[#141414]">
+            ${Number(place.slice_price || 0).toFixed(2)}
+          </div>
+          <div className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[11px] font-bold text-stone-300">
+            <Star className="h-3 w-3 fill-red-400 text-red-400" />
+            {Number(place.average_rating || 0).toFixed(1)}
+          </div>
         </div>
       </div>
       {place.best_slice ? <div className="mt-3 text-sm text-stone-300">Best slice: {place.best_slice}</div> : null}
@@ -72,10 +78,10 @@ export default function CrearQuedada() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("spots")
-        .select("id,name,address,slice_price,best_slice,photo_url,status")
+        .select("id,name,address,slice_price,best_slice,photo_url,status,average_rating")
         .eq("status", "approved")
-        .order("created_at", { ascending: false })
-        .limit(100);
+        .order("average_rating", { ascending: false })
+        .limit(200);
       if (error) throw error;
       return Promise.all((data || []).map(async (item) => ({ ...item, photo_url: await resolveSpotPhoto(item.photo_url) })));
     },
@@ -83,7 +89,7 @@ export default function CrearQuedada() {
 
   const filteredPlaces = useMemo(() => {
     const term = search.trim().toLowerCase();
-    if (!term) return places.slice(0, 12);
+    if (!term) return places.slice(0, 8);
     return places.filter((place) => `${place.name} ${place.address || ""} ${place.best_slice || ""}`.toLowerCase().includes(term)).slice(0, 12);
   }, [places, search]);
 
@@ -201,7 +207,7 @@ export default function CrearQuedada() {
                 <Input
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Search pizza spot"
+                  placeholder="Search by name, area or address"
                   className="h-11 border-white/10 bg-white/[0.04] pl-10 text-white"
                 />
                 {autocompletePlaces.length ? (
@@ -217,8 +223,14 @@ export default function CrearQuedada() {
                           <div className="truncate font-semibold text-white">{place.name}</div>
                           <div className="truncate text-xs text-stone-400">{place.address || "NYC"}</div>
                         </div>
-                        <div className="shrink-0 rounded-full bg-[#efbf3a] px-2.5 py-1 text-[10px] font-black text-[#141414]">
-                          ${Number(place.slice_price || 0).toFixed(2)}
+                        <div className="shrink-0 space-y-1 text-right">
+                          <div className="rounded-full bg-[#efbf3a] px-2.5 py-1 text-[10px] font-black text-[#141414]">
+                            ${Number(place.slice_price || 0).toFixed(2)}
+                          </div>
+                          <div className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/[0.04] px-2 py-1 text-[10px] font-black text-stone-300">
+                            <Star className="h-3 w-3 fill-red-400 text-red-400" />
+                            {Number(place.average_rating || 0).toFixed(1)}
+                          </div>
                         </div>
                       </button>
                     ))}
@@ -226,8 +238,9 @@ export default function CrearQuedada() {
                 ) : null}
               </div>
 
-              <div className="mb-3 text-xs text-stone-400">
-                {search.trim() ? "Autocomplete shows approved spots already on the map." : "Tap any spot below or start typing to autocomplete."}
+              <div className="mb-3 space-y-1 text-xs text-stone-400">
+                {search.trim() ? "Showing the closest matches from approved spots already on the map." : "Search by spot name, address or best slice. Below you see a small selection of top approved spots."}
+                              {!search.trim() ? <div className="text-[11px] font-bold uppercase tracking-[0.16em] text-stone-500">Top approved spots</div> : null}
               </div>
 
               <div className="grid max-h-[360px] gap-3 overflow-y-auto pr-1">

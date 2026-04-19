@@ -30,11 +30,11 @@ export default function PinPopup({ place, onClose, onViewDetails }) {
         onClick={(e) => e.stopPropagation()}
       >
         <div className="overflow-hidden rounded-[24px] border border-white/10 bg-[#101010] shadow-[0_20px_60px_rgba(0,0,0,0.58)]">
-          <div className="relative min-h-[360px] bg-[#101010]">
+          <div className="relative bg-[#101010]">
             {place.photo_url ? (
               <>
                 <img src={place.photo_url} alt={place.name} className="absolute inset-0 h-full w-full object-cover" />
-                <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,0.28)_0%,rgba(0,0,0,0.58)_22%,rgba(8,8,8,0.9)_58%,rgba(8,8,8,0.98)_100%)]" />
+                <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,0.22)_0%,rgba(0,0,0,0.52)_26%,rgba(8,8,8,0.88)_64%,rgba(8,8,8,0.96)_100%)]" />
               </>
             ) : (
               <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(214,161,30,0.18),transparent_42%),#0f0f0f] text-stone-600">
@@ -44,7 +44,7 @@ export default function PinPopup({ place, onClose, onViewDetails }) {
               </div>
             )}
 
-            <div className="relative p-4">
+            <div className="relative p-4 pb-5">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0 flex-1">
                   <div className="mb-2 flex flex-wrap items-center gap-2">

@@ -1,12 +1,13 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
-import { MapPin, Clock, ChevronLeft, Coins, Users, MessageCircle, Sparkles, ArrowUpRight, Plus } from "lucide-react";
+import { MapPin, Clock, ChevronLeft, Coins, Users, MessageCircle, Sparkles, ArrowUpRight, Plus, Star } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import CommentsSection from "./CommentsSection";
 import PhotoGallery from "./PhotoGallery";
 import LoginPrompt from "../shared/LoginPrompt";
+import StarRating from "@/components/shared/StarRating";
 import { ZINDEX } from "@/lib/zindex";
 import { formatPrice, getGoogleMapsUrl } from "@/lib/place-helpers";
 import { supabase } from "@/lib/supabase";
@@ -78,6 +79,8 @@ async function fetchRelatedPlans(spotId) {
 export default function PlacePanel({ place, onClose, user }) {
   const [activeTab, setActiveTab] = useState("info");
   const [loginPrompt, setLoginPrompt] = useState({ open: false, message: "" });
+  const [myRating, setMyRating] = useState(0);
+  const [ratingSaved, setRatingSaved] = useState(false);
 
   const { data: comments = [] } = useQuery({
     queryKey: ["spot-comments", place?.id],
@@ -100,6 +103,30 @@ export default function PlacePanel({ place, onClose, user }) {
   const approvedComments = useMemo(() => comments.filter((comment) => comment.status === "approved" || comment.user_id === user?.id), [comments, user?.id]);
   const approvedPhotos = useMemo(() => photos.filter((photo) => photo.status === "approved" || photo.user_id === user?.id), [photos, user?.id]);
   const googleMapsUrl = getGoogleMapsUrl(place);
+
+  useEffect(() => {
+    setRatingSaved(false);
+    if (!place?.id || !user?.id || typeof window === "undefined") {
+      setMyRating(0);
+      return;
+    }
+
+    const stored = window.localStorage.getItem(`pizzapolis:spot-rating:${user.id}:${place.id}`);
+    setMyRating(stored ? Number(stored) || 0 : 0);
+  }, [place?.id, user?.id]);
+
+  const handleRatePlace = (value) => {
+    if (!user?.id || typeof window === "undefined") {
+      setLoginPrompt({ open: true, message: "Sign in to save your own rating for this spot." });
+      return;
+    }
+
+    const normalized = Math.max(0, Math.min(5, Math.round(Number(value) * 2) / 2));
+    window.localStorage.setItem(`pizzapolis:spot-rating:${user.id}:${place.id}`, String(normalized));
+    setMyRating(normalized);
+    setRatingSaved(true);
+    window.setTimeout(() => setRatingSaved(false), 1400);
+  };
 
   if (!place) return null;
 
@@ -145,7 +172,7 @@ export default function PlacePanel({ place, onClose, user }) {
 
             <div className="mt-5 grid grid-cols-2 gap-3">
               <InfoCard label="Slice price" value={formatPrice(place.standard_slice_price)} icon={Coins} accent="text-stone-500" />
-              <InfoCard label="Plans now" value={String(relatedPlans.length)} icon={Users} accent="text-red-300" />
+              <InfoCard label="Rating" value={Number(place.average_rating || 0).toFixed(1)} icon={Star} accent="text-red-300" />
               <InfoCard label="Best slice" value={place.best_known_slice || "Optional"} icon={Sparkles} accent="text-stone-500" />
               <InfoCard label="Comments" value={String(approvedComments.length)} icon={MessageCircle} accent="text-stone-500" />
             </div>
@@ -179,11 +206,21 @@ export default function PlacePanel({ place, onClose, user }) {
             {activeTab === "info" ? (
               <div className="space-y-5">
                 <div className="rounded-[24px] border border-white/10 bg-white/[0.03] p-4">
+                  <div className="text-[11px] font-bold uppercase tracking-[0.16em] text-stone-500">Your rating</div>
+                  <div className="mt-3 flex flex-wrap items-center gap-3">
+                    <StarRating rating={myRating} onRate={handleRatePlace} interactive step={0.5} size="lg" showValue />
+                    <span className="text-sm text-stone-400">Tap the left or right side of each star for 0.5 steps.</span>
+                  </div>
+                  <div className="mt-2 text-xs text-stone-500">This saves your personal rating on this device for now.</div>
+                  {ratingSaved ? <div className="mt-3 inline-flex rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-[11px] font-semibold text-emerald-200">Rating saved</div> : null}
+                </div>
+
+                <div className="rounded-[24px] border border-white/10 bg-white/[0.03] p-4">
                   <div className="text-[11px] font-bold uppercase tracking-[0.16em] text-stone-500">Address</div>
                   <div className="mt-2 text-sm leading-6 text-stone-300">{place.address || "No address yet."}</div>
                 </div>
                 <div className="rounded-[24px] border border-white/10 bg-white/[0.03] p-4">
-                  <div className="text-[11px] font-bold uppercase tracking-[0.16em] text-stone-500">Active plans</div>
+                  <div className="text-[11px] font-bold uppercase tracking-[0.16em] text-stone-500">Active plans · {relatedPlans.length}</div>
                   {relatedPlans.length ? (
                     <div className="mt-3 space-y-3">
                       {relatedPlans.map((plan) => (
