@@ -10,7 +10,7 @@ import { useAuth } from '@/lib/AuthContext';
 export default function Layout({ children, currentPageName }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [groupChatOpen, setGroupChatOpen] = useState(false);
-  const { user, role, isAdmin, logout, isAuthenticated } = useAuth();
+  const { user, role, logout, isAuthenticated } = useAuth();
 
   useEffect(() => {
     const handleChatState = (event) => {
@@ -40,8 +40,7 @@ export default function Layout({ children, currentPageName }) {
   ];
 
   const navItems = [...publicNavItems, ...privateNavItems];
-  const adminAwareNavItems = isAdmin && isAuthenticated ? [...navItems, { label: 'Admin', page: 'Admin', icon: Shield }] : navItems;
-  const menuItems = adminAwareNavItems;
+  const menuItems = role === 'admin' && isAuthenticated ? [...navItems, { label: 'Admin', page: 'Admin', icon: Shield }] : navItems;
   const hideHeader = currentPageName === 'Landing' || currentPageName === 'Descubrir';
   const hideBottomNav = currentPageName === 'Descubrir' || (currentPageName === 'MisMatches' && groupChatOpen);
   const publicPages = new Set(['Landing', 'Home', 'Descubrir']);
@@ -72,7 +71,7 @@ export default function Layout({ children, currentPageName }) {
             </Link>
 
             <div className="hidden items-center gap-2 md:flex">
-              {adminAwareNavItems.map((item) => {
+              {navItems.map((item) => {
                 const Icon = item.icon;
                 const active = currentPageName === item.page;
                 return (

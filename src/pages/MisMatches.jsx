@@ -274,7 +274,7 @@ export default function MisMatches() {
 
   return (
     <>
-      <div className="groups-screen h-[calc(100dvh-var(--header-height))] overflow-hidden bg-[#070707] text-white">
+      <div className="groups-screen overflow-hidden bg-[#070707] text-white" style={{ height: mobileChatOpen ? "calc(100dvh - var(--header-height))" : "calc(100dvh - var(--header-height) - 6rem)" }}>
         <div className="mx-auto grid h-full max-w-6xl lg:grid-cols-[360px,1fr]">
           <aside className={`${mobileChatOpen ? "hidden lg:flex" : "flex"} min-h-0 flex-col border-r border-white/6 bg-[#0f0f0f]`}>
             <div className="border-b border-white/6 px-4 py-4">

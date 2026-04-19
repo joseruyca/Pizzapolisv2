@@ -33,7 +33,7 @@ async function fetchDiscoverPlans() {
 
   const [{ data: profiles }, { data: spots }, { data: members }] = await Promise.all([
     creatorIds.length ? supabase.from("profiles").select("id,email,username,role").in("id", creatorIds) : Promise.resolve({ data: [] }),
-    spotIds.length ? supabase.from("spots").select("id,name,address,slice_price,standard_slice_price,best_slice,best_known_slice,photo_url,quick_note,description,status").in("id", spotIds) : Promise.resolve({ data: [] }),
+    spotIds.length ? supabase.from("spots").select("id,name,address,slice_price,best_slice,photo_url,quick_note,status").in("id", spotIds) : Promise.resolve({ data: [] }),
     rows.length ? supabase.from("plan_members").select("plan_id,user_id,status").in("plan_id", rows.map((row) => row.id)) : Promise.resolve({ data: [] }),
   ]);
 
@@ -50,8 +50,8 @@ async function fetchDiscoverPlans() {
       host,
       spot,
       joined_count: joinedMembers.length,
-      slice_price: Number(spot?.standard_slice_price ?? spot?.slice_price ?? 0),
-      best_slice: spot?.best_known_slice || spot?.best_slice || "Optional",
+      slice_price: Number(spot?.slice_price ?? 0),
+      best_slice: spot?.best_slice || "Optional",
     };
   });
 }
@@ -180,7 +180,7 @@ export default function Descubrir() {
                       </div>
                     </div>
 
-                    <p className="mt-5 text-sm leading-7 text-[#605747]">{current.quick_note || current.spot?.quick_note || current.spot?.description || 'Simple pizza plan. Good place, clear time, easy join.'}</p>
+                    <p className="mt-5 text-sm leading-7 text-[#605747]">{current.quick_note || current.spot?.quick_note || 'Simple pizza plan. Good place, clear time, easy join.'}</p>
                   </div>
                 </div>
 

@@ -23,21 +23,21 @@ async function resolveSpotPhoto(value) {
 function normalizeSpot(row) {
   return {
     ...row,
-    latitude: Number(row.latitude ?? row.lat ?? 0),
-    longitude: Number(row.longitude ?? row.lng ?? 0),
-    standard_slice_price: Number(row.standard_slice_price ?? row.slice_price ?? 0),
-    best_known_slice: row.best_known_slice ?? row.best_slice ?? "",
+    latitude: Number(row.lat ?? 0),
+    longitude: Number(row.lng ?? 0),
+    standard_slice_price: Number(row.slice_price ?? 0),
+    best_known_slice: row.best_slice ?? "",
     average_rating: Number(row.average_rating ?? 0),
     ratings_count: Number(row.ratings_count ?? 0),
-    neighborhood: row.neighborhood || "NYC",
-    borough: row.borough || "",
+    neighborhood: "NYC",
+    borough: "",
   };
 }
 
 async function fetchPlaces() {
   const { data, error } = await supabase
     .from("spots")
-    .select("id,name,address,lat,lng,latitude,longitude,slice_price,standard_slice_price,best_slice,best_known_slice,quick_note,description,photo_url,average_rating,ratings_count,featured,status,neighborhood,borough,hours,created_by")
+    .select("id,name,address,lat,lng,slice_price,best_slice,quick_note,photo_url,status,created_by")
     .order("created_at", { ascending: false });
   if (error) throw error;
   const rows = await Promise.all((data || []).map(async (row) => ({ ...row, photo_url: await resolveSpotPhoto(row.photo_url) })));

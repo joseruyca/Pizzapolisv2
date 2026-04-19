@@ -1,66 +1,138 @@
 import React, { useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { Link } from "react-router-dom";
-import { Compass, Loader2, MapPin, Sparkles, Users } from "lucide-react";
+import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
-import { fetchActivePlans, fetchApprovedSpots, fetchJoinedPlanIds, fetchSpotsByIds } from "@/lib/supabase-insights";
-import { createPageUrl } from "@/utils";
-
-async function loadRecommendations(userId) {
-  const [spots, plans, joinedIds] = await Promise.all([
-    fetchApprovedSpots(),
-    fetchActivePlans(),
-    userId ? fetchJoinedPlanIds(userId) : Promise.resolve([]),
-  ]);
-
-  const joinedPlans = plans.filter((plan) => joinedIds.includes(plan.id));
-  const joinedSpotIds = new Set(joinedPlans.map((plan) => plan.spot_id).filter(Boolean));
-
-  const recommendations = spots
-    .filter((spot) => !joinedSpotIds.has(spot.id))
-    .map((spot) => ({
-      ...spot,
-      activePlans: plans.filter((plan) => plan.spot_id === spot.id).length,
-    }))
-    .sort((a, b) => b.activePlans - a.activePlans || Number(a.slice_price || 999) - Number(b.slice_price || 999))
-    .slice(0, 8);
-
-  return recommendations;
-}
+import { useQuery } from "@tanstack/react-query";
+import { Sparkles, Star, MapPin, Loader2, Heart } from "lucide-react";
+import { motion } from "framer-motion";
+import { Link } from "react-router-dom";
 
 export default function Recomendaciones() {
-  const { user } = useAuth();
-  const { data = [], isLoading } = useQuery({ queryKey: ["recommendations", user?.id], queryFn: () => loadRecommendations(user?.id) });
+  const { user, isLoadingAuth } = useAuth();
 
-  if (isLoading) return <div className="min-h-[calc(100vh-64px)] grid place-items-center bg-[#060606]"><Loader2 className="h-8 w-8 animate-spin text-[#df5b43]" /></div>;
+  const { data: myRatings = [] } = useQuery({
+    queryKey: ["myRatings", user?.email],
+    queryFn: () => user ? base44.entities.Rating.filter({ user_email: user.email }) : [],
+    enabled: !!user && !isLoadingAuth,
+  });
+
+  const { data: allPlaces = [] } = useQuery({
+    queryKey: ["allPlaces"],
+    queryFn: () => base44.entities.PizzaPlace.filter({ status: "active" }),
+  });
+
+  const { data: allRatings = [] } = useQuery({
+    queryKey: ["allRatings"],
+    queryFn: () => base44.asServiceRole.entities.Rating.list('-created_date', 1000),
+  });
+
+  const recommendations = useMemo(() => {
+    if (!user || myRatings.length === 0) {
+      // Sin datos, mostrar top rated
+      return allPlaces
+        .filter(p => !myRatings.find(r => r.place_id === p.id))
+        .sort((a, b) => (b.average_rating || 0) - (a.average_rating || 0))
+        .slice(0, 8);
+    }
+
+    // Encontrar usuarios similares (que calificaron lugares que yo califiqué)
+    const myPlaceIds = new Set(myRatings.map(r => r.place_id));
+    const userRatings = new Map();
+
+    allRatings.forEach(r => {
+      if (r.user_email !== user.email && myPlaceIds.has(r.place_id)) {
+        if (!userRatings.has(r.user_email)) userRatings.set(r.user_email, []);
+        userRatings.get(r.user_email).push(r);
+      }
+    });
+
+    // Obtener lugares que similares calificaron bien
+    const recommendedPlaces = new Map();
+    userRatings.forEach((ratings) => {
+      ratings.filter(r => r.score >= 4).forEach(r => {
+        if (!myPlaceIds.has(r.place_id)) {
+          if (!recommendedPlaces.has(r.place_id)) recommendedPlaces.set(r.place_id, 0);
+          recommendedPlaces.set(r.place_id, recommendedPlaces.get(r.place_id) + r.score);
+        }
+      });
+    });
+
+    return Array.from(recommendedPlaces.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 8)
+      .map(([placeId]) => allPlaces.find(p => p.id === placeId))
+      .filter(Boolean);
+  }, [user, myRatings, allPlaces, allRatings]);
+
+  if (isLoadingAuth || !user) {
+    return (
+      <div className="min-h-screen bg-[#080808] pt-14 flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-red-500" />
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-[calc(100vh-64px)] bg-[#060606] px-4 py-4 text-white">
-      <div className="mx-auto max-w-5xl rounded-[30px] border border-white/10 bg-[#101010] p-5 shadow-[0_22px_60px_rgba(0,0,0,0.35)]">
-        <div className="text-[11px] font-black uppercase tracking-[0.18em] text-[#efbf3a]">Recommendations</div>
-        <h1 className="mt-3 text-4xl font-black tracking-[-0.05em]">Where to go next</h1>
-        <p className="mt-3 max-w-2xl text-sm leading-7 text-stone-400">Te proponemos spots aprobados con planes activos o muy buen precio para que encuentres algo rápido sin rebuscar.</p>
-        {!data.length ? (
-          <div className="mt-8 rounded-[24px] border border-dashed border-white/10 p-10 text-center text-stone-400">
-            <Sparkles className="mx-auto h-10 w-10 text-[#efbf3a]" />
-            <div className="mt-4 text-xl font-black text-white">Todavía no hay recomendaciones</div>
-            <p className="mt-2 text-sm">Crea spots, únete a planes y vuelve para ver sugerencias mejores.</p>
-            <Link to={createPageUrl("Home")} className="mt-6 inline-flex rounded-2xl bg-[#df5b43] px-5 py-3 font-bold text-white">Ir al mapa</Link>
-          </div>
+    <div className="min-h-screen bg-[#080808] pt-14 pb-20 px-4">
+      <div className="max-w-5xl mx-auto">
+        <div className="mb-8">
+          <h1 className="text-4xl font-black text-white mb-2 flex items-center gap-3">
+            <Sparkles className="w-8 h-8 text-yellow-500" />
+            Recomendaciones
+          </h1>
+          <p className="text-stone-500">
+            {myRatings.length > 0 ? "Basadas en tus ratings y usuarios similares" : "Top pizzerías mejor valoradas"}
+          </p>
+        </div>
+
+        {recommendations.length === 0 ? (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center py-20">
+            <p className="text-6xl mb-4">🍕</p>
+            <h2 className="text-2xl font-black text-white mb-2">Sin recomendaciones aún</h2>
+            <p className="text-stone-500 mb-6">Califica pizzerías para obtener recomendaciones personalizadas</p>
+            <Link to="/">
+              <button className="px-6 py-2.5 bg-red-600 hover:bg-red-500 text-white font-bold rounded-xl">
+                Ir al mapa
+              </button>
+            </Link>
+          </motion.div>
         ) : (
-          <div className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-            {data.map((spot) => (
-              <div key={spot.id} className="rounded-[24px] border border-white/8 bg-white/[0.03] p-4">
-                {spot.photo_url ? <div className="mb-4 aspect-[4/3] overflow-hidden rounded-[20px] bg-black/30"><img src={spot.photo_url} alt="" className="h-full w-full object-cover" /></div> : null}
-                <div className="text-xl font-black">{spot.name}</div>
-                <div className="mt-2 flex items-center gap-2 text-sm text-stone-400"><MapPin className="h-4 w-4" />{spot.address}</div>
-                <div className="mt-4 flex flex-wrap gap-2">
-                  <span className="rounded-full bg-[#efbf3a]/10 px-3 py-2 text-sm font-bold text-[#efbf3a]">${Number(spot.slice_price || 0).toFixed(2)}</span>
-                  <span className="rounded-full bg-[#216b33]/10 px-3 py-2 text-sm font-bold text-[#8de0a2] flex items-center gap-2"><Users className="h-4 w-4" />{spot.activePlans} active plans</span>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {recommendations.map((place, idx) => (
+              <motion.div
+                key={place.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: idx * 0.05 }}
+                className="bg-[#111] border border-white/10 hover:border-red-500/30 rounded-xl overflow-hidden transition-all group"
+              >
+                {place.cover_image_url && (
+                  <div className="h-32 overflow-hidden bg-gradient-to-b from-red-900/30 to-[#111]">
+                    <img
+                      src={place.cover_image_url}
+                      alt=""
+                      className="w-full h-full object-cover opacity-60 group-hover:opacity-100 transition-opacity"
+                    />
+                  </div>
+                )}
+                <div className="p-4">
+                  <h3 className="font-bold text-white mb-1 line-clamp-2">{place.name}</h3>
+                  <p className="text-xs text-stone-500 flex items-center gap-1 mb-3">
+                    <MapPin className="w-3 h-3" />
+                    {place.neighborhood}
+                  </p>
+                  <div className="flex items-center justify-between">
+                    {place.average_rating && (
+                      <div className="flex items-center gap-1 bg-red-600/10 px-2 py-1 rounded-lg">
+                        <Star className="w-3 h-3 fill-red-500 text-red-500" />
+                        <span className="text-red-400 font-bold text-xs">{place.average_rating}</span>
+                      </div>
+                    )}
+                    <button className="p-2 hover:bg-red-600/20 rounded-lg transition-colors">
+                      <Heart className="w-4 h-4 text-red-400" />
+                    </button>
+                  </div>
                 </div>
-                {spot.best_slice ? <div className="mt-4 text-sm text-stone-300"><Compass className="mr-2 inline h-4 w-4 text-[#df5b43]" />Best slice: {spot.best_slice}</div> : null}
-                {spot.quick_note ? <p className="mt-4 text-sm leading-7 text-stone-400">{spot.quick_note}</p> : null}
-              </div>
+              </motion.div>
             ))}
           </div>
         )}

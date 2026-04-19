@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo } from "react";
+import React, { useMemo } from "react";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { useQuery } from "@tanstack/react-query";
@@ -45,7 +45,7 @@ async function getProfileData(userId) {
 }
 
 export default function Profile() {
-  const { user, profile, role, isAdmin, refreshProfile } = useAuth();
+  const { user, profile, role } = useAuth();
 
   const { data, isLoading } = useQuery({
     queryKey: ["profile-supabase", user?.id],
@@ -59,12 +59,6 @@ export default function Profile() {
     joined: data?.joinedCount || 0,
     spots: data?.spotsCount || 0,
   }), [data]);
-
-  useEffect(() => {
-    if (user?.id) {
-      void refreshProfile();
-    }
-  }, [user?.id, refreshProfile]);
 
   if (!user) return <div className="min-h-[calc(100vh-64px)] bg-[#060606]" />;
 
@@ -89,7 +83,7 @@ export default function Profile() {
             <div>
               <div className="text-[1.8rem] font-black tracking-tight text-white">{displayName}</div>
               <div className="text-sm text-stone-500">@{handle}</div>
-              <div className="mt-2 text-sm text-stone-400">{isAdmin ? "Admin de Pizzapolis" : "Pizza plans, cheap slices y grupos reales."}</div>
+              <div className="mt-2 text-sm text-stone-400">{role === "admin" ? "Admin de Pizzapolis" : "Pizza plans, cheap slices y grupos reales."}</div>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -98,7 +92,7 @@ export default function Profile() {
           </div>
         </div>
 
-        {isAdmin ? (
+        {role === "admin" ? (
           <Link
             to={createPageUrl("Admin")}
             className="mt-6 flex items-center justify-between rounded-[26px] border border-[#efbf3a]/30 bg-[#111111] px-5 py-5 text-white shadow-[0_20px_45px_rgba(17,17,17,0.18)]"
