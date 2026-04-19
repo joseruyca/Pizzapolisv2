@@ -2,12 +2,13 @@ import React, { useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence, useMotionValue, useTransform } from "framer-motion";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Check, ChevronLeft, ChevronRight, DollarSign, MapPin, Settings2, Star, Users, X } from "lucide-react";
+import { ArrowLeft, Check, DollarSign, MapPin, Settings2, Star, Users, X } from "lucide-react";
 import LoginPrompt from "@/components/shared/LoginPrompt";
 import { useAuth } from "@/lib/AuthContext";
 import { createPageUrl } from "@/utils";
 import { supabase } from "@/lib/supabase";
 import { formatPrice } from "@/lib/place-helpers";
+import { toast } from "@/components/ui/use-toast";
 
 async function resolveSpotPhoto(value) {
   if (!value) return null;
@@ -103,27 +104,31 @@ function SwipeBadge({ side, active }) {
   );
 }
 
-function DiscoverCard({ current, index, total, onSkip, onJoin, onBack, onNext, joinPending }) {
+function DiscoverCard({ current, onSkip, onJoin, joinPending }) {
   const x = useMotionValue(0);
-  const rotate = useTransform(x, [-180, 0, 180], [-8, 0, 8]);
-  const leftOpacity = useTransform(x, [-180, -70, 0], [1, 0.75, 0]);
-  const rightOpacity = useTransform(x, [0, 70, 180], [0, 0.75, 1]);
+  const rotate = useTransform(x, [-220, 0, 220], [-10, 0, 10]);
+  const leftOpacity = useTransform(x, [-220, -80, 0], [1, 0.85, 0]);
+  const rightOpacity = useTransform(x, [0, 80, 220], [0, 0.85, 1]);
+  const tintOpacity = useTransform(x, [-220, -90, 0, 90, 220], [0.3, 0.18, 0, 0.18, 0.3]);
+  const tintColor = useTransform(x, [-220, 0, 220], ["rgba(217,75,61,1)", "rgba(0,0,0,0)", "rgba(67,160,71,1)"]);
   const borderColor = useTransform(
     x,
-    [-180, -70, 0, 70, 180],
-    ["rgba(217,75,61,0.95)", "rgba(217,75,61,0.6)", "rgba(255,255,255,0.08)", "rgba(67,160,71,0.6)", "rgba(67,160,71,0.95)"]
+    [-220, -90, 0, 90, 220],
+    ["rgba(217,75,61,0.98)", "rgba(217,75,61,0.7)", "rgba(255,255,255,0.08)", "rgba(67,160,71,0.7)", "rgba(67,160,71,0.98)"]
   );
   const glow = useTransform(
     x,
-    [-180, -70, 0, 70, 180],
+    [-220, -90, 0, 90, 220],
     [
-      "0 24px 60px rgba(217,75,61,0.18)",
-      "0 24px 60px rgba(217,75,61,0.12)",
+      "0 28px 70px rgba(217,75,61,0.22)",
+      "0 24px 60px rgba(217,75,61,0.15)",
       "0 24px 60px rgba(0,0,0,0.32)",
-      "0 24px 60px rgba(67,160,71,0.12)",
-      "0 24px 60px rgba(67,160,71,0.18)",
+      "0 24px 60px rgba(67,160,71,0.15)",
+      "0 28px 70px rgba(67,160,71,0.22)",
     ]
   );
+  const badgeScaleLeft = useTransform(x, [-220, -110, 0], [1.08, 1, 0.92]);
+  const badgeScaleRight = useTransform(x, [0, 110, 220], [0.92, 1, 1.08]);
 
   const seatsLeft = Math.max(current.max_people - current.joined_count, 0);
 
@@ -132,7 +137,8 @@ function DiscoverCard({ current, index, total, onSkip, onJoin, onBack, onNext, j
       key={current.id}
       drag="x"
       dragConstraints={{ left: 0, right: 0 }}
-      dragElastic={0.18}
+      dragElastic={0.12}
+      dragMomentum={false}
       style={{ x, rotate, borderColor, boxShadow: glow }}
       onDragEnd={(_, info) => {
         if (info.offset.x <= -110) {
@@ -150,94 +156,82 @@ function DiscoverCard({ current, index, total, onSkip, onJoin, onBack, onNext, j
       transition={{ type: "spring", damping: 28, stiffness: 320 }}
       className="relative flex h-full min-h-0 flex-col overflow-hidden rounded-[32px] border bg-[#f5efe5] p-3"
     >
-      <motion.div style={{ opacity: leftOpacity }}><SwipeBadge side="left" active /></motion.div>
-      <motion.div style={{ opacity: rightOpacity }}><SwipeBadge side="right" active /></motion.div>
+      <motion.div style={{ opacity: leftOpacity, scale: badgeScaleLeft }}><SwipeBadge side="left" active /></motion.div>
+      <motion.div style={{ opacity: rightOpacity, scale: badgeScaleRight }}><SwipeBadge side="right" active /></motion.div>
+      <motion.div className="pointer-events-none absolute inset-0 z-0 rounded-[32px]" style={{ backgroundColor: tintColor, opacity: tintOpacity }} />
 
-      <div className="relative h-[25vh] min-h-[150px] max-h-[210px] shrink-0 overflow-hidden rounded-[24px] border border-black/10 bg-black">
-        {current.spot?.photo_url ? (
-          <img src={current.spot.photo_url} alt={current.spot?.name} className="h-full w-full object-cover" />
-        ) : (
-          <div className="flex h-full items-center justify-center text-6xl">🍕</div>
-        )}
-        <div className="absolute inset-0 bg-gradient-to-b from-black/15 via-black/10 to-black/70" />
-        <div className="absolute left-3 top-3 rounded-full bg-black/82 px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-[#efbf3a]">Slice plan</div>
-        <div className="absolute right-3 top-3 rounded-full bg-black/82 px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-[#7bc18a]">{seatsLeft} spots left</div>
-      </div>
-
-      <div className="mt-3 flex min-h-0 flex-1 flex-col gap-3">
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0 flex-1">
-            <div className="text-[10px] font-black uppercase tracking-[0.18em] text-[#8a8174]">
-              {current.plan_date} · {String(current.plan_time).slice(0, 5)}
-            </div>
-            <h2 className="mt-1 text-[clamp(1.8rem,7vw,2.35rem)] font-black leading-[0.92] tracking-[-0.05em] text-[#141414]" style={clampTwoLines}>
-              {current.title}
-            </h2>
-          </div>
-          <div className="shrink-0 rounded-full border border-black/10 bg-white px-3 py-2 text-base font-black text-[#141414]">
-            {formatPrice(current.slice_price)}
-          </div>
+      <div className="relative z-10 flex h-full min-h-0 flex-col">
+        <div className="relative h-[23vh] min-h-[158px] max-h-[220px] shrink-0 overflow-hidden rounded-[24px] border border-black/10 bg-black">
+          {current.spot?.photo_url ? (
+            <img src={current.spot.photo_url} alt={current.spot?.name} className="h-full w-full object-cover" />
+          ) : (
+            <div className="flex h-full items-center justify-center text-6xl">🍕</div>
+          )}
+          <div className="absolute inset-0 bg-gradient-to-b from-black/18 via-black/10 to-black/72" />
+          <div className="absolute left-3 top-3 rounded-full bg-black/82 px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-[#efbf3a]">Slice plan</div>
+          <div className="absolute right-3 top-3 rounded-full bg-black/82 px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-[#7bc18a]">{seatsLeft} spots left</div>
         </div>
 
-        <div className="flex items-start gap-2.5 text-[#605747]">
-          <MapPin className="mt-1 h-4 w-4 shrink-0 text-[#df5b43]" />
-          <div className="min-w-0 flex-1">
-            <div className="font-semibold text-[#141414]" style={clampOneLine}>{current.spot?.name || "Pizza spot"}</div>
-            <div className="text-sm leading-6" style={clampTwoLines}>{current.spot?.address || "NYC"}</div>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-3 gap-2.5">
-          <div className="rounded-[20px] border border-black/8 bg-[#fffaf2] p-3">
-            <div className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#8a8174]">People</div>
-            <div className="mt-1 text-lg font-black text-[#141414]">{current.joined_count}/{current.max_people}</div>
-          </div>
-          <div className="rounded-[20px] border border-black/8 bg-[#fffaf2] p-3">
-            <div className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#8a8174]">Rating</div>
-            <div className="mt-1 flex items-center gap-1 text-lg font-black text-[#141414]"><Star className="h-4 w-4 fill-[#efbf3a] text-[#efbf3a]" />{Number(current.average_rating || 0).toFixed(1)}</div>
-          </div>
-          <div className="rounded-[20px] border border-black/8 bg-[#fffaf2] p-3">
-            <div className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#8a8174]">Best</div>
-            <div className="mt-1 text-sm font-black leading-tight text-[#141414]" style={clampTwoLines}>{current.best_slice}</div>
-          </div>
-        </div>
-
-        <div className="rounded-[20px] border border-black/8 bg-[#fffaf2] p-3">
-          <div className="flex items-center gap-3">
-            <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[#efbf3a] text-sm font-black text-[#141414]">{avatarLabel(current.host?.username || current.host?.email)}</div>
+        <div className="mt-3 flex min-h-0 flex-1 flex-col gap-3">
+          <div className="flex items-start justify-between gap-3">
             <div className="min-w-0 flex-1">
-              <div className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#8a8174]">Hosted by</div>
-              <div className="truncate text-base font-black text-[#141414]">{current.host?.username || current.host?.email || "Host"}</div>
+              <div className="text-[10px] font-black uppercase tracking-[0.18em] text-[#8a8174]">
+                {current.plan_date} · {String(current.plan_time).slice(0, 5)}
+              </div>
+              <h2 className="mt-1 text-[clamp(1.9rem,7vw,2.45rem)] font-black leading-[0.92] tracking-[-0.05em] text-[#141414]" style={clampTwoLines}>
+                {current.title}
+              </h2>
+            </div>
+            <div className="shrink-0 rounded-full border border-black/10 bg-white px-3 py-2 text-base font-black text-[#141414]">
+              {formatPrice(current.slice_price)}
             </div>
           </div>
-          <p className="mt-2 text-sm leading-6 text-[#605747]" style={clampTwoLines}>
-            {current.quick_note || "Quick pizza plan. Easy join, clear time, no vueltas."}
-          </p>
-        </div>
 
-        <div className="mt-auto flex items-center justify-between gap-3 rounded-[22px] border border-black/8 bg-[#111111] px-3 py-2 text-white">
-          <button
-            type="button"
-            onClick={onBack}
-            disabled={index <= 0}
-            className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-white/6 text-white disabled:opacity-35"
-            aria-label="Previous plan"
-          >
-            <ChevronLeft className="h-5 w-5" />
-          </button>
-          <div className="text-center">
-            <div className="text-[10px] font-black uppercase tracking-[0.16em] text-white/48">deck</div>
-            <div className="text-sm font-bold text-white">{index + 1} / {total}</div>
+          <div className="flex items-start gap-2.5 text-[#605747]">
+            <MapPin className="mt-1 h-4 w-4 shrink-0 text-[#df5b43]" />
+            <div className="min-w-0 flex-1">
+              <div className="font-semibold text-[#141414]" style={clampOneLine}>{current.spot?.name || "Pizza spot"}</div>
+              <div className="text-sm leading-6" style={clampTwoLines}>{current.spot?.address || "NYC"}</div>
+            </div>
           </div>
-          <button
-            type="button"
-            onClick={onNext}
-            disabled={index >= total - 1}
-            className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-white/6 text-white disabled:opacity-35"
-            aria-label="Next plan"
-          >
-            <ChevronRight className="h-5 w-5" />
-          </button>
+
+          <div className="grid grid-cols-3 gap-2.5">
+            <div className="rounded-[20px] border border-black/8 bg-[#fffaf2] p-3">
+              <div className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#8a8174]">People</div>
+              <div className="mt-1 text-lg font-black text-[#141414]">{current.joined_count}/{current.max_people}</div>
+            </div>
+            <div className="rounded-[20px] border border-black/8 bg-[#fffaf2] p-3">
+              <div className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#8a8174]">Rating</div>
+              <div className="mt-1 flex items-center gap-1 text-lg font-black text-[#141414]"><Star className="h-4 w-4 fill-[#efbf3a] text-[#efbf3a]" />{Number(current.average_rating || 0).toFixed(1)}</div>
+            </div>
+            <div className="rounded-[20px] border border-black/8 bg-[#fffaf2] p-3">
+              <div className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#8a8174]">Best</div>
+              <div className="mt-1 text-sm font-black leading-tight text-[#141414]" style={clampTwoLines}>{current.best_slice}</div>
+            </div>
+          </div>
+
+          <div className="rounded-[20px] border border-black/8 bg-[#fffaf2] p-3">
+            <div className="flex items-center gap-3">
+              <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[#efbf3a] text-sm font-black text-[#141414]">{avatarLabel(current.host?.username || current.host?.email)}</div>
+              <div className="min-w-0 flex-1">
+                <div className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#8a8174]">Hosted by</div>
+                <div className="truncate text-base font-black text-[#141414]">{current.host?.username || current.host?.email || "Host"}</div>
+              </div>
+            </div>
+            <p className="mt-2 text-sm leading-6 text-[#605747]" style={clampTwoLines}>
+              {current.quick_note || "Quick pizza plan. Easy join, clear time, no vueltas."}
+            </p>
+          </div>
+
+          <div className="mt-auto flex items-center justify-between gap-2 rounded-[22px] border border-black/8 bg-[#111111] px-3 py-2.5 text-white">
+            <div>
+              <div className="text-[10px] font-black uppercase tracking-[0.16em] text-white/48">Swipe deck</div>
+              <div className="text-sm font-bold text-white/88">Desliza o usa los botones</div>
+            </div>
+            <div className="text-right text-sm font-black text-white/88">
+              {joinPending ? "Joining..." : `${seatsLeft} libres`}
+            </div>
+          </div>
         </div>
       </div>
     </motion.div>
@@ -253,6 +247,8 @@ export default function Descubrir() {
   const [minSeatsLeft, setMinSeatsLeft] = useState(1);
   const [minRating, setMinRating] = useState(0);
   const [sortMode, setSortMode] = useState("all");
+  const [dismissedIds, setDismissedIds] = useState([]);
+  const [joinedHiddenIds, setJoinedHiddenIds] = useState([]);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
@@ -261,8 +257,24 @@ export default function Descubrir() {
     queryFn: fetchDiscoverPlans,
   });
 
+  const { data: joinedPlanIds = [] } = useQuery({
+    queryKey: ["discover-joined-plan-ids", user?.id],
+    enabled: !!user?.id,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("plan_members")
+        .select("plan_id,status")
+        .eq("user_id", user.id)
+        .eq("status", "joined");
+      if (error) throw error;
+      return (data || []).map((row) => row.plan_id);
+    },
+  });
+
   const filtered = useMemo(() => {
+    const blockedIds = new Set([...(dismissedIds || []), ...(joinedHiddenIds || []), ...(joinedPlanIds || [])]);
     let next = plans.filter((plan) => {
+      if (blockedIds.has(plan.id)) return false;
       const seatsLeft = Math.max((plan.max_people || 0) - (plan.joined_count || 0), 0);
       const price = Number(plan.slice_price || 0);
       const rating = Number(plan.average_rating || 0);
@@ -275,7 +287,7 @@ export default function Descubrir() {
     if (sortMode === "spots") next = [...next].sort((a, b) => ((b.max_people || 0) - (b.joined_count || 0)) - ((a.max_people || 0) - (a.joined_count || 0)));
 
     return next;
-  }, [plans, maxPrice, minSeatsLeft, minRating, sortMode]);
+  }, [plans, maxPrice, minSeatsLeft, minRating, sortMode, dismissedIds, joinedHiddenIds, joinedPlanIds]);
 
   React.useEffect(() => {
     if (index > filtered.length - 1) setIndex(0);
@@ -298,9 +310,15 @@ export default function Descubrir() {
       return true;
     },
     onSuccess: async () => {
+      setJoinedHiddenIds((prev) => [...new Set([...prev, current.id])]);
+      toast({
+        title: "Te has unido al plan",
+        description: "Ya estás dentro del grupo. Puedes seguir deslizando.",
+      });
       await queryClient.invalidateQueries({ queryKey: ["discover-plans"] });
+      await queryClient.invalidateQueries({ queryKey: ["discover-joined-plan-ids", user?.id] });
       await queryClient.invalidateQueries({ queryKey: ["my-groups-supabase", user?.id] });
-      navigate(`${createPageUrl("MisMatches")}?focus=${current.id}`);
+      setIndex(0);
     },
   });
 
@@ -313,17 +331,9 @@ export default function Descubrir() {
   };
 
   const handleSkip = () => {
-    if (!filtered.length) return;
-    if (index >= filtered.length - 1) return;
-    setIndex((prev) => Math.min(prev + 1, filtered.length - 1));
-  };
-
-  const handleBackCard = () => {
-    setIndex((prev) => Math.max(prev - 1, 0));
-  };
-
-  const handleNextCard = () => {
-    setIndex((prev) => Math.min(prev + 1, Math.max(filtered.length - 1, 0)));
+    if (!current) return;
+    setDismissedIds((prev) => [...new Set([...prev, current.id])]);
+    setIndex(0);
   };
 
   return (
@@ -339,7 +349,7 @@ export default function Descubrir() {
             >
               <ArrowLeft className="h-5 w-5" />
             </button>
-            <div className="text-center text-[11px] font-black uppercase tracking-[0.24em] text-white/48">Discover tonight</div>
+            <div className="text-center text-[11px] font-black uppercase tracking-[0.24em] text-white/48">Swipe plans</div>
             <button
               type="button"
               onClick={() => setFiltersOpen((prev) => !prev)}
@@ -419,18 +429,14 @@ export default function Descubrir() {
                   <DiscoverCard
                     key={current.id}
                     current={current}
-                    index={index}
-                    total={filtered.length}
                     onSkip={handleSkip}
                     onJoin={handleJoin}
-                    onBack={handleBackCard}
-                    onNext={handleNextCard}
                     joinPending={joinMutation.isPending}
                   />
                 </AnimatePresence>
               </div>
 
-              <div className="absolute inset-x-0 bottom-0 z-20 flex items-center gap-3 px-1 pb-1 pt-3 bg-gradient-to-t from-[#050505] via-[#050505] to-transparent">
+              <div className="absolute inset-x-0 bottom-0 z-20 flex items-center gap-3 px-1 pb-1 pt-4 bg-gradient-to-t from-[#050505] via-[#050505] to-transparent">
                 <button
                   type="button"
                   onClick={handleSkip}

@@ -47,7 +47,7 @@ export default function Landing() {
 
   return (
     <div className="h-dvh overflow-hidden bg-[#f4efe6] text-[#111111]">
-      <div className="mx-auto flex h-dvh w-full max-w-[430px] flex-col overflow-hidden px-4 pb-4 pt-5">
+      <div className="mx-auto flex h-dvh w-full max-w-[430px] flex-col overflow-hidden px-4 pb-3 pt-4">
         <div className="shrink-0">
           <div className="flex items-center gap-3">
             <div className="flex h-14 w-14 items-center justify-center rounded-[20px] bg-[#f0bf39] text-2xl shadow-[0_18px_36px_rgba(240,191,57,0.28)]">🍕</div>
@@ -72,7 +72,7 @@ export default function Landing() {
               initial={{ opacity: 0, y: 16, scale: 0.985 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               transition={{ type: 'spring', stiffness: 280, damping: 26 }}
-              className={`relative flex min-h-[420px] flex-col overflow-hidden rounded-[30px] bg-gradient-to-br ${slide.tone} p-5 text-white`}
+              className={`relative flex min-h-[380px] flex-col overflow-hidden rounded-[30px] bg-gradient-to-br ${slide.tone} p-5 text-white`}
             >
               <div className="flex items-start justify-between gap-4">
                 <div className="min-w-0">
@@ -93,12 +93,6 @@ export default function Landing() {
               </p>
 
               <div className="mt-auto space-y-4">
-                <div className="rounded-[24px] border border-white/10 bg-black/18 p-4 backdrop-blur-sm">
-                  <div className="text-[10px] font-black uppercase tracking-[0.18em] text-white/60">Cómo se usa</div>
-                  <div className="mt-2 text-lg font-black text-white">Desliza con el dedo</div>
-                  <div className="mt-1 text-sm leading-6 text-white/75">Muévete entre tarjetas sin scroll raro y entra a la parte que te interesa al momento.</div>
-                </div>
-
                 <div className="grid grid-cols-3 gap-2">
                   {slides.map((item, i) => (
                     <button
