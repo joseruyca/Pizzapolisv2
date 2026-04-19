@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import { MapPin, Clock, ChevronLeft, Coins, Users, MessageCircle, Sparkles, ArrowUpRight, Plus, Star } from "lucide-react";
 import { Link } from "react-router-dom";
@@ -12,7 +12,6 @@ import { ZINDEX } from "@/lib/zindex";
 import { formatPrice, getGoogleMapsUrl } from "@/lib/place-helpers";
 import { supabase } from "@/lib/supabase";
 import { createPageUrl } from "@/utils";
-import { fetchMySpotRating, fetchSpotRatingsAggregate, saveSpotRating } from "@/lib/spot-ratings";
 
 function InfoCard({ label, value, icon: Icon, accent = "text-stone-400", children }) {
   return (
@@ -82,8 +81,6 @@ export default function PlacePanel({ place, onClose, user }) {
   const [loginPrompt, setLoginPrompt] = useState({ open: false, message: "" });
   const [myRating, setMyRating] = useState(0);
   const [ratingSaved, setRatingSaved] = useState(false);
-  const [ratingError, setRatingError] = useState("");
-  const queryClient = useQueryClient();
 
   const { data: comments = [] } = useQuery({
     queryKey: ["spot-comments", place?.id],
@@ -103,57 +100,35 @@ export default function PlacePanel({ place, onClose, user }) {
     enabled: !!place,
   });
 
-  const { data: mySpotRating = 0 } = useQuery({
-    queryKey: ["spot-rating-mine", place?.id, user?.id],
-    enabled: Boolean(place?.id && user?.id),
-    queryFn: () => fetchMySpotRating(place.id, user.id),
-  });
-
-  const { data: ratingsAggregate } = useQuery({
-    queryKey: ["spot-rating-aggregate", place?.id],
-    enabled: Boolean(place?.id),
-    queryFn: () => fetchSpotRatingsAggregate(place.id),
-  });
-
   const approvedComments = useMemo(() => comments.filter((comment) => comment.status === "approved" || comment.user_id === user?.id), [comments, user?.id]);
   const approvedPhotos = useMemo(() => photos.filter((photo) => photo.status === "approved" || photo.user_id === user?.id), [photos, user?.id]);
   const googleMapsUrl = getGoogleMapsUrl(place);
   const displaySlicePrice = place.standard_slice_price ?? place.slice_price ?? 0;
   const displayBestSlice = place.best_known_slice || place.best_slice || "Optional";
-  const displayRating = Number(ratingsAggregate?.average_rating ?? place.average_rating ?? 0);
-  const displayRatingsCount = Number(ratingsAggregate?.ratings_count ?? place.ratings_count ?? 0);
+  const displayRating = Number(place.average_rating || 0);
 
   useEffect(() => {
     setRatingSaved(false);
-    setRatingError("");
-  }, [place?.id]);
+    if (!place?.id || !user?.id || typeof window === "undefined") {
+      setMyRating(0);
+      return;
+    }
 
-  useEffect(() => {
-    setMyRating(Number(mySpotRating || 0));
-  }, [mySpotRating]);
+    const stored = window.localStorage.getItem(`pizzapolis:spot-rating:${user.id}:${place.id}`);
+    setMyRating(stored ? Number(stored) || 0 : 0);
+  }, [place?.id, user?.id]);
 
-  const handleRatePlace = async (value) => {
-    if (!user?.id) {
+  const handleRatePlace = (value) => {
+    if (!user?.id || typeof window === "undefined") {
       setLoginPrompt({ open: true, message: "Sign in to save your own rating for this spot." });
       return;
     }
 
-    try {
-      setRatingError("");
-      const normalized = await saveSpotRating({ spotId: place.id, userId: user.id, score: value });
-      setMyRating(normalized);
-      setRatingSaved(true);
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["spot-rating-mine", place.id, user.id] }),
-        queryClient.invalidateQueries({ queryKey: ["spot-rating-aggregate", place.id] }),
-        queryClient.invalidateQueries({ queryKey: ["places-supabase"] }),
-        queryClient.invalidateQueries({ queryKey: ["create-plan-spots-supabase"] }),
-      ]);
-      window.setTimeout(() => setRatingSaved(false), 1400);
-    } catch (error) {
-      console.error(error);
-      setRatingError(error?.message || "No se pudo guardar tu valoración.");
-    }
+    const normalized = Math.max(0, Math.min(5, Math.round(Number(value) * 2) / 2));
+    window.localStorage.setItem(`pizzapolis:spot-rating:${user.id}:${place.id}`, String(normalized));
+    setMyRating(normalized);
+    setRatingSaved(true);
+    window.setTimeout(() => setRatingSaved(false), 1400);
   };
 
   if (!place) return null;
@@ -239,27 +214,13 @@ export default function PlacePanel({ place, onClose, user }) {
             {activeTab === "info" ? (
               <div className="space-y-5">
                 <div className="rounded-[24px] border border-white/10 bg-white/[0.03] p-4">
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div>
-                      <div className="text-[11px] font-bold uppercase tracking-[0.16em] text-stone-500">Community rating</div>
-                      <div className="mt-2 flex items-center gap-3">
-                        <div className="text-3xl font-black leading-none text-white">{displayRating.toFixed(1)}</div>
-                        <StarRating rating={displayRating} size="lg" showValue={false} />
-                      </div>
-                      <div className="mt-2 text-xs text-stone-500">{displayRatingsCount} ratings from the community.</div>
-                    </div>
-                    <div className="rounded-2xl border border-white/8 bg-black/20 px-3 py-2 text-right">
-                      <div className="text-[10px] font-bold uppercase tracking-[0.16em] text-stone-500">Your score</div>
-                      <div className="mt-1 text-lg font-black text-white">{myRating.toFixed(1)}</div>
-                    </div>
-                  </div>
-                  <div className="mt-4 flex flex-wrap items-center gap-3">
+                  <div className="text-[11px] font-bold uppercase tracking-[0.16em] text-stone-500">Your rating</div>
+                  <div className="mt-3 flex flex-wrap items-center gap-3">
                     <StarRating rating={myRating} onRate={handleRatePlace} interactive step={0.5} size="lg" showValue />
                     <span className="text-sm text-stone-400">Rate from 0 to 5 in 0.5 steps.</span>
                   </div>
-                  <div className="mt-2 text-xs text-stone-500">This now saves to Supabase, not only on this device.</div>
+                  <div className="mt-2 text-xs text-stone-500">This saves your personal rating on this device for now.</div>
                   {ratingSaved ? <div className="mt-3 inline-flex rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-[11px] font-semibold text-emerald-200">Rating saved</div> : null}
-                  {ratingError ? <div className="mt-3 rounded-2xl border border-red-500/20 bg-red-500/10 px-3 py-2 text-xs text-red-100">{ratingError}</div> : null}
                 </div>
 
                 <div className="rounded-[24px] border border-white/10 bg-white/[0.03] p-4">
