@@ -15,6 +15,14 @@ function fmtDate(date, time) {
   return d.toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
 }
 
+
+async function resolveSpotPhoto(value) {
+  if (!value) return null;
+  if (String(value).startsWith("http")) return value;
+  const { data } = await supabase.storage.from("spot-photos").createSignedUrl(value, 60 * 60);
+  return data?.signedUrl || null;
+}
+
 function mapUrl(spot) {
   if (!spot?.lat || !spot?.lng) return "https://maps.google.com";
   return `https://www.google.com/maps?q=${spot.lat},${spot.lng}`;
@@ -52,7 +60,8 @@ async function fetchGroups(userId) {
     : [];
 
   const profileMap = new Map([...(profiles || []), ...memberProfiles].map((p) => [p.id, p]));
-  const spotMap = new Map((spots || []).map((s) => [s.id, s]));
+  const resolvedSpots = await Promise.all((spots || []).map(async (s) => ({ ...s, photo_url: await resolveSpotPhoto(s.photo_url) })));
+  const spotMap = new Map(resolvedSpots.map((s) => [s.id, s]));
 
   return (plans || []).map((plan) => {
     const planMembers = (members || []).filter((m) => m.plan_id === plan.id && m.status === "joined");
