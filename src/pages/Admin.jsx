@@ -1,43 +1,111 @@
 import React from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
+  AlertTriangle,
+  ArrowRight,
+  Ban,
   CalendarDays,
+  Camera,
   CheckCircle2,
+  ChevronRight,
+  Clock3,
+  Copy,
+  Eye,
   EyeOff,
+  Filter,
   Image as ImageIcon,
   Loader2,
   MapPin,
   MessageSquare,
+  Pencil,
   Pizza,
   Search,
+  Settings2,
   Shield,
+  ShieldAlert,
   Sparkles,
   Trash2,
   UserCog,
   Users,
+  XCircle,
 } from 'lucide-react';
 import { useAuth } from '@/lib/AuthContext';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { formatPrice } from '@/lib/place-helpers';
 import { cn } from '@/lib/utils';
 
-const TAB_ITEMS = [
+const TABS = [
   { id: 'overview', label: 'Resumen', icon: Sparkles },
   { id: 'spots', label: 'Spots', icon: Pizza },
   { id: 'plans', label: 'Planes', icon: CalendarDays },
-  { id: 'comments', label: 'Comentarios', icon: MessageSquare },
-  { id: 'photos', label: 'Fotos', icon: ImageIcon },
-  { id: 'messages', label: 'Chat', icon: MessageSquare },
+  { id: 'reports', label: 'Reportes', icon: ShieldAlert },
   { id: 'users', label: 'Usuarios', icon: UserCog },
+  { id: 'messages', label: 'Chat', icon: MessageSquare },
+  { id: 'photos', label: 'Fotos', icon: ImageIcon },
+  { id: 'settings', label: 'Ajustes', icon: Settings2 },
 ];
 
-function AdminActionButton({ onClick, variant = 'neutral', children, disabled = false }) {
-  const styles = {
-    approve: 'bg-[#216b33] text-white hover:bg-[#195026]',
-    hide: 'bg-[#111111] text-white hover:bg-[#262626]',
-    danger: 'bg-[#df5b43] text-white hover:bg-[#c84b35]',
-    neutral: 'bg-white text-[#111111] hover:bg-[#f7f1e7]',
-    warn: 'bg-[#efbf3a] text-[#111111] hover:bg-[#dfb22f]',
+const SPOT_FILTERS = [
+  { id: 'all', label: 'Todos' },
+  { id: 'pending', label: 'Pendientes' },
+  { id: 'approved', label: 'Aprobados' },
+  { id: 'hidden', label: 'Ocultos' },
+  { id: 'rejected', label: 'Rechazados' },
+  { id: 'no-photo', label: 'Sin foto' },
+  { id: 'broken-photo', label: 'Foto rota' },
+  { id: 'duplicates', label: 'Duplicados probables' },
+  { id: 'low-quality', label: 'Pocos datos' },
+  { id: 'reported', label: 'Más reportados' },
+  { id: 'top-rated', label: 'Más valorados' },
+  { id: 'recent', label: 'Recientes' },
+];
+
+const PLAN_FILTERS = [
+  { id: 'all', label: 'Todos' },
+  { id: 'active', label: 'Activos' },
+  { id: 'past', label: 'Pasados' },
+  { id: 'full', label: 'Llenos' },
+  { id: 'empty', label: 'Vacíos' },
+  { id: 'reported', label: 'Reportados' },
+  { id: 'today', label: 'Creados hoy' },
+  { id: 'invalid-spot', label: 'Sin spot válido' },
+  { id: 'suspicious', label: 'Sospechosos' },
+  { id: 'cancelled', label: 'Cancelados' },
+];
+
+const USER_FILTERS = [
+  { id: 'all', label: 'Todos' },
+  { id: 'admin', label: 'Admin' },
+  { id: 'active', label: 'Activos' },
+  { id: 'new', label: 'Nuevos' },
+  { id: 'reported', label: 'Reportados' },
+  { id: 'warned', label: 'Advertidos' },
+  { id: 'banned', label: 'Baneados' },
+  { id: 'inactive', label: 'Sin actividad' },
+];
+
+const suspiciousTerms = [
+  'spam',
+  'telegram',
+  'whatsapp',
+  'sex',
+  'escort',
+  'apuesta',
+  'casino',
+  'free money',
+  'link',
+  'http',
+  'www',
+  'xxx',
+];
+
+function AdminActionButton({ onClick, children, variant = 'neutral', disabled = false }) {
+  const variants = {
+    neutral: 'bg-white text-[#141414] border-black/10 hover:bg-[#f5ecdf]',
+    success: 'bg-[#216b33] text-white border-[#216b33] hover:bg-[#195127]',
+    warn: 'bg-[#efbf3a] text-[#141414] border-[#efbf3a] hover:bg-[#e2b229]',
+    danger: 'bg-[#df5b43] text-white border-[#df5b43] hover:bg-[#c74e39]',
+    dark: 'bg-[#141414] text-white border-[#141414] hover:bg-[#232323]',
   };
 
   return (
@@ -45,7 +113,10 @@ function AdminActionButton({ onClick, variant = 'neutral', children, disabled = 
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className={`inline-flex h-10 items-center justify-center rounded-2xl px-3 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50 ${styles[variant]}`}
+      className={cn(
+        'inline-flex h-10 items-center justify-center rounded-2xl border px-3 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50',
+        variants[variant],
+      )}
     >
       {children}
     </button>
@@ -54,35 +125,75 @@ function AdminActionButton({ onClick, variant = 'neutral', children, disabled = 
 
 function StatusPill({ tone = 'neutral', children }) {
   const tones = {
-    success: 'bg-[#e6f5e8] text-[#216b33] border-[#cdebd3]',
-    warn: 'bg-[#fff5d6] text-[#7a5a00] border-[#f1de9d]',
-    danger: 'bg-[#fde8e4] text-[#a23c2d] border-[#f2c6bd]',
+    success: 'bg-[#e6f5e8] text-[#216b33] border-[#cfead4]',
+    warn: 'bg-[#fff4d4] text-[#7a5a00] border-[#f1dd9a]',
+    danger: 'bg-[#fde8e4] text-[#a03f2d] border-[#f0c3b7]',
     dark: 'bg-[#141414] text-white border-[#141414]',
-    neutral: 'bg-[#f3ecdf] text-[#141414] border-black/8',
+    neutral: 'bg-[#f3ecdf] text-[#5f584d] border-black/10',
+    info: 'bg-[#eef5ff] text-[#325f92] border-[#d7e5f8]',
   };
 
-  return <span className={`inline-flex rounded-full border px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.12em] ${tones[tone]}`}>{children}</span>;
+  return <span className={cn('inline-flex rounded-full border px-2.5 py-1 text-[11px] font-black uppercase tracking-[0.14em]', tones[tone])}>{children}</span>;
 }
 
-function AdminStat({ label, value, icon: Icon, accent = 'text-[#df5b43]' }) {
+function StatCard({ label, value, note, icon: Icon, accent = 'text-[#df5b43]' }) {
   return (
-    <div className="rounded-[28px] border border-black/10 bg-[#fffaf1] px-5 py-5 shadow-[0_18px_40px_rgba(39,29,14,0.08)]">
-      <div className="text-xs font-black uppercase tracking-[0.18em] text-[#8a8174]">{label}</div>
-      <div className="mt-3 flex items-end gap-3">
-        <div className="text-4xl font-black text-[#111111]">{value}</div>
-        <Icon className={`mb-1 h-5 w-5 ${accent}`} />
+    <div className="rounded-[28px] border border-black/10 bg-[#fffaf1] px-5 py-5 shadow-[0_20px_45px_rgba(34,25,11,0.08)]">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <div className="text-[11px] font-black uppercase tracking-[0.18em] text-[#8a8174]">{label}</div>
+          <div className="mt-3 text-4xl font-black tracking-[-0.05em] text-[#111111]">{value}</div>
+          {note ? <div className="mt-2 text-sm text-[#6d665b]">{note}</div> : null}
+        </div>
+        <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white shadow-[0_10px_24px_rgba(34,25,11,0.08)]">
+          <Icon className={cn('h-5 w-5', accent)} />
+        </div>
       </div>
     </div>
   );
 }
 
+function Shell({ title, subtitle, actions, children }) {
+  return (
+    <section className="rounded-[30px] border border-black/10 bg-[#fffaf1] p-5 shadow-[0_22px_50px_rgba(34,25,11,0.08)]">
+      <div className="flex flex-col gap-4 border-b border-black/8 pb-4 lg:flex-row lg:items-end lg:justify-between">
+        <div>
+          <h2 className="text-[1.4rem] font-black tracking-[-0.04em] text-[#111111]">{title}</h2>
+          {subtitle ? <p className="mt-1 text-sm text-[#6d665b]">{subtitle}</p> : null}
+        </div>
+        {actions ? <div className="flex flex-wrap items-center gap-2">{actions}</div> : null}
+      </div>
+      <div className="mt-4">{children}</div>
+    </section>
+  );
+}
+
 function EmptyState({ icon: Icon, title, text }) {
   return (
-    <div className="rounded-[24px] border border-dashed border-black/10 bg-[#fbf6ed] px-6 py-12 text-center">
-      <Icon className="mx-auto h-10 w-10 text-[#216b33]" />
-      <h2 className="mt-4 text-xl font-black text-[#111111]">{title}</h2>
-      <p className="mt-2 text-sm text-[#6d665b]">{text}</p>
+    <div className="grid min-h-[220px] place-items-center rounded-[28px] border border-dashed border-black/10 bg-[#fbf6ed] px-6 py-10 text-center">
+      <div>
+        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-white shadow-[0_12px_26px_rgba(34,25,11,0.08)]">
+          <Icon className="h-6 w-6 text-[#216b33]" />
+        </div>
+        <h3 className="mt-4 text-xl font-black text-[#111111]">{title}</h3>
+        <p className="mx-auto mt-2 max-w-xl text-sm text-[#6d665b]">{text}</p>
+      </div>
     </div>
+  );
+}
+
+function FilterChip({ active, onClick, children }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        'inline-flex h-10 items-center rounded-full border px-4 text-sm font-semibold transition',
+        active ? 'border-[#141414] bg-[#141414] text-white' : 'border-black/10 bg-white text-[#5d574d] hover:bg-[#f3ecdf]',
+      )}
+    >
+      {children}
+    </button>
   );
 }
 
@@ -93,10 +204,71 @@ function formatDateTime(value) {
   return date.toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' });
 }
 
-async function fetchRows(table, select = '*', orderBy = 'created_at') {
-  const { data, error } = await supabase.from(table).select(select).order(orderBy, { ascending: false });
-  if (error) throw error;
-  return data || [];
+function formatDateOnly(value) {
+  if (!value) return '—';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '—';
+  return date.toLocaleDateString([], { dateStyle: 'medium' });
+}
+
+function toTs(value) {
+  if (!value) return null;
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date.getTime();
+}
+
+function normalizedText(...parts) {
+  return parts
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function compactName(value = '') {
+  return normalizedText(value)
+    .replace(/\b(pizza|pizzeria|slice|shop|nyc|new york|manhattan|brooklyn|queens)\b/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function compactAddress(value = '') {
+  return normalizedText(value)
+    .replace(/\b(street|st|avenue|ave|road|rd|boulevard|blvd|new york|ny|usa|estados unidos)\b/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function distanceMeters(a, b) {
+  if (!a || !b || typeof a.lat !== 'number' || typeof a.lng !== 'number' || typeof b.lat !== 'number' || typeof b.lng !== 'number') return Infinity;
+  const dx = (a.lat - b.lat) * 111320;
+  const dy = (a.lng - b.lng) * 40075000 * Math.cos(((a.lat + b.lat) / 2) * Math.PI / 180) / 360;
+  return Math.sqrt(dx * dx + dy * dy);
+}
+
+function isSuspiciousText(text = '') {
+  const normalized = normalizedText(text);
+  if (!normalized) return false;
+  if (suspiciousTerms.some((term) => normalized.includes(term))) return true;
+  if (/(.)\1{4,}/.test(normalized)) return true;
+  return false;
+}
+
+async function safeFetchRows(table, select = '*', options = {}) {
+  try {
+    let query = supabase.from(table).select(select);
+    if (options.orderBy) query = query.order(options.orderBy, { ascending: options.ascending ?? false });
+    if (options.limit) query = query.limit(options.limit);
+    const { data, error } = await query;
+    if (error) throw error;
+    return { data: data || [], error: null };
+  } catch (error) {
+    return { data: [], error };
+  }
 }
 
 async function deleteRow(table, id) {
@@ -110,81 +282,101 @@ async function updateRow(table, id, payload) {
 }
 
 function useAdminData(enabled) {
-  const spotsQuery = useQuery({
-    queryKey: ['admin-spots'],
-    queryFn: () => fetchRows('spots'),
+  return useQuery({
+    queryKey: ['admin-dashboard-v2'],
     enabled,
-  });
-  const plansQuery = useQuery({
-    queryKey: ['admin-plans'],
-    queryFn: () => fetchRows('plans'),
-    enabled,
-  });
-  const commentsQuery = useQuery({
-    queryKey: ['admin-comments'],
-    queryFn: () => fetchRows('spot_comments'),
-    enabled,
-  });
-  const photosQuery = useQuery({
-    queryKey: ['admin-photos'],
-    queryFn: () => fetchRows('spot_photos'),
-    enabled,
-  });
-  const messagesQuery = useQuery({
-    queryKey: ['admin-messages'],
-    queryFn: () => fetchRows('messages'),
-    enabled,
-  });
-  const usersQuery = useQuery({
-    queryKey: ['admin-users'],
-    queryFn: () => fetchRows('profiles', 'id,email,username,avatar_url,role,created_at,updated_at'),
-    enabled,
-  });
+    queryFn: async () => {
+      const [
+        spotsRes,
+        plansRes,
+        profilesRes,
+        membersRes,
+        messagesRes,
+        ratingsRes,
+        commentsRes,
+        photosRes,
+      ] = await Promise.all([
+        safeFetchRows('spots', 'id,name,address,lat,lng,slice_price,best_slice,quick_note,photo_url,status,created_by,reviewed_by,reviewed_at,created_at,updated_at,average_rating,ratings_count', { orderBy: 'created_at' }),
+        safeFetchRows('plans', 'id,spot_id,title,plan_date,plan_time,max_people,quick_note,status,created_by,created_at,updated_at', { orderBy: 'created_at' }),
+        safeFetchRows('profiles', 'id,email,username,avatar_url,role,created_at,updated_at', { orderBy: 'created_at' }),
+        safeFetchRows('plan_members', 'id,plan_id,user_id,status,created_at', { orderBy: 'created_at' }),
+        safeFetchRows('messages', 'id,plan_id,user_id,content,created_at', { orderBy: 'created_at' }),
+        safeFetchRows('spot_ratings', 'id,spot_id,user_id,rating,created_at,updated_at', { orderBy: 'updated_at' }),
+        safeFetchRows('spot_comments', 'id,spot_id,user_id,content,status,created_at,updated_at,reviewed_by,reviewed_at', { orderBy: 'created_at' }),
+        safeFetchRows('spot_photos', 'id,spot_id,user_id,photo_url,status,created_at,updated_at,reviewed_by,reviewed_at', { orderBy: 'created_at' }),
+      ]);
 
-  return {
-    spotsQuery,
-    plansQuery,
-    commentsQuery,
-    photosQuery,
-    messagesQuery,
-    usersQuery,
-  };
+      return {
+        spots: spotsRes.data,
+        plans: plansRes.data,
+        users: profilesRes.data,
+        members: membersRes.data,
+        messages: messagesRes.data,
+        ratings: ratingsRes.data,
+        comments: commentsRes.data,
+        photos: photosRes.data,
+        diagnostics: [
+          { table: 'spot_comments', available: !commentsRes.error, error: commentsRes.error?.message || null },
+          { table: 'spot_photos', available: !photosRes.error, error: photosRes.error?.message || null },
+        ],
+      };
+    },
+  });
 }
 
-function TableShell({ title, subtitle, actions, children }) {
+function DetailMetric({ label, value, tone = 'neutral' }) {
+  const tones = {
+    neutral: 'bg-white',
+    warn: 'bg-[#fff4d4]',
+    success: 'bg-[#eaf6ec]',
+    danger: 'bg-[#fde8e4]',
+  };
   return (
-    <div className="rounded-[30px] border border-black/10 bg-[#fffaf1] p-5 shadow-[0_20px_50px_rgba(34,25,11,0.10)]">
-      <div className="flex flex-col gap-3 border-b border-black/8 pb-4 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h2 className="text-xl font-black tracking-[-0.03em] text-[#111111]">{title}</h2>
-          {subtitle ? <p className="mt-1 text-sm text-[#6d665b]">{subtitle}</p> : null}
-        </div>
-        {actions ? <div className="flex flex-wrap items-center gap-2">{actions}</div> : null}
-      </div>
-      <div className="mt-4">{children}</div>
+    <div className={cn('rounded-[20px] border border-black/8 px-4 py-3', tones[tone])}>
+      <div className="text-[11px] font-black uppercase tracking-[0.16em] text-[#8a8174]">{label}</div>
+      <div className="mt-1 text-lg font-black leading-tight text-[#111111]">{value}</div>
     </div>
   );
 }
 
-function RowCard({ title, meta, children, image, pill }) {
+function QueueItem({ title, subtitle, tone = 'warn', actionLabel, onAction }) {
   return (
-    <div className="rounded-[24px] border border-black/8 bg-white px-4 py-4 shadow-[0_12px_28px_rgba(39,29,14,0.06)]">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-        <div className="flex min-w-0 gap-4">
-          {image ? (
-            <img src={image} alt="" className="h-20 w-20 shrink-0 rounded-[20px] object-cover" />
-          ) : null}
-          <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-2">
-              <h3 className="text-base font-black text-[#111111]">{title}</h3>
-              {pill}
-            </div>
-            {meta ? <div className="mt-2 space-y-1 text-sm text-[#5d574d]">{meta}</div> : null}
+    <div className="rounded-[22px] border border-black/8 bg-white px-4 py-4">
+      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        <div>
+          <div className="flex items-center gap-2">
+            <StatusPill tone={tone}>{tone === 'danger' ? 'urgente' : tone === 'warn' ? 'revisar' : 'info'}</StatusPill>
+            <div className="text-base font-black text-[#111111]">{title}</div>
           </div>
+          <div className="mt-2 text-sm text-[#6d665b]">{subtitle}</div>
         </div>
-        <div className="flex flex-wrap items-center gap-2 lg:justify-end">{children}</div>
+        {actionLabel ? (
+          <AdminActionButton variant="neutral" onClick={onAction}>
+            {actionLabel}
+          </AdminActionButton>
+        ) : null}
       </div>
     </div>
+  );
+}
+
+function ActionBlock({ icon: Icon, title, text, cta, onClick }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="group rounded-[26px] border border-black/10 bg-white p-5 text-left transition hover:-translate-y-0.5 hover:bg-[#fff8ed] hover:shadow-[0_18px_40px_rgba(34,25,11,0.08)]"
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#141414] text-[#efbf3a]">
+          <Icon className="h-5 w-5" />
+        </div>
+        <ChevronRight className="h-5 w-5 text-[#8a8174] transition group-hover:translate-x-1" />
+      </div>
+      <div className="mt-4 text-lg font-black text-[#111111]">{title}</div>
+      <div className="mt-1 text-sm leading-6 text-[#6d665b]">{text}</div>
+      <div className="mt-4 inline-flex items-center gap-2 text-sm font-bold text-[#141414]">{cta}<ArrowRight className="h-4 w-4" /></div>
+    </button>
   );
 }
 
@@ -194,51 +386,313 @@ export default function Admin() {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = React.useState('overview');
   const [search, setSearch] = React.useState('');
+  const [spotFilter, setSpotFilter] = React.useState('all');
+  const [planFilter, setPlanFilter] = React.useState('all');
+  const [userFilter, setUserFilter] = React.useState('all');
+  const [selectedSpotId, setSelectedSpotId] = React.useState(null);
+  const [selectedPlanId, setSelectedPlanId] = React.useState(null);
+  const [selectedUserId, setSelectedUserId] = React.useState(null);
 
-  const { spotsQuery, plansQuery, commentsQuery, photosQuery, messagesQuery, usersQuery } = useAdminData(enabled);
+  const { data, isLoading } = useAdminData(enabled);
 
-  const spots = spotsQuery.data || [];
-  const plans = plansQuery.data || [];
-  const comments = commentsQuery.data || [];
-  const photos = photosQuery.data || [];
-  const messages = messagesQuery.data || [];
-  const users = usersQuery.data || [];
-
-  const loading = spotsQuery.isLoading || plansQuery.isLoading || commentsQuery.isLoading || photosQuery.isLoading || messagesQuery.isLoading || usersQuery.isLoading;
+  const spots = data?.spots || [];
+  const plans = data?.plans || [];
+  const users = data?.users || [];
+  const members = data?.members || [];
+  const messages = data?.messages || [];
+  const ratings = data?.ratings || [];
+  const comments = data?.comments || [];
+  const photos = data?.photos || [];
+  const diagnostics = data?.diagnostics || [];
 
   const userMap = React.useMemo(() => new Map(users.map((item) => [item.id, item])), [users]);
   const spotMap = React.useMemo(() => new Map(spots.map((item) => [item.id, item])), [spots]);
+  const planMap = React.useMemo(() => new Map(plans.map((item) => [item.id, item])), [plans]);
 
-  const pendingSpots = spots.filter((item) => item.status === 'pending');
-  const hiddenSpots = spots.filter((item) => item.status === 'hidden');
-  const activePlans = plans.filter((item) => item.status === 'active');
-  const draftPlans = plans.filter((item) => item.status === 'draft');
-  const cancelledPlans = plans.filter((item) => item.status === 'cancelled');
-  const pendingComments = comments.filter((item) => item.status === 'pending');
-  const pendingPhotos = photos.filter((item) => item.status === 'pending');
+  const memberCountMap = React.useMemo(() => {
+    const map = new Map();
+    members.forEach((row) => {
+      if (row.status !== 'joined') return;
+      map.set(row.plan_id, (map.get(row.plan_id) || 0) + 1);
+    });
+    return map;
+  }, [members]);
+
+  const userJoinedCountMap = React.useMemo(() => {
+    const map = new Map();
+    members.forEach((row) => {
+      if (row.status !== 'joined') return;
+      map.set(row.user_id, (map.get(row.user_id) || 0) + 1);
+    });
+    return map;
+  }, [members]);
+
+  const userSpotCountMap = React.useMemo(() => {
+    const map = new Map();
+    spots.forEach((row) => map.set(row.created_by, (map.get(row.created_by) || 0) + 1));
+    return map;
+  }, [spots]);
+
+  const userPlanCountMap = React.useMemo(() => {
+    const map = new Map();
+    plans.forEach((row) => map.set(row.created_by, (map.get(row.created_by) || 0) + 1));
+    return map;
+  }, [plans]);
+
+  const userMessageCountMap = React.useMemo(() => {
+    const map = new Map();
+    messages.forEach((row) => map.set(row.user_id, (map.get(row.user_id) || 0) + 1));
+    return map;
+  }, [messages]);
+
+  const ratingHistoryMap = React.useMemo(() => {
+    const map = new Map();
+    ratings.forEach((row) => {
+      const list = map.get(row.spot_id) || [];
+      list.push(row);
+      map.set(row.spot_id, list);
+    });
+    return map;
+  }, [ratings]);
+
+  const duplicatePairs = React.useMemo(() => {
+    const pairs = [];
+    for (let i = 0; i < spots.length; i += 1) {
+      for (let j = i + 1; j < spots.length; j += 1) {
+        const a = spots[i];
+        const b = spots[j];
+        const closeEnough = distanceMeters(a, b) < 160;
+        const sameCoreName = compactName(a.name) && compactName(a.name) === compactName(b.name);
+        const sameAddressCore = compactAddress(a.address) && compactAddress(a.address) === compactAddress(b.address);
+        if ((sameCoreName && closeEnough) || (sameCoreName && sameAddressCore) || (sameAddressCore && closeEnough)) {
+          pairs.push({ a, b, distance: Math.round(distanceMeters(a, b)) });
+        }
+      }
+    }
+    return pairs;
+  }, [spots]);
+
+  const duplicateSpotIds = React.useMemo(() => new Set(duplicatePairs.flatMap((pair) => [pair.a.id, pair.b.id])), [duplicatePairs]);
+
+  const suspiciousMessages = React.useMemo(() => messages.filter((row) => isSuspiciousText(row.content)), [messages]);
+  const suspiciousPlans = React.useMemo(() => plans.filter((row) => isSuspiciousText(row.title) || isSuspiciousText(row.quick_note)), [plans]);
+
+  const todayStart = React.useMemo(() => {
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+    return now.getTime();
+  }, []);
+  const weekStart = todayStart - 6 * 24 * 60 * 60 * 1000;
+  const nowTs = Date.now();
+
+  const usersToday = users.filter((row) => (toTs(row.created_at) || 0) >= todayStart);
+  const usersWeek = users.filter((row) => (toTs(row.created_at) || 0) >= weekStart);
+  const activePlans = plans.filter((row) => row.status === 'active');
+  const pendingSpots = spots.filter((row) => row.status === 'pending');
+  const hiddenSpots = spots.filter((row) => row.status === 'hidden');
+  const approvedSpots = spots.filter((row) => row.status === 'approved');
+  const rejectedSpots = spots.filter((row) => row.status === 'rejected');
+  const pendingPhotos = photos.filter((row) => row.status === 'pending');
+  const pendingComments = comments.filter((row) => row.status === 'pending');
+
+  const openReports = React.useMemo(() => {
+    const items = [];
+
+    approvedSpots.forEach((spot) => {
+      if (!spot.photo_url) {
+        items.push({
+          id: `spot-no-photo-${spot.id}`,
+          type: 'spot',
+          severity: 'warn',
+          label: 'Spot sin foto pero aprobado',
+          entityTitle: spot.name,
+          entityId: spot.id,
+          subtitle: 'Está visible al público sin una foto principal.',
+          createdAt: spot.updated_at || spot.created_at,
+        });
+      }
+    });
+
+    suspiciousPlans.forEach((plan) => {
+      items.push({
+        id: `plan-suspicious-${plan.id}`,
+        type: 'plan',
+        severity: 'danger',
+        label: 'Plan con descripción sospechosa',
+        entityTitle: plan.title,
+        entityId: plan.id,
+        subtitle: plan.quick_note || 'El texto parece spam o abuso.',
+        createdAt: plan.updated_at || plan.created_at,
+      });
+    });
+
+    suspiciousMessages.forEach((message) => {
+      const linkedPlan = planMap.get(message.plan_id);
+      items.push({
+        id: `message-report-${message.id}`,
+        type: 'message',
+        severity: 'danger',
+        label: 'Grupo con mensajes conflictivos',
+        entityTitle: linkedPlan?.title || 'Plan',
+        entityId: message.id,
+        subtitle: message.content,
+        createdAt: message.created_at,
+      });
+    });
+
+    const reportedUserIds = new Map();
+    suspiciousMessages.forEach((row) => {
+      reportedUserIds.set(row.user_id, (reportedUserIds.get(row.user_id) || 0) + 1);
+    });
+    suspiciousPlans.forEach((row) => {
+      reportedUserIds.set(row.created_by, (reportedUserIds.get(row.created_by) || 0) + 1);
+    });
+
+    users.forEach((person) => {
+      const count = reportedUserIds.get(person.id) || 0;
+      if (count >= 3) {
+        items.push({
+          id: `user-reported-${person.id}`,
+          type: 'user',
+          severity: 'danger',
+          label: 'Usuario reportado 3 veces',
+          entityTitle: person.username || person.email,
+          entityId: person.id,
+          subtitle: `Hay ${count} señales de riesgo en su actividad reciente.`,
+          createdAt: person.updated_at || person.created_at,
+        });
+      }
+    });
+
+    duplicatePairs.forEach((pair, index) => {
+      items.push({
+        id: `duplicate-${index}`,
+        type: 'spot',
+        severity: 'warn',
+        label: 'Spot duplicado probable',
+        entityTitle: `${pair.a.name} / ${pair.b.name}`,
+        entityId: pair.a.id,
+        subtitle: `Coincidencia por nombre/dirección y ${pair.distance} m de distancia.`,
+        createdAt: pair.a.updated_at || pair.a.created_at,
+      });
+    });
+
+    return items.sort((a, b) => (toTs(b.createdAt) || 0) - (toTs(a.createdAt) || 0));
+  }, [approvedSpots, suspiciousPlans, suspiciousMessages, users, duplicatePairs, planMap]);
+
+  const urgentItems = openReports.filter((item) => item.severity === 'danger');
 
   const normalizedSearch = search.trim().toLowerCase();
-  const includesSearch = React.useCallback((values) => {
+  const includesSearch = React.useCallback((...values) => {
     if (!normalizedSearch) return true;
-    return values.join(' ').toLowerCase().includes(normalizedSearch);
+    return normalizedText(...values).includes(normalizedSearch);
   }, [normalizedSearch]);
 
-  const filteredSpots = spots.filter((item) => includesSearch([item.name, item.address, item.best_slice, item.quick_note]));
-  const filteredPlans = plans.filter((item) => includesSearch([item.title, item.quick_note, String(item.status)]));
-  const filteredComments = comments.filter((item) => includesSearch([item.content, spotMap.get(item.spot_id)?.name, userMap.get(item.user_id)?.email]));
-  const filteredPhotos = photos.filter((item) => includesSearch([spotMap.get(item.spot_id)?.name, userMap.get(item.user_id)?.email, item.status]));
-  const filteredMessages = messages.filter((item) => includesSearch([item.content, userMap.get(item.user_id)?.email, item.plan_id]));
-  const filteredUsers = users.filter((item) => includesSearch([item.email, item.username, item.role]));
+  const spotRows = React.useMemo(() => {
+    let rows = [...spots].map((spot) => ({
+      ...spot,
+      isDuplicate: duplicateSpotIds.has(spot.id),
+      isBrokenPhoto: Boolean(spot.photo_url && !/^https?:\/\//.test(spot.photo_url) && !spot.photo_url.startsWith('/')),
+      qualityScore: [spot.name, spot.address, spot.best_slice, spot.quick_note, spot.photo_url].filter(Boolean).length,
+      reportCount: openReports.filter((item) => item.type === 'spot' && item.entityId === spot.id).length,
+    }));
+
+    if (spotFilter === 'pending') rows = rows.filter((row) => row.status === 'pending');
+    if (spotFilter === 'approved') rows = rows.filter((row) => row.status === 'approved');
+    if (spotFilter === 'hidden') rows = rows.filter((row) => row.status === 'hidden');
+    if (spotFilter === 'rejected') rows = rows.filter((row) => row.status === 'rejected');
+    if (spotFilter === 'no-photo') rows = rows.filter((row) => !row.photo_url);
+    if (spotFilter === 'broken-photo') rows = rows.filter((row) => row.isBrokenPhoto);
+    if (spotFilter === 'duplicates') rows = rows.filter((row) => row.isDuplicate);
+    if (spotFilter === 'low-quality') rows = rows.filter((row) => row.qualityScore <= 3);
+    if (spotFilter === 'reported') rows = rows.filter((row) => row.reportCount > 0).sort((a, b) => b.reportCount - a.reportCount);
+    if (spotFilter === 'top-rated') rows = rows.sort((a, b) => (b.average_rating || 0) - (a.average_rating || 0));
+    if (spotFilter === 'recent') rows = rows.sort((a, b) => (toTs(b.created_at) || 0) - (toTs(a.created_at) || 0));
+
+    rows = rows.filter((row) => includesSearch(row.name, row.address, row.best_slice, row.quick_note));
+    return rows;
+  }, [spots, duplicateSpotIds, openReports, spotFilter, includesSearch]);
+
+  const planRows = React.useMemo(() => {
+    let rows = [...plans].map((plan) => {
+      const joinedCount = memberCountMap.get(plan.id) || 0;
+      const planDateTime = new Date(`${plan.plan_date || ''}T${plan.plan_time || '00:00'}`);
+      const hasValidSpot = Boolean(spotMap.get(plan.spot_id));
+      const reportCount = openReports.filter((item) => item.type === 'plan' && item.entityId === plan.id).length;
+      return {
+        ...plan,
+        joinedCount,
+        hasValidSpot,
+        seatsOver: joinedCount > (plan.max_people || 0),
+        isPast: !Number.isNaN(planDateTime.getTime()) && planDateTime.getTime() < nowTs,
+        isSuspicious: isSuspiciousText(plan.title) || isSuspiciousText(plan.quick_note),
+        reportCount,
+      };
+    });
+
+    if (planFilter === 'active') rows = rows.filter((row) => row.status === 'active');
+    if (planFilter === 'past') rows = rows.filter((row) => row.isPast);
+    if (planFilter === 'full') rows = rows.filter((row) => row.joinedCount >= (row.max_people || 0));
+    if (planFilter === 'empty') rows = rows.filter((row) => row.joinedCount === 0);
+    if (planFilter === 'reported') rows = rows.filter((row) => row.reportCount > 0 || row.isSuspicious);
+    if (planFilter === 'today') rows = rows.filter((row) => (toTs(row.created_at) || 0) >= todayStart);
+    if (planFilter === 'invalid-spot') rows = rows.filter((row) => !row.hasValidSpot);
+    if (planFilter === 'suspicious') rows = rows.filter((row) => row.isSuspicious || row.seatsOver);
+    if (planFilter === 'cancelled') rows = rows.filter((row) => row.status === 'cancelled');
+
+    rows = rows.filter((row) => includesSearch(row.title, row.quick_note, row.status, spotMap.get(row.spot_id)?.name));
+    return rows;
+  }, [plans, memberCountMap, spotMap, openReports, planFilter, includesSearch, nowTs, todayStart]);
+
+  const userRows = React.useMemo(() => {
+    let rows = users.map((person) => {
+      const signals = openReports.filter((item) => item.type === 'user' && item.entityId === person.id).length;
+      const totalActivity = (userSpotCountMap.get(person.id) || 0) + (userPlanCountMap.get(person.id) || 0) + (userMessageCountMap.get(person.id) || 0);
+      const roleLabel = person.role || 'user';
+      let state = 'active';
+      if (signals >= 3) state = 'banned';
+      else if (signals > 0) state = 'warned';
+      else if (totalActivity === 0) state = 'inactive';
+      return {
+        ...person,
+        spotsCount: userSpotCountMap.get(person.id) || 0,
+        plansCount: userPlanCountMap.get(person.id) || 0,
+        groupsJoined: userJoinedCountMap.get(person.id) || 0,
+        reportsCount: signals,
+        state,
+        totalActivity,
+        roleLabel,
+      };
+    });
+
+    if (userFilter === 'admin') rows = rows.filter((row) => row.role === 'admin');
+    if (userFilter === 'active') rows = rows.filter((row) => row.state === 'active');
+    if (userFilter === 'new') rows = rows.filter((row) => (toTs(row.created_at) || 0) >= weekStart);
+    if (userFilter === 'reported') rows = rows.filter((row) => row.reportsCount > 0);
+    if (userFilter === 'warned') rows = rows.filter((row) => row.state === 'warned');
+    if (userFilter === 'banned') rows = rows.filter((row) => row.state === 'banned');
+    if (userFilter === 'inactive') rows = rows.filter((row) => row.state === 'inactive');
+
+    rows = rows.filter((row) => includesSearch(row.email, row.username, row.role, row.state));
+    return rows;
+  }, [users, openReports, userSpotCountMap, userPlanCountMap, userMessageCountMap, userJoinedCountMap, userFilter, includesSearch, weekStart]);
+
+  const selectedSpot = spotRows.find((row) => row.id === selectedSpotId) || spotRows[0] || null;
+  const selectedPlan = planRows.find((row) => row.id === selectedPlanId) || planRows[0] || null;
+  const selectedUser = userRows.find((row) => row.id === selectedUserId) || userRows[0] || null;
+
+  React.useEffect(() => {
+    if (!selectedSpotId && spotRows[0]?.id) setSelectedSpotId(spotRows[0].id);
+  }, [selectedSpotId, spotRows]);
+  React.useEffect(() => {
+    if (!selectedPlanId && planRows[0]?.id) setSelectedPlanId(planRows[0].id);
+  }, [selectedPlanId, planRows]);
+  React.useEffect(() => {
+    if (!selectedUserId && userRows[0]?.id) setSelectedUserId(userRows[0].id);
+  }, [selectedUserId, userRows]);
 
   const invalidateAll = React.useCallback(async () => {
-    await Promise.all([
-      queryClient.invalidateQueries({ queryKey: ['admin-spots'] }),
-      queryClient.invalidateQueries({ queryKey: ['admin-plans'] }),
-      queryClient.invalidateQueries({ queryKey: ['admin-comments'] }),
-      queryClient.invalidateQueries({ queryKey: ['admin-photos'] }),
-      queryClient.invalidateQueries({ queryKey: ['admin-messages'] }),
-      queryClient.invalidateQueries({ queryKey: ['admin-users'] }),
-    ]);
+    await queryClient.invalidateQueries({ queryKey: ['admin-dashboard-v2'] });
   }, [queryClient]);
 
   const spotMutation = useMutation({
@@ -249,8 +703,12 @@ export default function Admin() {
     mutationFn: ({ id, payload }) => updateRow('plans', id, payload),
     onSuccess: invalidateAll,
   });
-  const commentMutation = useMutation({
-    mutationFn: ({ id, payload }) => updateRow('spot_comments', id, payload),
+  const userMutation = useMutation({
+    mutationFn: ({ id, payload }) => updateRow('profiles', id, payload),
+    onSuccess: invalidateAll,
+  });
+  const messageMutation = useMutation({
+    mutationFn: ({ id, payload }) => updateRow('messages', id, payload),
     onSuccess: invalidateAll,
   });
   const photoMutation = useMutation({
@@ -270,7 +728,7 @@ export default function Admin() {
 
   if (!enabled) {
     return (
-      <div className="admin-screen grid min-h-[calc(100vh-64px)] place-items-center bg-[#f4efe6] px-4 py-6">
+      <div className="grid min-h-[calc(100vh-64px)] place-items-center bg-[#f4efe6] px-4 py-6">
         <div className="rounded-[28px] border border-black/10 bg-[#fffaf1] px-6 py-10 text-center shadow-[0_24px_60px_rgba(34,25,11,0.12)]">
           <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#111111] text-[#f0bf39]"><Shield className="h-6 w-6" /></div>
           <h1 className="text-2xl font-black text-[#111111]">Zona solo para administradores</h1>
@@ -280,47 +738,62 @@ export default function Admin() {
     );
   }
 
+  const goTo = (tab, filters = {}) => {
+    setActiveTab(tab);
+    if (filters.spotFilter) setSpotFilter(filters.spotFilter);
+    if (filters.planFilter) setPlanFilter(filters.planFilter);
+    if (filters.userFilter) setUserFilter(filters.userFilter);
+  };
+
   return (
-    <div className="admin-screen min-h-[calc(100vh-64px)] bg-[#f4efe6] px-3 py-3 text-[#111111] sm:px-4">
-      <div className="mx-auto max-w-7xl space-y-5">
-        <div className="rounded-[34px] border border-black/10 bg-[linear-gradient(180deg,#fffaf1_0%,#f8f1e6_100%)] px-5 py-6 shadow-[0_24px_60px_rgba(34,25,11,0.10)] md:px-7">
-          <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+    <div className="min-h-[calc(100vh-64px)] bg-[#f4efe6] px-3 py-3 text-[#111111] sm:px-4 md:px-5">
+      <div className="mx-auto max-w-[1500px] space-y-5">
+        <header className="rounded-[34px] border border-black/10 bg-[linear-gradient(180deg,#fffaf1_0%,#f7efe4_100%)] px-5 py-6 shadow-[0_24px_60px_rgba(34,25,11,0.10)] md:px-7">
+          <div className="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
             <div>
               <div className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-white px-3 py-2 text-[11px] font-black uppercase tracking-[0.18em] text-[#216b33]">
-                <Sparkles className="h-3.5 w-3.5" /> administración
+                <Sparkles className="h-3.5 w-3.5" /> control operativo
               </div>
-              <h1 className="mt-4 text-[clamp(2rem,4vw,3.4rem)] font-black leading-none tracking-[-0.06em]">Admin integrado con Supabase</h1>
-              <p className="mt-3 max-w-2xl text-sm leading-7 text-[#6d665b]">
-                Desde aquí moderas spots, planes, comentarios, fotos, chat y usuarios usando las tablas reales de Supabase. Si tu cuenta tiene role = admin, el acceso aparece automáticamente.
+              <h1 className="mt-4 text-[clamp(2rem,4vw,3.5rem)] font-black leading-none tracking-[-0.06em]">Admin Pizzapolis</h1>
+              <p className="mt-3 max-w-3xl text-sm leading-7 text-[#6d665b]">
+                Dashboard pensado para resolver en segundos: spots pendientes, planes activos, señales de riesgo, usuarios nuevos, mensajes conflictivos y contenido que necesita moderación.
               </p>
             </div>
-            <div className="rounded-[28px] border border-black/10 bg-white px-5 py-4 shadow-[0_18px_40px_rgba(39,29,14,0.08)]">
-              <div className="text-xs font-black uppercase tracking-[0.18em] text-[#8a8174]">Sesión actual</div>
-              <div className="mt-2 text-base font-bold">{user?.email}</div>
-              <div className="mt-1 text-sm text-[#6d665b]">Role: {role}</div>
-              <div className="mt-3 text-xs text-[#8a8174]">Supabase: {isSupabaseConfigured ? 'configurado' : 'sin configurar'}</div>
+            <div className="grid gap-3 rounded-[28px] border border-black/10 bg-white px-5 py-4 shadow-[0_18px_40px_rgba(39,29,14,0.08)] sm:grid-cols-2">
+              <div>
+                <div className="text-[11px] font-black uppercase tracking-[0.18em] text-[#8a8174]">Sesión actual</div>
+                <div className="mt-2 text-base font-bold text-[#111111]">{user?.email}</div>
+                <div className="mt-1 text-sm text-[#6d665b]">Rol: {role}</div>
+              </div>
+              <div>
+                <div className="text-[11px] font-black uppercase tracking-[0.18em] text-[#8a8174]">Urgencia</div>
+                <div className="mt-2 text-base font-bold text-[#111111]">{urgentItems.length ? `${urgentItems.length} alertas críticas` : 'Sin alertas críticas'}</div>
+                <div className="mt-1 text-sm text-[#6d665b]">Hoy: {usersToday.length} usuarios nuevos</div>
+              </div>
             </div>
           </div>
-        </div>
+        </header>
 
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <AdminStat label="Spots pendientes" value={pendingSpots.length} icon={Pizza} accent="text-[#df5b43]" />
-          <AdminStat label="Comentarios pendientes" value={pendingComments.length} icon={MessageSquare} accent="text-[#216b33]" />
-          <AdminStat label="Fotos pendientes" value={pendingPhotos.length} icon={ImageIcon} accent="text-[#111111]" />
-          <AdminStat label="Planes activos" value={activePlans.length} icon={CalendarDays} accent="text-[#df5b43]" />
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-6">
+          <StatCard label="Spots pendientes" value={pendingSpots.length} note="Esperando revisión" icon={Pizza} accent="text-[#df5b43]" />
+          <StatCard label="Planes activos" value={activePlans.length} note="En curso o próximos" icon={CalendarDays} accent="text-[#216b33]" />
+          <StatCard label="Reportes abiertos" value={openReports.length} note={urgentItems.length ? `${urgentItems.length} urgentes` : 'Sin urgencias'} icon={ShieldAlert} accent="text-[#df5b43]" />
+          <StatCard label="Usuarios nuevos" value={usersToday.length} note={`${usersWeek.length} esta semana`} icon={Users} accent="text-[#111111]" />
+          <StatCard label="Mensajes reportados" value={suspiciousMessages.length} note="Señales automáticas" icon={MessageSquare} accent="text-[#df5b43]" />
+          <StatCard label="Fotos pendientes" value={pendingPhotos.length} note="Pendientes de aprobar" icon={Camera} accent="text-[#216b33]" />
         </div>
 
         <div className="rounded-[30px] border border-black/10 bg-[#fffaf1] p-4 shadow-[0_20px_50px_rgba(34,25,11,0.10)]">
-          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
             <div className="flex flex-wrap gap-2">
-              {TAB_ITEMS.map(({ id, label, icon: Icon }) => (
+              {TABS.map(({ id, label, icon: Icon }) => (
                 <button
                   key={id}
                   type="button"
                   onClick={() => setActiveTab(id)}
                   className={cn(
                     'inline-flex h-11 items-center gap-2 rounded-2xl px-4 text-sm font-bold transition',
-                    activeTab === id ? 'bg-[#111111] text-white shadow-[0_12px_32px_rgba(17,17,17,0.18)]' : 'bg-[#f0e8dc] text-[#5d574d] hover:bg-[#eadfcc]'
+                    activeTab === id ? 'bg-[#141414] text-white shadow-[0_12px_32px_rgba(17,17,17,0.18)]' : 'bg-[#f0e8dc] text-[#5d574d] hover:bg-[#eadfcc]',
                   )}
                 >
                   <Icon className="h-4 w-4" />
@@ -328,257 +801,660 @@ export default function Admin() {
                 </button>
               ))}
             </div>
-
-            <div className="relative w-full md:w-[320px]">
-              <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#8a8174]" />
-              <input
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-                placeholder="Buscar en admin"
-                className="h-11 w-full rounded-2xl border border-black/10 bg-white pl-11 pr-4 text-sm text-[#111111] outline-none transition focus:border-[#efbf3a]"
-              />
+            <div className="flex w-full flex-col gap-3 md:flex-row xl:w-auto">
+              <div className="relative w-full md:w-[360px]">
+                <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#8a8174]" />
+                <input
+                  value={search}
+                  onChange={(event) => setSearch(event.target.value)}
+                  placeholder="Buscar spot, usuario, plan, dirección o mensaje"
+                  className="h-11 w-full rounded-2xl border border-black/10 bg-white pl-11 pr-4 text-sm text-[#111111] outline-none transition focus:border-[#efbf3a]"
+                />
+              </div>
+              <button type="button" className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl border border-black/10 bg-white px-4 text-sm font-semibold text-[#141414]">
+                <Filter className="h-4 w-4" /> Filtros guardados
+              </button>
             </div>
           </div>
         </div>
 
-        {loading ? (
+        {isLoading ? (
           <div className="grid min-h-[320px] place-items-center rounded-[30px] border border-black/10 bg-[#fffaf1]">
             <Loader2 className="h-8 w-8 animate-spin text-[#111111]" />
           </div>
         ) : null}
 
-        {!loading && activeTab === 'overview' ? (
-          <div className="grid gap-5 xl:grid-cols-[1.15fr,0.85fr]">
-            <TableShell title="Cola de revisión" subtitle="Lo primero que deberías revisar ahora mismo.">
-              <div className="grid gap-3">
-                {[...pendingSpots.slice(0, 3).map((item) => ({ type: 'Spot', id: item.id, title: item.name, extra: item.address })),
-                  ...pendingComments.slice(0, 3).map((item) => ({ type: 'Comentario', id: item.id, title: spotMap.get(item.spot_id)?.name || 'Spot', extra: item.content })),
-                  ...pendingPhotos.slice(0, 3).map((item) => ({ type: 'Foto', id: item.id, title: spotMap.get(item.spot_id)?.name || 'Spot', extra: item.photo_url }))]
-                  .slice(0, 6)
-                  .map((item) => (
-                    <div key={`${item.type}-${item.id}`} className="rounded-[22px] border border-black/8 bg-white px-4 py-4">
-                      <div className="flex items-center justify-between gap-3">
-                        <div>
-                          <div className="text-[11px] font-black uppercase tracking-[0.14em] text-[#8a8174]">{item.type}</div>
-                          <div className="mt-1 text-base font-black text-[#111111]">{item.title}</div>
-                          <div className="mt-1 text-sm text-[#6d665b] line-clamp-2">{item.extra}</div>
-                        </div>
-                        <StatusPill tone="warn">pendiente</StatusPill>
-                      </div>
-                    </div>
-                  ))}
-              </div>
-            </TableShell>
+        {!isLoading && activeTab === 'overview' ? (
+          <div className="space-y-5">
+            <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-5">
+              <ActionBlock icon={Pizza} title="Revisar spots pendientes" text={`${pendingSpots.length} pendientes de aprobación o rechazo.`} cta="Abrir spots" onClick={() => goTo('spots', { spotFilter: 'pending' })} />
+              <ActionBlock icon={CalendarDays} title="Revisar planes recientes" text={`${activePlans.length} planes activos y ${plans.filter((row) => (toTs(row.created_at) || 0) >= todayStart).length} creados hoy.`} cta="Abrir planes" onClick={() => goTo('plans', { planFilter: 'today' })} />
+              <ActionBlock icon={ShieldAlert} title="Revisar reportes urgentes" text={`${urgentItems.length} señales fuertes de riesgo ahora mismo.`} cta="Ir a reportes" onClick={() => goTo('reports')} />
+              <ActionBlock icon={AlertTriangle} title="Ver actividad sospechosa" text={`${suspiciousMessages.length + suspiciousPlans.length} textos marcados por heurística.`} cta="Ir a chat" onClick={() => goTo('messages')} />
+              <ActionBlock icon={UserCog} title="Ir a usuarios" text={`${usersToday.length} altas hoy y ${usersWeek.length} en la última semana.`} cta="Abrir usuarios" onClick={() => goTo('users', { userFilter: 'new' })} />
+            </div>
 
-            <TableShell title="Estado general" subtitle="Visión rápida del contenido moderable y de la comunidad.">
-              <div className="grid gap-3">
-                <div className="rounded-[22px] border border-black/8 bg-white px-4 py-4 text-sm text-[#5d574d]">
-                  <div className="font-black text-[#111111]">Spots aprobados</div>
-                  <div className="mt-1 text-3xl font-black text-[#111111]">{spots.filter((item) => item.status === 'approved').length}</div>
-                </div>
-                <div className="rounded-[22px] border border-black/8 bg-white px-4 py-4 text-sm text-[#5d574d]">
-                  <div className="font-black text-[#111111]">Planes borrador / cancelados</div>
-                  <div className="mt-1 text-3xl font-black text-[#111111]">{draftPlans.length + cancelledPlans.length}</div>
-                </div>
-                <div className="rounded-[22px] border border-black/8 bg-white px-4 py-4 text-sm text-[#5d574d]">
-                  <div className="font-black text-[#111111]">Mensajes en grupos</div>
-                  <div className="mt-1 text-3xl font-black text-[#111111]">{messages.length}</div>
-                </div>
-                <div className="rounded-[22px] border border-black/8 bg-white px-4 py-4 text-sm text-[#5d574d]">
-                  <div className="font-black text-[#111111]">Usuarios registrados</div>
-                  <div className="mt-1 text-3xl font-black text-[#111111]">{users.length}</div>
-                </div>
+            <div className="grid gap-5 xl:grid-cols-[1.2fr,0.8fr]">
+              <Shell title="Necesita atención ahora" subtitle="Lista real, no un dashboard vacío. Lo más delicado va arriba.">
+                {openReports.length ? (
+                  <div className="grid gap-3">
+                    {openReports.slice(0, 10).map((item) => (
+                      <QueueItem
+                        key={item.id}
+                        title={`${item.label} · ${item.entityTitle}`}
+                        subtitle={item.subtitle}
+                        tone={item.severity === 'danger' ? 'danger' : 'warn'}
+                        actionLabel={item.type === 'spot' ? 'Ver spots' : item.type === 'plan' ? 'Ver planes' : item.type === 'user' ? 'Ver usuarios' : 'Ver chat'}
+                        onAction={() => goTo(item.type === 'spot' ? 'spots' : item.type === 'plan' ? 'plans' : item.type === 'user' ? 'users' : 'messages')}
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <EmptyState icon={CheckCircle2} title="Todo bajo control" text="Ahora mismo no hay alertas importantes. Puedes usar las acciones rápidas o revisar contenido reciente." />
+                )}
+              </Shell>
+
+              <div className="space-y-5">
+                <Shell title="Estado general" subtitle="Respuesta en menos de 5 segundos.">
+                  <div className="grid gap-3">
+                    <DetailMetric label="Spots aprobados" value={approvedSpots.length} tone="success" />
+                    <DetailMetric label="Spots ocultos/rechazados" value={hiddenSpots.length + rejectedSpots.length} tone="warn" />
+                    <DetailMetric label="Comentarios pendientes" value={pendingComments.length} tone="neutral" />
+                    <DetailMetric label="Mensajes en grupos" value={messages.length} tone="neutral" />
+                    <DetailMetric label="Usuarios registrados" value={users.length} tone="neutral" />
+                  </div>
+                </Shell>
+
+                <Shell title="Diagnóstico de tablas" subtitle="El panel aguanta aunque algunas tablas aún no existan.">
+                  <div className="grid gap-3">
+                    {diagnostics.map((item) => (
+                      <div key={item.table} className="rounded-[20px] border border-black/8 bg-white px-4 py-3">
+                        <div className="flex items-center justify-between gap-3">
+                          <div>
+                            <div className="text-sm font-black text-[#111111]">{item.table}</div>
+                            <div className="mt-1 text-xs text-[#6d665b]">{item.available ? 'Disponible en Supabase.' : 'Aún no existe o no es accesible.'}</div>
+                          </div>
+                          <StatusPill tone={item.available ? 'success' : 'warn'}>{item.available ? 'ok' : 'faltante'}</StatusPill>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </Shell>
               </div>
-            </TableShell>
+            </div>
           </div>
         ) : null}
 
-        {!loading && activeTab === 'spots' ? (
-          <TableShell title="Spots" subtitle={`Pendientes: ${pendingSpots.length} · Hidden: ${hiddenSpots.length}`}>
-            {filteredSpots.length ? (
-              <div className="grid gap-3">
-                {filteredSpots.map((spot) => {
-                  const creator = userMap.get(spot.created_by);
-                  const reviewer = userMap.get(spot.reviewed_by);
-                  return (
-                    <RowCard
-                      key={spot.id}
-                      title={spot.name}
-                      image={spot.photo_url || undefined}
-                      pill={<StatusPill tone={spot.status === 'approved' ? 'success' : spot.status === 'hidden' ? 'dark' : 'warn'}>{spot.status}</StatusPill>}
-                      meta={(
-                        <>
-                          <div className="flex items-center gap-2"><MapPin className="h-4 w-4 text-[#8a8174]" />{spot.address}</div>
-                          <div>Slice price: <strong>{formatPrice(spot.slice_price)}</strong>{spot.best_slice ? ` · Best slice: ${spot.best_slice}` : ''}</div>
-                          <div>Created by: {creator?.email || '—'} · Created: {formatDateTime(spot.created_at)}</div>
-                          {reviewer ? <div>Reviewed by: {reviewer.email} · {formatDateTime(spot.reviewed_at)}</div> : null}
-                          {spot.quick_note ? <div className="text-[#6d665b]">{spot.quick_note}</div> : null}
-                        </>
+        {!isLoading && activeTab === 'spots' ? (
+          <div className="grid gap-5 xl:grid-cols-[0.95fr,1.05fr]">
+            <Shell
+              title="Spots"
+              subtitle="Aprueba, rechaza, oculta, detecta duplicados y revisa calidad de datos."
+              actions={SPOT_FILTERS.map((filter) => (
+                <FilterChip key={filter.id} active={spotFilter === filter.id} onClick={() => setSpotFilter(filter.id)}>{filter.label}</FilterChip>
+              ))}
+            >
+              {spotRows.length ? (
+                <div className="grid gap-3 max-h-[900px] overflow-auto pr-1">
+                  {spotRows.map((spot) => {
+                    const creator = userMap.get(spot.created_by);
+                    return (
+                      <button
+                        key={spot.id}
+                        type="button"
+                        onClick={() => setSelectedSpotId(spot.id)}
+                        className={cn(
+                          'rounded-[24px] border px-4 py-4 text-left transition',
+                          selectedSpot?.id === spot.id ? 'border-[#141414] bg-white shadow-[0_12px_30px_rgba(34,25,11,0.08)]' : 'border-black/8 bg-[#fffdf9] hover:bg-white',
+                        )}
+                      >
+                        <div className="flex gap-4">
+                          <div className="h-20 w-20 shrink-0 overflow-hidden rounded-[20px] bg-[#f2eadf]">
+                            {spot.photo_url ? <img src={spot.photo_url} alt="" className="h-full w-full object-cover" /> : <div className="grid h-full w-full place-items-center text-[#8a8174]"><ImageIcon className="h-5 w-5" /></div>}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <div className="truncate text-base font-black text-[#111111]">{spot.name}</div>
+                              <StatusPill tone={spot.status === 'approved' ? 'success' : spot.status === 'hidden' ? 'dark' : spot.status === 'rejected' ? 'danger' : 'warn'}>{spot.status}</StatusPill>
+                              {spot.isDuplicate ? <StatusPill tone="warn">duplicado</StatusPill> : null}
+                            </div>
+                            <div className="mt-2 line-clamp-2 text-sm text-[#6d665b]">{spot.address}</div>
+                            <div className="mt-3 flex flex-wrap gap-2">
+                              <StatusPill tone="neutral">{formatPrice(spot.slice_price)}</StatusPill>
+                              <StatusPill tone="info">rating {Number(spot.average_rating || 0).toFixed(1)}</StatusPill>
+                              <StatusPill tone="neutral">{spot.ratings_count || 0} valoraciones</StatusPill>
+                              {spot.reportCount ? <StatusPill tone="danger">{spot.reportCount} flags</StatusPill> : null}
+                            </div>
+                            <div className="mt-3 text-xs text-[#8a8174]">{creator?.username || creator?.email || 'Sin creador'} · {formatDateTime(spot.created_at)}</div>
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              ) : (
+                <EmptyState icon={Pizza} title="No hay spots en este filtro" text="Prueba otro filtro o crea más contenido para empezar a moderar." />
+              )}
+            </Shell>
+
+            <Shell title="Ficha del spot" subtitle="Foto grande, datos, histórico, ratings, planes vinculados y acciones rápidas.">
+              {selectedSpot ? (
+                <div className="space-y-5">
+                  <div className="grid gap-4 lg:grid-cols-[1.05fr,0.95fr]">
+                    <div className="overflow-hidden rounded-[28px] border border-black/10 bg-[#f2eadf] aspect-[4/3]">
+                      {selectedSpot.photo_url ? (
+                        <img src={selectedSpot.photo_url} alt="" className="h-full w-full object-cover" />
+                      ) : (
+                        <div className="grid h-full w-full place-items-center text-center">
+                          <div>
+                            <ImageIcon className="mx-auto h-8 w-8 text-[#8a8174]" />
+                            <div className="mt-3 text-sm font-semibold text-[#6d665b]">Sin foto principal</div>
+                          </div>
+                        </div>
                       )}
-                    >
-                      <AdminActionButton variant="approve" onClick={() => spotMutation.mutate({ id: spot.id, payload: moderationPayload('approved') })}><CheckCircle2 className="mr-2 h-4 w-4" />Approve</AdminActionButton>
-                      <AdminActionButton variant="hide" onClick={() => spotMutation.mutate({ id: spot.id, payload: moderationPayload('hidden') })}><EyeOff className="mr-2 h-4 w-4" />Hide</AdminActionButton>
-                      <AdminActionButton variant="danger" onClick={() => deleteMutation.mutate({ table: 'spots', id: spot.id })}><Trash2 className="mr-2 h-4 w-4" />Delete</AdminActionButton>
-                    </RowCard>
-                  );
-                })}
-              </div>
-            ) : <EmptyState icon={Pizza} title="No spots yet" text="Cuando haya spots en Supabase aparecerán aquí para revisar, aprobar u ocultar." />}
-          </TableShell>
+                    </div>
+                    <div className="space-y-3">
+                      <div>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <h3 className="text-3xl font-black tracking-[-0.05em] text-[#111111]">{selectedSpot.name}</h3>
+                          <StatusPill tone={selectedSpot.status === 'approved' ? 'success' : selectedSpot.status === 'hidden' ? 'dark' : selectedSpot.status === 'rejected' ? 'danger' : 'warn'}>{selectedSpot.status}</StatusPill>
+                        </div>
+                        <div className="mt-2 text-sm leading-7 text-[#6d665b]">{selectedSpot.address}</div>
+                      </div>
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        <DetailMetric label="Slice price" value={formatPrice(selectedSpot.slice_price)} />
+                        <DetailMetric label="Best slice" value={selectedSpot.best_slice || '—'} />
+                        <DetailMetric label="Rating medio" value={Number(selectedSpot.average_rating || 0).toFixed(1)} tone="success" />
+                        <DetailMetric label="Nº valoraciones" value={selectedSpot.ratings_count || 0} />
+                        <DetailMetric label="Lat / Lng" value={`${selectedSpot.lat ?? '—'} / ${selectedSpot.lng ?? '—'}`} />
+                        <DetailMetric label="Flags" value={selectedSpot.reportCount || 0} tone={selectedSpot.reportCount ? 'danger' : 'neutral'} />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="grid gap-5 xl:grid-cols-[1.1fr,0.9fr]">
+                    <div className="space-y-5">
+                      <div className="rounded-[24px] border border-black/8 bg-white p-4">
+                        <div className="text-[11px] font-black uppercase tracking-[0.16em] text-[#8a8174]">Descripción / quick note</div>
+                        <div className="mt-2 text-sm leading-7 text-[#5d574d]">{selectedSpot.quick_note || 'Sin nota rápida.'}</div>
+                      </div>
+
+                      <div className="rounded-[24px] border border-black/8 bg-white p-4">
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="text-[11px] font-black uppercase tracking-[0.16em] text-[#8a8174]">Ratings recientes</div>
+                          <StatusPill tone="info">{(ratingHistoryMap.get(selectedSpot.id) || []).length} items</StatusPill>
+                        </div>
+                        <div className="mt-3 space-y-2">
+                          {(ratingHistoryMap.get(selectedSpot.id) || []).slice(0, 5).map((row) => (
+                            <div key={row.id} className="flex items-center justify-between rounded-2xl border border-black/8 bg-[#fffaf1] px-3 py-2 text-sm">
+                              <div className="text-[#5d574d]">{userMap.get(row.user_id)?.username || userMap.get(row.user_id)?.email || row.user_id}</div>
+                              <div className="font-black text-[#111111]">{Number(row.rating).toFixed(1)}</div>
+                            </div>
+                          ))}
+                          {!(ratingHistoryMap.get(selectedSpot.id) || []).length ? <div className="text-sm text-[#8a8174]">Sin historial de ratings todavía.</div> : null}
+                        </div>
+                      </div>
+
+                      <div className="rounded-[24px] border border-black/8 bg-white p-4">
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="text-[11px] font-black uppercase tracking-[0.16em] text-[#8a8174]">Planes activos vinculados</div>
+                          <StatusPill tone="neutral">{plans.filter((plan) => plan.spot_id === selectedSpot.id && plan.status === 'active').length}</StatusPill>
+                        </div>
+                        <div className="mt-3 space-y-2">
+                          {plans.filter((plan) => plan.spot_id === selectedSpot.id).slice(0, 5).map((plan) => (
+                            <div key={plan.id} className="rounded-2xl border border-black/8 bg-[#fffaf1] px-3 py-3">
+                              <div className="font-black text-[#111111]">{plan.title}</div>
+                              <div className="mt-1 text-sm text-[#6d665b]">{plan.plan_date} · {plan.plan_time} · {plan.status}</div>
+                            </div>
+                          ))}
+                          {!plans.some((plan) => plan.spot_id === selectedSpot.id) ? <div className="text-sm text-[#8a8174]">Este spot aún no tiene planes asociados.</div> : null}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="space-y-5">
+                      <div className="rounded-[24px] border border-black/8 bg-white p-4">
+                        <div className="text-[11px] font-black uppercase tracking-[0.16em] text-[#8a8174]">Acciones</div>
+                        <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                          <AdminActionButton variant="success" onClick={() => spotMutation.mutate({ id: selectedSpot.id, payload: moderationPayload('approved') })}><CheckCircle2 className="mr-2 h-4 w-4" />Aprobar</AdminActionButton>
+                          <AdminActionButton variant="warn" onClick={() => spotMutation.mutate({ id: selectedSpot.id, payload: moderationPayload('rejected') })}><XCircle className="mr-2 h-4 w-4" />Rechazar</AdminActionButton>
+                          <AdminActionButton variant="dark" onClick={() => spotMutation.mutate({ id: selectedSpot.id, payload: moderationPayload('hidden') })}><EyeOff className="mr-2 h-4 w-4" />Ocultar</AdminActionButton>
+                          <AdminActionButton variant="neutral" onClick={() => spotMutation.mutate({ id: selectedSpot.id, payload: { updated_at: new Date().toISOString() } })}><Pencil className="mr-2 h-4 w-4" />Editar</AdminActionButton>
+                          <AdminActionButton variant="neutral" onClick={() => setSpotFilter('duplicates')}><Copy className="mr-2 h-4 w-4" />Marcar duplicado</AdminActionButton>
+                          <AdminActionButton variant="neutral" onClick={() => setSpotFilter('duplicates')}><MergeIcon />Fusionar</AdminActionButton>
+                          <AdminActionButton variant="neutral" onClick={() => setActiveTab('photos')}><Camera className="mr-2 h-4 w-4" />Sustituir foto</AdminActionButton>
+                          <AdminActionButton variant="danger" onClick={() => spotMutation.mutate({ id: selectedSpot.id, payload: { photo_url: null, updated_at: new Date().toISOString() } })}><Trash2 className="mr-2 h-4 w-4" />Eliminar foto</AdminActionButton>
+                          <AdminActionButton variant="neutral" onClick={() => window.open(`/home?spot=${selectedSpot.id}`, '_blank')}><MapPin className="mr-2 h-4 w-4" />Ver en mapa</AdminActionButton>
+                          <AdminActionButton variant="neutral" onClick={() => { setSelectedUserId(selectedSpot.created_by); setActiveTab('users'); }}><Users className="mr-2 h-4 w-4" />Ver creador</AdminActionButton>
+                        </div>
+                      </div>
+
+                      <div className="rounded-[24px] border border-black/8 bg-white p-4">
+                        <div className="text-[11px] font-black uppercase tracking-[0.16em] text-[#8a8174]">Checklist de aprobación</div>
+                        <div className="mt-3 grid gap-2 text-sm text-[#5d574d]">
+                          <div className="flex items-center justify-between rounded-2xl border border-black/8 px-3 py-2"><span>Nombre válido</span><StatusPill tone={selectedSpot.name?.trim() ? 'success' : 'danger'}>{selectedSpot.name?.trim() ? 'ok' : 'falta'}</StatusPill></div>
+                          <div className="flex items-center justify-between rounded-2xl border border-black/8 px-3 py-2"><span>Dirección no vacía</span><StatusPill tone={selectedSpot.address?.trim() ? 'success' : 'danger'}>{selectedSpot.address?.trim() ? 'ok' : 'falta'}</StatusPill></div>
+                          <div className="flex items-center justify-between rounded-2xl border border-black/8 px-3 py-2"><span>Coordenadas válidas</span><StatusPill tone={typeof selectedSpot.lat === 'number' && typeof selectedSpot.lng === 'number' ? 'success' : 'danger'}>{typeof selectedSpot.lat === 'number' && typeof selectedSpot.lng === 'number' ? 'ok' : 'revisar'}</StatusPill></div>
+                          <div className="flex items-center justify-between rounded-2xl border border-black/8 px-3 py-2"><span>Precio razonable</span><StatusPill tone={selectedSpot.slice_price >= 0 && selectedSpot.slice_price <= 20 ? 'success' : 'warn'}>{selectedSpot.slice_price >= 0 && selectedSpot.slice_price <= 20 ? 'ok' : 'revisar'}</StatusPill></div>
+                          <div className="flex items-center justify-between rounded-2xl border border-black/8 px-3 py-2"><span>Foto válida o fallback</span><StatusPill tone={selectedSpot.photo_url ? 'success' : 'warn'}>{selectedSpot.photo_url ? 'ok' : 'fallback'}</StatusPill></div>
+                        </div>
+                      </div>
+
+                      <div className="rounded-[24px] border border-black/8 bg-white p-4">
+                        <div className="text-[11px] font-black uppercase tracking-[0.16em] text-[#8a8174]">Histórico rápido</div>
+                        <div className="mt-3 space-y-2 text-sm text-[#5d574d]">
+                          <div className="rounded-2xl border border-black/8 px-3 py-2">Creado: {formatDateTime(selectedSpot.created_at)}</div>
+                          <div className="rounded-2xl border border-black/8 px-3 py-2">Última edición: {formatDateTime(selectedSpot.updated_at)}</div>
+                          <div className="rounded-2xl border border-black/8 px-3 py-2">Última revisión: {formatDateTime(selectedSpot.reviewed_at)}</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <EmptyState icon={Pizza} title="Selecciona un spot" text="La ficha detallada aparecerá aquí cuando elijas un spot de la lista." />
+              )}
+            </Shell>
+          </div>
         ) : null}
 
-        {!loading && activeTab === 'plans' ? (
-          <TableShell title="Planes" subtitle={`Activos: ${activePlans.length} · Drafts: ${draftPlans.length} · Cancelados: ${cancelledPlans.length}`}>
-            {filteredPlans.length ? (
-              <div className="grid gap-3">
-                {filteredPlans.map((plan) => {
-                  const creator = userMap.get(plan.created_by);
-                  const linkedSpot = spotMap.get(plan.spot_id);
-                  return (
-                    <RowCard
-                      key={plan.id}
-                      title={plan.title}
-                      image={linkedSpot?.photo_url || undefined}
-                      pill={<StatusPill tone={plan.status === 'active' ? 'success' : plan.status === 'draft' ? 'warn' : 'dark'}>{plan.status}</StatusPill>}
-                      meta={(
-                        <>
-                          <div>{linkedSpot?.name || 'No linked spot'}{linkedSpot?.address ? ` · ${linkedSpot.address}` : ''}</div>
-                          <div>{plan.plan_date} · {plan.plan_time} · Max people: {plan.max_people}</div>
-                          <div>Created by: {creator?.email || '—'} · {formatDateTime(plan.created_at)}</div>
-                          {plan.quick_note ? <div className="text-[#6d665b]">{plan.quick_note}</div> : null}
-                        </>
-                      )}
-                    >
-                      <AdminActionButton variant="approve" onClick={() => planMutation.mutate({ id: plan.id, payload: { status: 'active' } })}>Activate</AdminActionButton>
-                      <AdminActionButton variant="warn" onClick={() => planMutation.mutate({ id: plan.id, payload: { status: 'draft' } })}>Draft</AdminActionButton>
-                      <AdminActionButton variant="hide" onClick={() => planMutation.mutate({ id: plan.id, payload: { status: 'cancelled' } })}>Cancel</AdminActionButton>
-                      <AdminActionButton variant="danger" onClick={() => deleteMutation.mutate({ table: 'plans', id: plan.id })}>Delete</AdminActionButton>
-                    </RowCard>
-                  );
-                })}
-              </div>
-            ) : <EmptyState icon={CalendarDays} title="No plans yet" text="Los planes creados por los usuarios aparecerán aquí para activarlos, moverlos a draft o cancelarlos." />}
-          </TableShell>
+        {!isLoading && activeTab === 'plans' ? (
+          <div className="grid gap-5 xl:grid-cols-[0.95fr,1.05fr]">
+            <Shell title="Planes" subtitle="Controla cupos, spam, grupos y consistencia del dato." actions={PLAN_FILTERS.map((filter) => <FilterChip key={filter.id} active={planFilter === filter.id} onClick={() => setPlanFilter(filter.id)}>{filter.label}</FilterChip>)}>
+              {planRows.length ? (
+                <div className="grid max-h-[900px] gap-3 overflow-auto pr-1">
+                  {planRows.map((plan) => {
+                    const linkedSpot = spotMap.get(plan.spot_id);
+                    const creator = userMap.get(plan.created_by);
+                    return (
+                      <button
+                        key={plan.id}
+                        type="button"
+                        onClick={() => setSelectedPlanId(plan.id)}
+                        className={cn('rounded-[24px] border px-4 py-4 text-left transition', selectedPlan?.id === plan.id ? 'border-[#141414] bg-white shadow-[0_12px_30px_rgba(34,25,11,0.08)]' : 'border-black/8 bg-[#fffdf9] hover:bg-white')}
+                      >
+                        <div className="flex flex-wrap items-center gap-2">
+                          <div className="text-base font-black text-[#111111]">{plan.title}</div>
+                          <StatusPill tone={plan.status === 'active' ? 'success' : plan.status === 'cancelled' ? 'danger' : 'warn'}>{plan.status}</StatusPill>
+                          {plan.isSuspicious ? <StatusPill tone="danger">sospechoso</StatusPill> : null}
+                          {plan.seatsOver ? <StatusPill tone="danger">sobre cupo</StatusPill> : null}
+                        </div>
+                        <div className="mt-2 text-sm text-[#6d665b]">{linkedSpot?.name || 'Sin spot'} · {plan.plan_date} · {plan.plan_time}</div>
+                        <div className="mt-2 text-sm text-[#6d665b] line-clamp-2">{plan.quick_note || 'Sin descripción'}</div>
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          <StatusPill tone="neutral">{plan.joinedCount}/{plan.max_people || 0} miembros</StatusPill>
+                          {plan.reportCount ? <StatusPill tone="danger">{plan.reportCount} flags</StatusPill> : null}
+                          <StatusPill tone={plan.hasValidSpot ? 'success' : 'warn'}>{plan.hasValidSpot ? 'spot ok' : 'spot inválido'}</StatusPill>
+                        </div>
+                        <div className="mt-3 text-xs text-[#8a8174]">{creator?.username || creator?.email || 'Sin creador'} · {formatDateTime(plan.created_at)}</div>
+                      </button>
+                    );
+                  })}
+                </div>
+              ) : <EmptyState icon={CalendarDays} title="No hay planes en este filtro" text="Cambia el filtro o crea actividad para ver resultados aquí." />}
+            </Shell>
+
+            <Shell title="Ficha del plan" subtitle="Info principal, chat, miembros, reportes y acciones de control.">
+              {selectedPlan ? (
+                <div className="space-y-5">
+                  <div className="grid gap-4 lg:grid-cols-[1.1fr,0.9fr]">
+                    <div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h3 className="text-3xl font-black tracking-[-0.05em] text-[#111111]">{selectedPlan.title}</h3>
+                        <StatusPill tone={selectedPlan.status === 'active' ? 'success' : selectedPlan.status === 'cancelled' ? 'danger' : 'warn'}>{selectedPlan.status}</StatusPill>
+                      </div>
+                      <div className="mt-3 text-sm leading-7 text-[#6d665b]">{selectedPlan.quick_note || 'Sin descripción del plan.'}</div>
+                    </div>
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <DetailMetric label="Spot asociado" value={spotMap.get(selectedPlan.spot_id)?.name || 'Sin spot'} tone={selectedPlan.hasValidSpot ? 'success' : 'warn'} />
+                      <DetailMetric label="Fecha y hora" value={`${selectedPlan.plan_date || '—'} · ${selectedPlan.plan_time || '—'}`} />
+                      <DetailMetric label="Miembros" value={`${selectedPlan.joinedCount}/${selectedPlan.max_people || 0}`} tone={selectedPlan.seatsOver ? 'danger' : 'neutral'} />
+                      <DetailMetric label="Flags" value={selectedPlan.reportCount || 0} tone={selectedPlan.reportCount ? 'danger' : 'neutral'} />
+                    </div>
+                  </div>
+
+                  <div className="grid gap-5 xl:grid-cols-[1fr,1fr]">
+                    <div className="space-y-5">
+                      <div className="rounded-[24px] border border-black/8 bg-white p-4">
+                        <div className="text-[11px] font-black uppercase tracking-[0.16em] text-[#8a8174]">Miembros</div>
+                        <div className="mt-3 space-y-2">
+                          {members.filter((row) => row.plan_id === selectedPlan.id).map((row) => {
+                            const person = userMap.get(row.user_id);
+                            return (
+                              <div key={row.id} className="flex items-center justify-between rounded-2xl border border-black/8 px-3 py-3 text-sm">
+                                <div>
+                                  <div className="font-semibold text-[#111111]">{person?.username || person?.email || row.user_id}</div>
+                                  <div className="text-[#8a8174]">{row.status} · {formatDateTime(row.created_at)}</div>
+                                </div>
+                                <AdminActionButton variant="danger" onClick={() => deleteMutation.mutate({ table: 'plan_members', id: row.id })}>Expulsar</AdminActionButton>
+                              </div>
+                            );
+                          })}
+                          {!members.some((row) => row.plan_id === selectedPlan.id) ? <div className="text-sm text-[#8a8174]">Sin miembros todavía.</div> : null}
+                        </div>
+                      </div>
+
+                      <div className="rounded-[24px] border border-black/8 bg-white p-4">
+                        <div className="text-[11px] font-black uppercase tracking-[0.16em] text-[#8a8174]">Chat reciente</div>
+                        <div className="mt-3 space-y-2">
+                          {messages.filter((row) => row.plan_id === selectedPlan.id).slice(-6).map((row) => (
+                            <div key={row.id} className="rounded-2xl border border-black/8 px-3 py-3">
+                              <div className="flex items-center justify-between gap-2 text-xs text-[#8a8174]">
+                                <span>{userMap.get(row.user_id)?.username || userMap.get(row.user_id)?.email || row.user_id}</span>
+                                <span>{formatDateTime(row.created_at)}</span>
+                              </div>
+                              <div className="mt-2 text-sm text-[#111111]">{row.content}</div>
+                            </div>
+                          ))}
+                          {!messages.some((row) => row.plan_id === selectedPlan.id) ? <div className="text-sm text-[#8a8174]">Sin mensajes en el grupo.</div> : null}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="space-y-5">
+                      <div className="rounded-[24px] border border-black/8 bg-white p-4">
+                        <div className="text-[11px] font-black uppercase tracking-[0.16em] text-[#8a8174]">Acciones</div>
+                        <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                          <AdminActionButton variant="neutral" onClick={() => planMutation.mutate({ id: selectedPlan.id, payload: { updated_at: new Date().toISOString() } })}><Pencil className="mr-2 h-4 w-4" />Editar</AdminActionButton>
+                          <AdminActionButton variant="warn" onClick={() => planMutation.mutate({ id: selectedPlan.id, payload: { status: 'cancelled' } })}><Clock3 className="mr-2 h-4 w-4" />Cerrar</AdminActionButton>
+                          <AdminActionButton variant="dark" onClick={() => planMutation.mutate({ id: selectedPlan.id, payload: { status: 'hidden' } })}><EyeOff className="mr-2 h-4 w-4" />Ocultar</AdminActionButton>
+                          <AdminActionButton variant="danger" onClick={() => deleteMutation.mutate({ table: 'plans', id: selectedPlan.id })}><Trash2 className="mr-2 h-4 w-4" />Eliminar</AdminActionButton>
+                          <AdminActionButton variant="neutral" onClick={() => setActiveTab('messages')}><MessageSquare className="mr-2 h-4 w-4" />Ver grupo</AdminActionButton>
+                          <AdminActionButton variant="neutral" onClick={() => { setSelectedUserId(selectedPlan.created_by); setActiveTab('users'); }}><Users className="mr-2 h-4 w-4" />Ver creador</AdminActionButton>
+                          <AdminActionButton variant="neutral" onClick={() => planMutation.mutate({ id: selectedPlan.id, payload: { status: 'draft' } })}><Copy className="mr-2 h-4 w-4" />Duplicar / recrear</AdminActionButton>
+                        </div>
+                      </div>
+
+                      <div className="rounded-[24px] border border-black/8 bg-white p-4">
+                        <div className="text-[11px] font-black uppercase tracking-[0.16em] text-[#8a8174]">Detección de problemas</div>
+                        <div className="mt-3 grid gap-2 text-sm text-[#5d574d]">
+                          <div className="flex items-center justify-between rounded-2xl border border-black/8 px-3 py-2"><span>Plan sin spot válido</span><StatusPill tone={selectedPlan.hasValidSpot ? 'success' : 'danger'}>{selectedPlan.hasValidSpot ? 'no' : 'sí'}</StatusPill></div>
+                          <div className="flex items-center justify-between rounded-2xl border border-black/8 px-3 py-2"><span>Fecha pasada pero sigue activo</span><StatusPill tone={selectedPlan.isPast && selectedPlan.status === 'active' ? 'danger' : 'success'}>{selectedPlan.isPast && selectedPlan.status === 'active' ? 'sí' : 'no'}</StatusPill></div>
+                          <div className="flex items-center justify-between rounded-2xl border border-black/8 px-3 py-2"><span>Más miembros que plazas</span><StatusPill tone={selectedPlan.seatsOver ? 'danger' : 'success'}>{selectedPlan.seatsOver ? 'sí' : 'no'}</StatusPill></div>
+                          <div className="flex items-center justify-between rounded-2xl border border-black/8 px-3 py-2"><span>Creador baneado / advertido</span><StatusPill tone={(userRows.find((row) => row.id === selectedPlan.created_by)?.state || 'active') !== 'active' ? 'warn' : 'success'}>{userRows.find((row) => row.id === selectedPlan.created_by)?.state || 'active'}</StatusPill></div>
+                          <div className="flex items-center justify-between rounded-2xl border border-black/8 px-3 py-2"><span>Texto spam o abuso</span><StatusPill tone={selectedPlan.isSuspicious ? 'danger' : 'success'}>{selectedPlan.isSuspicious ? 'sí' : 'no'}</StatusPill></div>
+                        </div>
+                      </div>
+
+                      <div className="rounded-[24px] border border-black/8 bg-white p-4">
+                        <div className="text-[11px] font-black uppercase tracking-[0.16em] text-[#8a8174]">Histórico</div>
+                        <div className="mt-3 space-y-2 text-sm text-[#5d574d]">
+                          <div className="rounded-2xl border border-black/8 px-3 py-2">Creado: {formatDateTime(selectedPlan.created_at)}</div>
+                          <div className="rounded-2xl border border-black/8 px-3 py-2">Última edición: {formatDateTime(selectedPlan.updated_at)}</div>
+                          <div className="rounded-2xl border border-black/8 px-3 py-2">Creador: {userMap.get(selectedPlan.created_by)?.username || userMap.get(selectedPlan.created_by)?.email || '—'}</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : <EmptyState icon={CalendarDays} title="Selecciona un plan" text="La ficha detallada aparecerá aquí cuando elijas un plan de la lista." />}
+            </Shell>
+          </div>
         ) : null}
 
-        {!loading && activeTab === 'comments' ? (
-          <TableShell title="Comentarios" subtitle={`Pendientes: ${pendingComments.length}`}>
-            {filteredComments.length ? (
+        {!isLoading && activeTab === 'reports' ? (
+          <Shell title="Reportes / moderación" subtitle="Mientras no exista una tabla formal de reportes, este inbox usa señales reales del contenido para priorizar revisión.">
+            {openReports.length ? (
               <div className="grid gap-3">
-                {filteredComments.map((comment) => {
-                  const author = userMap.get(comment.user_id);
-                  const linkedSpot = spotMap.get(comment.spot_id);
-                  return (
-                    <RowCard
-                      key={comment.id}
-                      title={linkedSpot?.name || 'Spot'}
-                      pill={<StatusPill tone={comment.status === 'approved' ? 'success' : comment.status === 'hidden' ? 'dark' : 'warn'}>{comment.status}</StatusPill>}
-                      meta={(
-                        <>
-                          <div>By: {author?.email || '—'} · {formatDateTime(comment.created_at)}</div>
-                          <div className="text-[#111111]">{comment.content}</div>
-                        </>
-                      )}
-                    >
-                      <AdminActionButton variant="approve" onClick={() => commentMutation.mutate({ id: comment.id, payload: moderationPayload('approved') })}>Approve</AdminActionButton>
-                      <AdminActionButton variant="hide" onClick={() => commentMutation.mutate({ id: comment.id, payload: moderationPayload('hidden') })}>Hide</AdminActionButton>
-                      <AdminActionButton variant="danger" onClick={() => deleteMutation.mutate({ table: 'spot_comments', id: comment.id })}>Delete</AdminActionButton>
-                    </RowCard>
-                  );
-                })}
-              </div>
-            ) : <EmptyState icon={MessageSquare} title="No comments yet" text="Los comentarios moderables aparecerán aquí para aprobarlos o ocultarlos." />}
-          </TableShell>
-        ) : null}
-
-        {!loading && activeTab === 'photos' ? (
-          <TableShell title="Fotos" subtitle={`Pendientes: ${pendingPhotos.length}`}>
-            {filteredPhotos.length ? (
-              <div className="grid gap-3">
-                {filteredPhotos.map((photo) => {
-                  const author = userMap.get(photo.user_id);
-                  const linkedSpot = spotMap.get(photo.spot_id);
-                  return (
-                    <RowCard
-                      key={photo.id}
-                      title={linkedSpot?.name || 'Spot'}
-                      image={photo.photo_url}
-                      pill={<StatusPill tone={photo.status === 'approved' ? 'success' : photo.status === 'hidden' ? 'dark' : 'warn'}>{photo.status}</StatusPill>}
-                      meta={(
-                        <>
-                          <div>By: {author?.email || '—'} · {formatDateTime(photo.created_at)}</div>
-                          <div className="break-all text-[#6d665b]">{photo.photo_url}</div>
-                        </>
-                      )}
-                    >
-                      <AdminActionButton variant="approve" onClick={() => photoMutation.mutate({ id: photo.id, payload: moderationPayload('approved') })}>Approve</AdminActionButton>
-                      <AdminActionButton variant="hide" onClick={() => photoMutation.mutate({ id: photo.id, payload: moderationPayload('hidden') })}>Hide</AdminActionButton>
-                      <AdminActionButton variant="danger" onClick={() => deleteMutation.mutate({ table: 'spot_photos', id: photo.id })}>Delete</AdminActionButton>
-                    </RowCard>
-                  );
-                })}
-              </div>
-            ) : <EmptyState icon={ImageIcon} title="No photos yet" text="Las fotos enviadas por usuarios aparecerán aquí para aprobarlas, ocultarlas o borrarlas." />}
-          </TableShell>
-        ) : null}
-
-        {!loading && activeTab === 'messages' ? (
-          <TableShell title="Chat" subtitle="Mensajes de grupos almacenados en la tabla messages.">
-            {filteredMessages.length ? (
-              <div className="grid gap-3">
-                {filteredMessages.map((message) => {
-                  const author = userMap.get(message.user_id);
-                  const linkedPlan = plans.find((item) => item.id === message.plan_id);
-                  return (
-                    <RowCard
-                      key={message.id}
-                      title={linkedPlan?.title || 'Plan'}
-                      pill={<StatusPill tone="neutral">message</StatusPill>}
-                      meta={(
-                        <>
-                          <div>By: {author?.email || '—'} · {formatDateTime(message.created_at)}</div>
-                          <div className="text-[#111111]">{message.content}</div>
-                        </>
-                      )}
-                    >
-                      <AdminActionButton variant="danger" onClick={() => deleteMutation.mutate({ table: 'messages', id: message.id })}>Delete</AdminActionButton>
-                    </RowCard>
-                  );
-                })}
-              </div>
-            ) : <EmptyState icon={MessageSquare} title="No messages yet" text="Los mensajes de grupo aparecerán aquí para moderación puntual si hace falta." />}
-          </TableShell>
-        ) : null}
-
-        {!loading && activeTab === 'users' ? (
-          <TableShell title="Usuarios" subtitle="Listado básico de perfiles y roles.">
-            {filteredUsers.length ? (
-              <div className="grid gap-3">
-                {filteredUsers.map((person) => (
-                  <RowCard
-                    key={person.id}
-                    title={person.username || person.email || 'User'}
-                    pill={<StatusPill tone={person.role === 'admin' ? 'dark' : 'neutral'}>{person.role || 'user'}</StatusPill>}
-                    meta={(
-                      <>
-                        <div>{person.email || '—'}</div>
-                        <div>Created: {formatDateTime(person.created_at)}</div>
-                        <div>Updated: {formatDateTime(person.updated_at)}</div>
-                      </>
-                    )}
-                  >
-                    {person.role !== 'admin' ? (
-                      <AdminActionButton variant="warn" onClick={() => updateRow('profiles', person.id, { role: 'admin' }).then(invalidateAll)}>Make admin</AdminActionButton>
-                    ) : (
-                      <AdminActionButton variant="hide" onClick={() => updateRow('profiles', person.id, { role: 'user' }).then(invalidateAll)} disabled={person.id === profile?.id}>Remove admin</AdminActionButton>
-                    )}
-                  </RowCard>
+                {openReports.map((item) => (
+                  <div key={item.id} className="rounded-[24px] border border-black/8 bg-white px-4 py-4">
+                    <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <StatusPill tone={item.severity === 'danger' ? 'danger' : 'warn'}>{item.severity === 'danger' ? 'alta' : 'media'}</StatusPill>
+                          <StatusPill tone="neutral">{item.type}</StatusPill>
+                          <div className="text-base font-black text-[#111111]">{item.label}</div>
+                        </div>
+                        <div className="mt-2 text-sm font-semibold text-[#111111]">{item.entityTitle}</div>
+                        <div className="mt-1 text-sm text-[#6d665b]">{item.subtitle}</div>
+                        <div className="mt-2 text-xs text-[#8a8174]">Fecha: {formatDateTime(item.createdAt)} · Estado: open</div>
+                      </div>
+                      <div className="flex flex-wrap gap-2 lg:justify-end">
+                        <AdminActionButton variant="neutral" onClick={() => goTo(item.type === 'spot' ? 'spots' : item.type === 'plan' ? 'plans' : item.type === 'user' ? 'users' : 'messages')}>Ver</AdminActionButton>
+                        <AdminActionButton variant="dark">Descartar</AdminActionButton>
+                        <AdminActionButton variant="warn">Ocultar contenido</AdminActionButton>
+                        <AdminActionButton variant="danger">Avisar / sancionar</AdminActionButton>
+                      </div>
+                    </div>
+                  </div>
                 ))}
               </div>
-            ) : <EmptyState icon={Users} title="No users yet" text="Los perfiles de Supabase aparecerán aquí para revisar roles y moderación." />}
-          </TableShell>
+            ) : <EmptyState icon={ShieldAlert} title="Sin reportes abiertos" text="Cuando lleguen reportes reales o señales automáticas, aparecerán aquí con prioridad y estado." />}
+          </Shell>
+        ) : null}
+
+        {!isLoading && activeTab === 'users' ? (
+          <div className="grid gap-5 xl:grid-cols-[0.95fr,1.05fr]">
+            <Shell title="Usuarios" subtitle="Control básico, con foco en actividad, reportes y rol." actions={USER_FILTERS.map((filter) => <FilterChip key={filter.id} active={userFilter === filter.id} onClick={() => setUserFilter(filter.id)}>{filter.label}</FilterChip>)}>
+              {userRows.length ? (
+                <div className="grid max-h-[900px] gap-3 overflow-auto pr-1">
+                  {userRows.map((person) => (
+                    <button
+                      key={person.id}
+                      type="button"
+                      onClick={() => setSelectedUserId(person.id)}
+                      className={cn('rounded-[24px] border px-4 py-4 text-left transition', selectedUser?.id === person.id ? 'border-[#141414] bg-white shadow-[0_12px_30px_rgba(34,25,11,0.08)]' : 'border-black/8 bg-[#fffdf9] hover:bg-white')}
+                    >
+                      <div className="flex items-start gap-4">
+                        <div className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-[#141414] text-lg font-black text-[#efbf3a]">{(person.username || person.email || 'U').slice(0, 1).toUpperCase()}</div>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <div className="truncate text-base font-black text-[#111111]">{person.username || person.email}</div>
+                            <StatusPill tone={person.role === 'admin' ? 'dark' : 'neutral'}>{person.roleLabel}</StatusPill>
+                            <StatusPill tone={person.state === 'banned' ? 'danger' : person.state === 'warned' ? 'warn' : 'success'}>{person.state}</StatusPill>
+                          </div>
+                          <div className="mt-2 truncate text-sm text-[#6d665b]">{person.email}</div>
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            <StatusPill tone="neutral">{person.spotsCount} spots</StatusPill>
+                            <StatusPill tone="neutral">{person.plansCount} planes</StatusPill>
+                            <StatusPill tone="neutral">{person.groupsJoined} grupos</StatusPill>
+                            {person.reportsCount ? <StatusPill tone="danger">{person.reportsCount} flags</StatusPill> : null}
+                          </div>
+                        </div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              ) : <EmptyState icon={Users} title="No hay usuarios en este filtro" text="Prueba otro filtro o espera a que entre más gente en la plataforma." />}
+            </Shell>
+
+            <Shell title="Ficha del usuario" subtitle="Actividad, reportes y acciones de seguridad.">
+              {selectedUser ? (
+                <div className="space-y-5">
+                  <div className="grid gap-4 lg:grid-cols-[1fr,1fr]">
+                    <div className="rounded-[24px] border border-black/8 bg-white p-4">
+                      <div className="flex items-center gap-4">
+                        <div className="grid h-16 w-16 place-items-center rounded-2xl bg-[#141414] text-2xl font-black text-[#efbf3a]">{(selectedUser.username || selectedUser.email || 'U').slice(0, 1).toUpperCase()}</div>
+                        <div>
+                          <div className="text-2xl font-black tracking-[-0.04em] text-[#111111]">{selectedUser.username || 'Usuario sin nombre'}</div>
+                          <div className="mt-1 text-sm text-[#6d665b]">{selectedUser.email}</div>
+                          <div className="mt-2 flex flex-wrap gap-2">
+                            <StatusPill tone={selectedUser.role === 'admin' ? 'dark' : 'neutral'}>{selectedUser.roleLabel}</StatusPill>
+                            <StatusPill tone={selectedUser.state === 'banned' ? 'danger' : selectedUser.state === 'warned' ? 'warn' : 'success'}>{selectedUser.state}</StatusPill>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <DetailMetric label="Spots creados" value={selectedUser.spotsCount} />
+                      <DetailMetric label="Planes creados" value={selectedUser.plansCount} />
+                      <DetailMetric label="Grupos unidos" value={selectedUser.groupsJoined} />
+                      <DetailMetric label="Reportes recibidos" value={selectedUser.reportsCount} tone={selectedUser.reportsCount ? 'danger' : 'neutral'} />
+                    </div>
+                  </div>
+
+                  <div className="grid gap-5 xl:grid-cols-[1fr,1fr]">
+                    <div className="space-y-5">
+                      <div className="rounded-[24px] border border-black/8 bg-white p-4">
+                        <div className="text-[11px] font-black uppercase tracking-[0.16em] text-[#8a8174]">Actividad reciente</div>
+                        <div className="mt-3 space-y-2 text-sm text-[#5d574d]">
+                          <div className="rounded-2xl border border-black/8 px-3 py-2">Alta: {formatDateTime(selectedUser.created_at)}</div>
+                          <div className="rounded-2xl border border-black/8 px-3 py-2">Última actualización: {formatDateTime(selectedUser.updated_at)}</div>
+                          <div className="rounded-2xl border border-black/8 px-3 py-2">Mensajes recientes: {userMessageCountMap.get(selectedUser.id) || 0}</div>
+                        </div>
+                      </div>
+
+                      <div className="rounded-[24px] border border-black/8 bg-white p-4">
+                        <div className="text-[11px] font-black uppercase tracking-[0.16em] text-[#8a8174]">Contenido del usuario</div>
+                        <div className="mt-3 space-y-3">
+                          {spots.filter((row) => row.created_by === selectedUser.id).slice(0, 3).map((row) => (
+                            <div key={row.id} className="rounded-2xl border border-black/8 px-3 py-3 text-sm">
+                              <div className="font-black text-[#111111]">{row.name}</div>
+                              <div className="mt-1 text-[#6d665b]">Spot · {row.status}</div>
+                            </div>
+                          ))}
+                          {plans.filter((row) => row.created_by === selectedUser.id).slice(0, 3).map((row) => (
+                            <div key={row.id} className="rounded-2xl border border-black/8 px-3 py-3 text-sm">
+                              <div className="font-black text-[#111111]">{row.title}</div>
+                              <div className="mt-1 text-[#6d665b]">Plan · {row.status}</div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="space-y-5">
+                      <div className="rounded-[24px] border border-black/8 bg-white p-4">
+                        <div className="text-[11px] font-black uppercase tracking-[0.16em] text-[#8a8174]">Acciones admin</div>
+                        <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                          {selectedUser.role !== 'admin' ? (
+                            <AdminActionButton variant="warn" onClick={() => userMutation.mutate({ id: selectedUser.id, payload: { role: 'admin' } })}><Shield className="mr-2 h-4 w-4" />Cambiar rol</AdminActionButton>
+                          ) : (
+                            <AdminActionButton variant="dark" disabled={selectedUser.id === profile?.id} onClick={() => userMutation.mutate({ id: selectedUser.id, payload: { role: 'user' } })}><Shield className="mr-2 h-4 w-4" />Quitar admin</AdminActionButton>
+                          )}
+                          <AdminActionButton variant="warn"><AlertTriangle className="mr-2 h-4 w-4" />Advertir</AdminActionButton>
+                          <AdminActionButton variant="dark"><Ban className="mr-2 h-4 w-4" />Suspender</AdminActionButton>
+                          <AdminActionButton variant="danger"><Ban className="mr-2 h-4 w-4" />Banear</AdminActionButton>
+                          <AdminActionButton variant="neutral">Ocultar contenido</AdminActionButton>
+                          <AdminActionButton variant="neutral">Ver todo su contenido</AdminActionButton>
+                        </div>
+                      </div>
+
+                      <div className="rounded-[24px] border border-black/8 bg-white p-4">
+                        <div className="text-[11px] font-black uppercase tracking-[0.16em] text-[#8a8174]">Seguridad</div>
+                        <div className="mt-3 space-y-2 text-sm text-[#5d574d]">
+                          <div className="rounded-2xl border border-black/8 px-3 py-2">Acciones graves deben pedir confirmación adicional.</div>
+                          <div className="rounded-2xl border border-black/8 px-3 py-2">Conviene guardar logs de cambios y trazabilidad.</div>
+                          <div className="rounded-2xl border border-black/8 px-3 py-2">Evita acciones de 1 clic sobre baneos o borrados masivos.</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : <EmptyState icon={Users} title="Selecciona un usuario" text="La ficha detallada aparecerá aquí cuando elijas un perfil de la lista." />}
+            </Shell>
+          </div>
+        ) : null}
+
+        {!isLoading && activeTab === 'messages' ? (
+          <Shell title="Chat / mensajes" subtitle="Búsqueda por texto, filtrado por plan, contexto del chat y moderación puntual.">
+            {messages.length ? (
+              <div className="grid gap-3">
+                {messages.filter((row) => includesSearch(row.content, planMap.get(row.plan_id)?.title, userMap.get(row.user_id)?.email)).slice(0, 100).map((row) => (
+                  <div key={row.id} className="rounded-[24px] border border-black/8 bg-white px-4 py-4">
+                    <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <StatusPill tone={isSuspiciousText(row.content) ? 'danger' : 'neutral'}>{isSuspiciousText(row.content) ? 'reportado' : 'normal'}</StatusPill>
+                          <div className="text-base font-black text-[#111111]">{planMap.get(row.plan_id)?.title || 'Plan'}</div>
+                        </div>
+                        <div className="mt-2 text-sm text-[#6d665b]">{userMap.get(row.user_id)?.username || userMap.get(row.user_id)?.email || row.user_id} · {formatDateTime(row.created_at)}</div>
+                        <div className="mt-3 rounded-2xl border border-black/8 bg-[#fffaf1] px-3 py-3 text-sm leading-7 text-[#111111]">{row.content}</div>
+                      </div>
+                      <div className="flex flex-wrap gap-2 lg:justify-end">
+                        <AdminActionButton variant="neutral" onClick={() => setSelectedPlanId(row.plan_id) || setActiveTab('plans')}><Eye className="mr-2 h-4 w-4" />Contexto</AdminActionButton>
+                        <AdminActionButton variant="warn" onClick={() => messageMutation.mutate({ id: row.id, payload: { content: '[mensaje eliminado por moderación]' } })}>Ocultar</AdminActionButton>
+                        <AdminActionButton variant="danger" onClick={() => deleteMutation.mutate({ table: 'messages', id: row.id })}>Eliminar</AdminActionButton>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : <EmptyState icon={MessageSquare} title="No hay mensajes" text="Cuando los grupos hablen, podrás revisar aquí el contexto y moderar si hace falta." />}
+          </Shell>
+        ) : null}
+
+        {!isLoading && activeTab === 'photos' ? (
+          <Shell title="Fotos / media" subtitle="Pendientes, rotas, huérfanas y fotos asociadas a spots problemáticos.">
+            {photos.length ? (
+              <div className="grid gap-3">
+                {photos.filter((row) => includesSearch(spotMap.get(row.spot_id)?.name, row.photo_url, row.status)).map((row) => {
+                  const linkedSpot = spotMap.get(row.spot_id);
+                  const isOrphan = !linkedSpot;
+                  const broken = Boolean(row.photo_url && !/^https?:\/\//.test(row.photo_url) && !row.photo_url.startsWith('/'));
+                  return (
+                    <div key={row.id} className="rounded-[24px] border border-black/8 bg-white p-4">
+                      <div className="grid gap-4 lg:grid-cols-[140px,1fr,auto] lg:items-start">
+                        <div className="h-[120px] overflow-hidden rounded-[22px] bg-[#f2eadf]">
+                          {row.photo_url ? <img src={row.photo_url} alt="" className="h-full w-full object-cover" /> : <div className="grid h-full place-items-center"><ImageIcon className="h-6 w-6 text-[#8a8174]" /></div>}
+                        </div>
+                        <div>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <div className="text-base font-black text-[#111111]">{linkedSpot?.name || 'Spot no encontrado'}</div>
+                            <StatusPill tone={row.status === 'approved' ? 'success' : row.status === 'hidden' ? 'dark' : 'warn'}>{row.status}</StatusPill>
+                            {isOrphan ? <StatusPill tone="danger">huérfana</StatusPill> : null}
+                            {broken ? <StatusPill tone="warn">rota</StatusPill> : null}
+                          </div>
+                          <div className="mt-2 break-all text-sm text-[#6d665b]">{row.photo_url}</div>
+                          <div className="mt-2 text-xs text-[#8a8174]">{formatDateTime(row.created_at)}</div>
+                        </div>
+                        <div className="flex flex-wrap gap-2 lg:justify-end">
+                          <AdminActionButton variant="success" onClick={() => photoMutation.mutate({ id: row.id, payload: moderationPayload('approved') })}>Aprobar</AdminActionButton>
+                          <AdminActionButton variant="warn" onClick={() => photoMutation.mutate({ id: row.id, payload: moderationPayload('hidden') })}>Rechazar</AdminActionButton>
+                          <AdminActionButton variant="neutral">Abrir original</AdminActionButton>
+                          <AdminActionButton variant="danger" onClick={() => deleteMutation.mutate({ table: 'spot_photos', id: row.id })}>Eliminar</AdminActionButton>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : <EmptyState icon={Camera} title="No hay fotos en la tabla media" text="Si todavía no has creado spot_photos, el admin seguirá funcionando y aquí quedará el hueco preparado." />}
+          </Shell>
+        ) : null}
+
+        {!isLoading && activeTab === 'settings' ? (
+          <Shell title="Ajustes / configuración" subtitle="No enorme, pero sí útil para operar y moderar mejor.">
+            <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
+              <div className="rounded-[24px] border border-black/8 bg-white p-5">
+                <div className="text-lg font-black text-[#111111]">Límites de plazas</div>
+                <div className="mt-2 text-sm leading-7 text-[#6d665b]">Define máximos por plan, límites blandos y cuándo marcar sobrecupo.</div>
+              </div>
+              <div className="rounded-[24px] border border-black/8 bg-white p-5">
+                <div className="text-lg font-black text-[#111111]">Estados permitidos</div>
+                <div className="mt-2 text-sm leading-7 text-[#6d665b]">active, draft, cancelled, approved, hidden, rejected y cualquier flujo extra que añadas.</div>
+              </div>
+              <div className="rounded-[24px] border border-black/8 bg-white p-5">
+                <div className="text-lg font-black text-[#111111]">Textos de moderación</div>
+                <div className="mt-2 text-sm leading-7 text-[#6d665b]">Plantillas para avisos, rechazos de fotos, warnings y sanciones temporales.</div>
+              </div>
+              <div className="rounded-[24px] border border-black/8 bg-white p-5">
+                <div className="text-lg font-black text-[#111111]">Umbrales de sospecha</div>
+                <div className="mt-2 text-sm leading-7 text-[#6d665b]">Heurísticas para spam, duplicados, actividad extraña o exceso de reportes.</div>
+              </div>
+              <div className="rounded-[24px] border border-black/8 bg-white p-5">
+                <div className="text-lg font-black text-[#111111]">Valores por defecto</div>
+                <div className="mt-2 text-sm leading-7 text-[#6d665b]">Precio, plazas, estados iniciales y visibilidad pública por tipo de contenido.</div>
+              </div>
+              <div className="rounded-[24px] border border-black/8 bg-white p-5">
+                <div className="text-lg font-black text-[#111111]">Badges del producto</div>
+                <div className="mt-2 text-sm leading-7 text-[#6d665b]">cheap, good value, overpriced o cualquier categoría visual que quieras usar en mapa y admin.</div>
+              </div>
+            </div>
+          </Shell>
         ) : null}
       </div>
     </div>
+  );
+}
+
+function MergeIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="mr-2 h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M7 7h4a4 4 0 0 1 4 4v6" />
+      <path d="M7 17h4a4 4 0 0 0 4-4V7" />
+      <path d="m14 17 3 3 3-3" />
+      <path d="m14 7 3-3 3 3" />
+    </svg>
   );
 }
