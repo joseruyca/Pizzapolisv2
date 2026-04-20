@@ -76,9 +76,9 @@ function FilterChip({ active, children, onClick }) {
 
 function StatBox({ label, children, accent = false }) {
   return (
-    <div className={`rounded-[16px] border ${accent ? "border-[#efbf3a]/40 bg-[#fff7df]" : "border-black/8 bg-[#fffaf2]"} px-3 py-2.5`}>
-      <div className="text-[9px] font-black uppercase tracking-[0.18em] text-[#8a8174]">{label}</div>
-      <div className="mt-1 text-[14px] font-black leading-tight text-[#141414]">{children}</div>
+    <div className={`rounded-[15px] border ${accent ? "border-[#efbf3a]/45 bg-[#fff8e4]" : "border-black/8 bg-[#fffaf4]"} px-3 py-2`}>
+      <div className="text-[8px] font-black uppercase tracking-[0.18em] text-[#8a8174]">{label}</div>
+      <div className="mt-1 text-[13px] font-black leading-[1.05] text-[#141414]">{children}</div>
     </div>
   );
 }
@@ -137,9 +137,9 @@ function SwipeCard({ current, onSkip, onJoin }) {
       exit={{ opacity: 0, y: -12, scale: 0.985 }}
       transition={{ type: "spring", stiffness: 320, damping: 28 }}
       style={{ x, rotate, borderColor, boxShadow: shadow }}
-      className="relative flex h-full min-h-0 flex-col overflow-hidden rounded-[30px] border bg-[#f5efe5] p-3"
+      className="relative flex h-full min-h-0 flex-col overflow-hidden rounded-[28px] border bg-[#f5efe5] p-3"
     >
-      <motion.div className="pointer-events-none absolute inset-0 z-0 rounded-[30px]" style={{ backgroundColor: tintColor, opacity: tintOpacity }} />
+      <motion.div className="pointer-events-none absolute inset-0 z-0 rounded-[28px]" style={{ backgroundColor: tintColor, opacity: tintOpacity }} />
 
       <motion.div style={{ opacity: leftOpacity, scale: leftScale }} className="pointer-events-none absolute left-5 top-5 z-20 rounded-full border-2 border-[#d94b3d] bg-[#fff1ef] px-5 py-2 text-sm font-black uppercase tracking-[0.2em] text-[#d94b3d]">
         Nope
@@ -149,53 +149,53 @@ function SwipeCard({ current, onSkip, onJoin }) {
       </motion.div>
 
       <div className="relative z-10 flex h-full min-h-0 flex-col">
-        <div className="relative h-[23dvh] min-h-[150px] max-h-[210px] shrink-0 overflow-hidden rounded-[24px] border border-black/10 bg-black">
+        <div className="relative h-[20dvh] min-h-[132px] max-h-[182px] shrink-0 overflow-hidden rounded-[22px] border border-black/10 bg-black">
           {current.spot?.photo_url ? (
             <img src={current.spot.photo_url} alt={current.spot?.name || current.title} className="h-full w-full object-cover" />
           ) : (
             <div className="flex h-full items-center justify-center text-6xl">🍕</div>
           )}
-          <div className="absolute inset-0 bg-gradient-to-b from-black/14 via-black/10 to-black/70" />
-          <div className="absolute left-3 top-3 rounded-full bg-black/82 px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-[#efbf3a]">Slice plan</div>
-          <div className="absolute right-3 top-3 rounded-full bg-black/82 px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-[#7bc18a]">{seatsLeft} libres</div>
-          <div className="absolute bottom-3 left-3 right-3 flex items-end justify-between gap-3">
-            <div className="min-w-0 rounded-full bg-black/82 px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-white/80">
+          <div className="absolute inset-0 bg-gradient-to-b from-black/22 via-black/20 to-black/78" />
+          <div className="absolute left-3 top-3 rounded-full border border-white/12 bg-black/88 px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-[#efbf3a] shadow-[0_10px_24px_rgba(0,0,0,0.28)]">Slice plan</div>
+          <div className="absolute right-3 top-3 rounded-full border border-white/12 bg-black/88 px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-[#7bc18a] shadow-[0_10px_24px_rgba(0,0,0,0.28)]">{seatsLeft} libres</div>
+          <div className="absolute bottom-2.5 left-3 right-3 flex items-end justify-between gap-3">
+            <div className="min-w-0 rounded-full border border-white/12 bg-black/88 px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-white shadow-[0_10px_24px_rgba(0,0,0,0.28)]">
               Host · {current.host?.username || current.host?.email || "Usuario"}
             </div>
           </div>
         </div>
 
-        <div className="mt-3 flex min-h-0 flex-1 flex-col gap-2.5 overflow-hidden">
-          <div className="flex items-start justify-between gap-3">
+        <div className="mt-2.5 flex min-h-0 flex-1 flex-col gap-2 overflow-hidden">
+          <div className="flex items-start justify-between gap-2.5">
             <div className="min-w-0 flex-1">
-              <div className="text-[10px] font-black uppercase tracking-[0.18em] text-[#8a8174]">
+              <div className="text-[9px] font-black uppercase tracking-[0.16em] text-[#8a8174]">
                 {current.plan_date} · {String(current.plan_time || "").slice(0, 5)}
               </div>
-              <h2 className="mt-1 line-clamp-2 text-[clamp(1.35rem,5.6vw,1.9rem)] font-black leading-[0.92] tracking-[-0.055em] text-[#141414]">
+              <h2 className="mt-1 line-clamp-2 text-[clamp(1.22rem,5vw,1.65rem)] font-black leading-[0.92] tracking-[-0.05em] text-[#141414]">
                 {current.title}
               </h2>
             </div>
-            <div className="shrink-0 rounded-full border border-black/10 bg-white px-3 py-2 text-base font-black text-[#141414]">
+            <div className="shrink-0 rounded-full border border-black/10 bg-white px-3 py-1.5 text-[0.95rem] font-black text-[#141414] shadow-[0_8px_20px_rgba(0,0,0,0.06)]">
               {formatPrice(current.slice_price)}
             </div>
           </div>
 
-          <div className="rounded-[18px] border border-black/8 bg-[#fffaf2] px-3.5 py-3">
+          <div className="rounded-[17px] border border-black/8 bg-[#fffaf2] px-3.5 py-2.5">
             <div className="flex items-start gap-2.5 text-[#605747]">
               <MapPin className="mt-1 h-4 w-4 shrink-0 text-[#df5b43]" />
               <div className="min-w-0 flex-1">
                 <div className="truncate font-semibold text-[#141414]">{current.spot?.name || "Pizza spot"}</div>
-                <div className="line-clamp-2 text-sm leading-5.5">{current.spot?.address || "NYC"}</div>
+                <div className="line-clamp-2 text-[13px] leading-5">{current.spot?.address || "NYC"}</div>
               </div>
             </div>
           </div>
 
-          <div className="rounded-[18px] border border-black/8 bg-[#fffaf2] px-3.5 py-3">
-            <div className="text-[9px] font-black uppercase tracking-[0.18em] text-[#8a8174]">Descripción</div>
-            <div className="mt-1.5 line-clamp-3 text-[13px] leading-5 text-[#4e473d]">{current.description}</div>
+          <div className="rounded-[17px] border border-black/8 bg-[#fffaf2] px-3.5 py-2.5">
+            <div className="text-[8px] font-black uppercase tracking-[0.18em] text-[#8a8174]">Descripción</div>
+            <div className="mt-1 line-clamp-3 text-[12.5px] leading-[1.45] text-[#4e473d]">{current.description}</div>
           </div>
 
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-3 gap-1.5">
             <StatBox label="People">{current.joined_count}/{current.max_people}</StatBox>
             <StatBox label="Rating" accent><span className="flex items-center gap-1"><Star className="h-3.5 w-3.5 fill-[#efbf3a] text-[#efbf3a]" />{Number(current.average_rating || 0).toFixed(1)}</span></StatBox>
             <StatBox label="Best"><span className="line-clamp-2 text-[13px]">{current.best_slice}</span></StatBox>
