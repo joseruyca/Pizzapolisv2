@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Camera, Upload, X, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/lib/supabase";
+import { getPublicUsername, getAvatarLetter } from "@/lib/display-name";
 
 async function uploadSpotPhoto(file, userId) {
   const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
@@ -99,7 +100,7 @@ export default function PhotoGallery({ placeId, photos, user, onRequireAuth }) {
             {lightbox > 0 && <button className="absolute left-4 text-white/60 hover:text-white z-10" onClick={(e) => { e.stopPropagation(); navigateLightbox(-1); }}><ChevronLeft className="w-8 h-8" /></button>}
             {lightbox < photos.length - 1 && <button className="absolute right-4 text-white/60 hover:text-white z-10" onClick={(e) => { e.stopPropagation(); navigateLightbox(1); }}><ChevronRight className="w-8 h-8" /></button>}
             <img src={photos[lightbox]?.photo_url} alt="" className="max-w-[90vw] max-h-[85vh] object-contain rounded-lg" onClick={(e) => e.stopPropagation()} />
-            <div className="absolute bottom-4 text-stone-400 text-xs">{photos[lightbox]?.profile?.username || "Usuario"}</div>
+            <div className="absolute bottom-4 text-stone-400 text-xs">{getPublicUsername(photos[lightbox]?.profile)}</div>
           </motion.div>
         )}
       </AnimatePresence>

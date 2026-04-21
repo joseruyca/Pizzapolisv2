@@ -29,6 +29,12 @@
   .home-map-layer {
     position: absolute;
     inset: 0;
+    pointer-events: none;
+  }
+
+  .home-map-layer .map-canvas,
+  .home-map-layer .leaflet-container {
+    pointer-events: auto;
   }
 
   .home-map-gradient {

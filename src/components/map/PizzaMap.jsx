@@ -157,6 +157,7 @@ export default function PizzaMap({
       className={`h-full w-full map-canvas ${controlsHidden ? "map-ui-hidden" : ""}`}
       zoomControl={false}
       attributionControl={false}
+      preferCanvas={false}
     >
       <TileLayer
         key={tileUrl}
@@ -178,12 +179,19 @@ export default function PizzaMap({
         </>
       )}
       {validPlaces.map((place) => (
-        <Marker
-          key={place.id}
-          position={[place.latitude, place.longitude]}
-          icon={createPriceIcon(place, selectedPlace?.id === place.id, savedPlaceIds.includes(place.id))}
-          eventHandlers={{ click: () => onSelectPlace(place), mousedown: () => onSelectPlace(place), touchstart: () => onSelectPlace(place) }}
-        />
+        <React.Fragment key={place.id}>
+          <CircleMarker
+            center={[place.latitude, place.longitude]}
+            radius={18}
+            pathOptions={{ color: 'transparent', fillColor: 'transparent', fillOpacity: 0.01, weight: 18, opacity: 0.01 }}
+            eventHandlers={{ click: () => onSelectPlace(place), mousedown: () => onSelectPlace(place), mouseup: () => onSelectPlace(place), touchstart: () => onSelectPlace(place) }}
+          />
+          <Marker
+            position={[place.latitude, place.longitude]}
+            icon={createPriceIcon(place, selectedPlace?.id === place.id, savedPlaceIds.includes(place.id))}
+            eventHandlers={{ click: () => onSelectPlace(place), mousedown: () => onSelectPlace(place), mouseup: () => onSelectPlace(place), touchstart: () => onSelectPlace(place) }}
+          />
+        </React.Fragment>
       ))}
     </MapContainer>
   );

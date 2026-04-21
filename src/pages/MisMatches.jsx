@@ -6,6 +6,7 @@ import { toast } from "@/components/ui/use-toast";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 import { useAuth } from "@/lib/AuthContext";
 import { createPageUrl } from "@/utils";
+import { getPublicUsername, getAvatarLetter } from "@/lib/display-name";
 
 const avatar = (name) => name?.slice(0, 1)?.toUpperCase() || "?";
 
@@ -49,7 +50,7 @@ async function fetchGroups(userId) {
   const spotIds = Array.from(new Set((plans || []).map((p) => p.spot_id).filter(Boolean)));
 
   const [{ data: profiles }, { data: spots }, { data: members }, { data: messages }] = await Promise.all([
-    creatorIds.length ? supabase.from("profiles").select("id,email,username,avatar_url,role").in("id", creatorIds) : Promise.resolve({ data: [] }),
+    creatorIds.length ? supabase.from("profiles").select("id,username,avatar_url,role").in("id", creatorIds) : Promise.resolve({ data: [] }),
     spotIds.length ? supabase.from("spots").select("id,name,address,lat,lng,slice_price,best_slice,quick_note,photo_url,status").in("id", spotIds) : Promise.resolve({ data: [] }),
     supabase.from("plan_members").select("plan_id,user_id,status").in("plan_id", planIds),
     supabase.from("messages").select("id,plan_id,user_id,content,created_at").in("plan_id", planIds).order("created_at", { ascending: true }),
@@ -57,7 +58,7 @@ async function fetchGroups(userId) {
 
   const memberIds = Array.from(new Set((members || []).map((m) => m.user_id).filter(Boolean)));
   const memberProfiles = memberIds.length
-    ? (await supabase.from("profiles").select("id,email,username,avatar_url,role").in("id", memberIds)).data || []
+    ? (await supabase.from("profiles").select("id,username,avatar_url,role").in("id", memberIds)).data || []
     : [];
 
   const profileMap = new Map([...(profiles || []), ...memberProfiles].map((p) => [p.id, p]));
@@ -131,8 +132,8 @@ function GroupInfoSheet({ group, open, onClose }) {
           <div className="mt-4 flex flex-wrap gap-2">
             {group.participants.map((person) => (
               <div key={person.id} className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-stone-200">
-                <div className="grid h-7 w-7 place-items-center rounded-full bg-gradient-to-br from-[#efbf3a] to-[#df5b43] text-[11px] font-bold text-white">{avatar(person.username || "Usuario")}</div>
-                {person.username || "Usuario"}
+                <div className="grid h-7 w-7 place-items-center rounded-full bg-gradient-to-br from-[#efbf3a] to-[#df5b43] text-[11px] font-bold text-white">{avatar(getPublicUsername(person))}</div>
+                {getPublicUsername(person)}
               </div>
             ))}
           </div>
@@ -155,7 +156,7 @@ function MessageRow({ message, currentUserId, usersById }) {
   return (
     <div className={`flex ${own ? "justify-end" : "justify-start"}`}>
       <div className={`max-w-[82%] rounded-[22px] px-4 py-3 ${own ? "rounded-br-md bg-[#e62f2f] text-white" : "rounded-bl-md border border-white/6 bg-[#171717] text-stone-100"}`}>
-        {!own ? <div className="mb-1 text-[11px] font-bold uppercase tracking-[0.12em] text-stone-500">{sender?.username || "Usuario"}</div> : null}
+        {!own ? <div className="mb-1 text-[11px] font-bold uppercase tracking-[0.12em] text-stone-500">{getPublicUsername(sender)}</div> : null}
         <div className="text-sm leading-6">{message.content}</div>
       </div>
     </div>
@@ -169,7 +170,7 @@ function GroupListItem({ group, active, onSelect }) {
       className={`w-full rounded-[22px] border px-3 py-3 text-left transition ${active ? "border-red-500/25 bg-red-500/[0.08]" : "border-white/6 bg-transparent hover:bg-white/[0.03]"}`}
     >
       <div className="flex items-start gap-3">
-        <div className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-gradient-to-br from-[#efbf3a] to-[#df5b43] text-sm font-black text-white">{avatar(group.host?.username || "Usuario")}</div>
+        <div className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-gradient-to-br from-[#efbf3a] to-[#df5b43] text-sm font-black text-white">{avatar(getPublicUsername(group.host))}</div>
         <div className="min-w-0 flex-1">
           <div className="flex items-center justify-between gap-2">
             <div className="truncate font-bold text-white">{group.titulo}</div>
@@ -341,8 +342,8 @@ export default function MisMatches() {
                 <div className="mb-4 flex flex-wrap gap-2">
                   {selected.participants.map((person) => (
                     <div key={person.id} className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-2 text-xs text-stone-200">
-                      <div className="grid h-6 w-6 place-items-center rounded-full bg-gradient-to-br from-[#efbf3a] to-[#df5b43] text-[10px] font-bold text-white">{avatar(person.username || "Usuario")}</div>
-                      {person.username || "Usuario"}
+                      <div className="grid h-6 w-6 place-items-center rounded-full bg-gradient-to-br from-[#efbf3a] to-[#df5b43] text-[10px] font-bold text-white">{avatar(getPublicUsername(person))}</div>
+                      {getPublicUsername(person)}
                     </div>
                   ))}
                 </div>

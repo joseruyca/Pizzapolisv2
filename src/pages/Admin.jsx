@@ -33,6 +33,7 @@ import { useAuth } from '@/lib/AuthContext';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { formatPrice } from '@/lib/place-helpers';
 import { cn } from '@/lib/utils';
+import { getPublicUsername, getAvatarLetter } from '@/lib/display-name';
 
 const TABS = [
   { id: 'overview', label: 'Resumen', icon: Sparkles },
@@ -271,6 +272,17 @@ async function safeFetchRows(table, select = '*', options = {}) {
   }
 }
 
+
+async function safeRpcRows(fnName) {
+  try {
+    const { data, error } = await supabase.rpc(fnName);
+    if (error) throw error;
+    return { data: data || [], error: null };
+  } catch (error) {
+    return { data: [], error };
+  }
+}
+
 async function deleteRow(table, id) {
   const { error } = await supabase.from(table).delete().eq('id', id);
   if (error) throw error;
@@ -295,6 +307,8 @@ function useAdminData(enabled) {
         ratingsRes,
         commentsRes,
         photosRes,
+        dashboardStatsRes,
+        attentionNowRes,
       ] = await Promise.all([
         safeFetchRows('spots', 'id,name,address,lat,lng,slice_price,best_slice,quick_note,photo_url,status,created_by,reviewed_by,reviewed_at,created_at,updated_at,average_rating,ratings_count', { orderBy: 'created_at' }),
         safeFetchRows('plans', 'id,spot_id,title,plan_date,plan_time,max_people,quick_note,status,created_by,created_at,updated_at', { orderBy: 'created_at' }),
@@ -304,6 +318,8 @@ function useAdminData(enabled) {
         safeFetchRows('spot_ratings', 'id,spot_id,user_id,rating,created_at,updated_at', { orderBy: 'updated_at' }),
         safeFetchRows('spot_comments', 'id,spot_id,user_id,content,status,created_at,updated_at,reviewed_by,reviewed_at', { orderBy: 'created_at' }),
         safeFetchRows('spot_photos', 'id,spot_id,user_id,photo_url,status,created_at,updated_at,reviewed_by,reviewed_at', { orderBy: 'created_at' }),
+        safeRpcRows('admin_get_dashboard_stats'),
+        safeRpcRows('admin_get_attention_now'),
       ]);
 
       return {
@@ -315,6 +331,8 @@ function useAdminData(enabled) {
         ratings: ratingsRes.data,
         comments: commentsRes.data,
         photos: photosRes.data,
+        dashboardStats: dashboardStatsRes.data,
+        attentionNow: attentionNowRes.data,
         diagnostics: [
           { table: 'spot_comments', available: !commentsRes.error, error: commentsRes.error?.message || null },
           { table: 'spot_photos', available: !photosRes.error, error: photosRes.error?.message || null },
@@ -404,6 +422,8 @@ export default function Admin() {
   const comments = data?.comments || [];
   const photos = data?.photos || [];
   const diagnostics = data?.diagnostics || [];
+  const dashboardStatsRow = data?.dashboardStats?.[0] || null;
+  const attentionNowRows = data?.attentionNow || [];
 
   const userMap = React.useMemo(() => new Map(users.map((item) => [item.id, item])), [users]);
   const spotMap = React.useMemo(() => new Map(spots.map((item) => [item.id, item])), [spots]);
@@ -556,7 +576,7 @@ export default function Admin() {
           type: 'user',
           severity: 'danger',
           label: 'Usuario reportado 3 veces',
-          entityTitle: person.username || person.email,
+          entityTitle: getPublicUsername(person),
           entityId: person.id,
           subtitle: `Hay ${count} señales de riesgo en su actividad reciente.`,
           createdAt: person.updated_at || person.created_at,
@@ -581,6 +601,30 @@ export default function Admin() {
   }, [approvedSpots, suspiciousPlans, suspiciousMessages, users, duplicatePairs, planMap]);
 
   const urgentItems = openReports.filter((item) => item.severity === 'danger');
+
+  const overviewStats = {
+    pendingSpots: dashboardStatsRow?.pending_spots ?? pendingSpots.length,
+    activePlans: dashboardStatsRow?.active_plans ?? activePlans.length,
+    openReports: dashboardStatsRow?.open_reports ?? openReports.length,
+    reportedMessages: dashboardStatsRow?.reported_messages ?? suspiciousMessages.length,
+    pendingPhotos: dashboardStatsRow?.pending_photos ?? pendingPhotos.length,
+    newUsersToday: dashboardStatsRow?.new_users_today ?? usersToday.length,
+    newUsersWeek: dashboardStatsRow?.new_users_week ?? usersWeek.length,
+    urgentItems: dashboardStatsRow?.urgent_items ?? urgentItems.length,
+  };
+
+  const attentionQueue = attentionNowRows.length
+    ? attentionNowRows.map((item, index) => ({
+        id: `${item.entity_type || 'item'}-${item.entity_id || index}`,
+        type: item.entity_type || 'report',
+        severity: item.priority === 'high' ? 'danger' : 'warn',
+        label: String(item.issue_type || 'revisar').replace(/_/g, ' '),
+        entityTitle: item.title || 'Elemento',
+        entityId: item.entity_id || null,
+        subtitle: item.subtitle || '',
+        createdAt: item.created_at || null,
+      }))
+    : openReports;
 
   const normalizedSearch = search.trim().toLowerCase();
   const includesSearch = React.useCallback((...values) => {
@@ -767,20 +811,20 @@ export default function Admin() {
               </div>
               <div>
                 <div className="text-[11px] font-black uppercase tracking-[0.18em] text-[#8a8174]">Urgencia</div>
-                <div className="mt-2 text-base font-bold text-[#111111]">{urgentItems.length ? `${urgentItems.length} alertas críticas` : 'Sin alertas críticas'}</div>
-                <div className="mt-1 text-sm text-[#6d665b]">Hoy: {usersToday.length} usuarios nuevos</div>
+                <div className="mt-2 text-base font-bold text-[#111111]">{overviewStats.urgentItems ? `${overviewStats.urgentItems} alertas críticas` : 'Sin alertas críticas'}</div>
+                <div className="mt-1 text-sm text-[#6d665b]">Hoy: {overviewStats.newUsersToday} usuarios nuevos</div>
               </div>
             </div>
           </div>
         </header>
 
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-6">
-          <StatCard label="Spots pendientes" value={pendingSpots.length} note="Esperando revisión" icon={Pizza} accent="text-[#df5b43]" />
-          <StatCard label="Planes activos" value={activePlans.length} note="En curso o próximos" icon={CalendarDays} accent="text-[#216b33]" />
-          <StatCard label="Reportes abiertos" value={openReports.length} note={urgentItems.length ? `${urgentItems.length} urgentes` : 'Sin urgencias'} icon={ShieldAlert} accent="text-[#df5b43]" />
-          <StatCard label="Usuarios nuevos" value={usersToday.length} note={`${usersWeek.length} esta semana`} icon={Users} accent="text-[#111111]" />
-          <StatCard label="Mensajes reportados" value={suspiciousMessages.length} note="Señales automáticas" icon={MessageSquare} accent="text-[#df5b43]" />
-          <StatCard label="Fotos pendientes" value={pendingPhotos.length} note="Pendientes de aprobar" icon={Camera} accent="text-[#216b33]" />
+          <StatCard label="Spots pendientes" value={overviewStats.pendingSpots} note="Esperando revisión" icon={Pizza} accent="text-[#df5b43]" />
+          <StatCard label="Planes activos" value={overviewStats.activePlans} note="En curso o próximos" icon={CalendarDays} accent="text-[#216b33]" />
+          <StatCard label="Reportes abiertos" value={overviewStats.openReports} note={overviewStats.urgentItems ? `${overviewStats.urgentItems} urgentes` : 'Sin urgencias'} icon={ShieldAlert} accent="text-[#df5b43]" />
+          <StatCard label="Usuarios nuevos" value={overviewStats.newUsersToday} note={`${overviewStats.newUsersWeek} esta semana`} icon={Users} accent="text-[#111111]" />
+          <StatCard label="Mensajes reportados" value={overviewStats.reportedMessages} note="Señales automáticas" icon={MessageSquare} accent="text-[#df5b43]" />
+          <StatCard label="Fotos pendientes" value={overviewStats.pendingPhotos} note="Pendientes de aprobar" icon={Camera} accent="text-[#216b33]" />
         </div>
 
         <div className="rounded-[30px] border border-black/10 bg-[#fffaf1] p-4 shadow-[0_20px_50px_rgba(34,25,11,0.10)]">
@@ -827,18 +871,18 @@ export default function Admin() {
         {!isLoading && activeTab === 'overview' ? (
           <div className="space-y-5">
             <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-5">
-              <ActionBlock icon={Pizza} title="Revisar spots pendientes" text={`${pendingSpots.length} pendientes de aprobación o rechazo.`} cta="Abrir spots" onClick={() => goTo('spots', { spotFilter: 'pending' })} />
-              <ActionBlock icon={CalendarDays} title="Revisar planes recientes" text={`${activePlans.length} planes activos y ${plans.filter((row) => (toTs(row.created_at) || 0) >= todayStart).length} creados hoy.`} cta="Abrir planes" onClick={() => goTo('plans', { planFilter: 'today' })} />
-              <ActionBlock icon={ShieldAlert} title="Revisar reportes urgentes" text={`${urgentItems.length} señales fuertes de riesgo ahora mismo.`} cta="Ir a reportes" onClick={() => goTo('reports')} />
+              <ActionBlock icon={Pizza} title="Revisar spots pendientes" text={`${overviewStats.pendingSpots} pendientes de aprobación o rechazo.`} cta="Abrir spots" onClick={() => goTo('spots', { spotFilter: 'pending' })} />
+              <ActionBlock icon={CalendarDays} title="Revisar planes recientes" text={`${overviewStats.activePlans} planes activos y ${plans.filter((row) => (toTs(row.created_at) || 0) >= todayStart).length} creados hoy.`} cta="Abrir planes" onClick={() => goTo('plans', { planFilter: 'today' })} />
+              <ActionBlock icon={ShieldAlert} title="Revisar reportes urgentes" text={`${overviewStats.urgentItems} señales fuertes de riesgo ahora mismo.`} cta="Ir a reportes" onClick={() => goTo('reports')} />
               <ActionBlock icon={AlertTriangle} title="Ver actividad sospechosa" text={`${suspiciousMessages.length + suspiciousPlans.length} textos marcados por heurística.`} cta="Ir a chat" onClick={() => goTo('messages')} />
-              <ActionBlock icon={UserCog} title="Ir a usuarios" text={`${usersToday.length} altas hoy y ${usersWeek.length} en la última semana.`} cta="Abrir usuarios" onClick={() => goTo('users', { userFilter: 'new' })} />
+              <ActionBlock icon={UserCog} title="Ir a usuarios" text={`${overviewStats.newUsersToday} altas hoy y ${overviewStats.newUsersWeek} en la última semana.`} cta="Abrir usuarios" onClick={() => goTo('users', { userFilter: 'new' })} />
             </div>
 
             <div className="grid gap-5 xl:grid-cols-[1.2fr,0.8fr]">
               <Shell title="Necesita atención ahora" subtitle="Lista real, no un dashboard vacío. Lo más delicado va arriba.">
-                {openReports.length ? (
+                {attentionQueue.length ? (
                   <div className="grid gap-3">
-                    {openReports.slice(0, 10).map((item) => (
+                    {attentionQueue.slice(0, 10).map((item) => (
                       <QueueItem
                         key={item.id}
                         title={`${item.label} · ${item.entityTitle}`}
@@ -925,7 +969,7 @@ export default function Admin() {
                               <StatusPill tone="neutral">{spot.ratings_count || 0} valoraciones</StatusPill>
                               {spot.reportCount ? <StatusPill tone="danger">{spot.reportCount} flags</StatusPill> : null}
                             </div>
-                            <div className="mt-3 text-xs text-[#8a8174]">{creator?.username || creator?.email || 'Sin creador'} · {formatDateTime(spot.created_at)}</div>
+                            <div className="mt-3 text-xs text-[#8a8174]">{getPublicUsername(creator, 'Sin creador')} · {formatDateTime(spot.created_at)}</div>
                           </div>
                         </div>
                       </button>
@@ -987,7 +1031,7 @@ export default function Admin() {
                         <div className="mt-3 space-y-2">
                           {(ratingHistoryMap.get(selectedSpot.id) || []).slice(0, 5).map((row) => (
                             <div key={row.id} className="flex items-center justify-between rounded-2xl border border-black/8 bg-[#fffaf1] px-3 py-2 text-sm">
-                              <div className="text-[#5d574d]">{userMap.get(row.user_id)?.username || userMap.get(row.user_id)?.email || row.user_id}</div>
+                              <div className="text-[#5d574d]">{getPublicUsername(userMap.get(row.user_id), 'Usuario')}</div>
                               <div className="font-black text-[#111111]">{Number(row.rating).toFixed(1)}</div>
                             </div>
                           ))}
@@ -1086,7 +1130,7 @@ export default function Admin() {
                           {plan.reportCount ? <StatusPill tone="danger">{plan.reportCount} flags</StatusPill> : null}
                           <StatusPill tone={plan.hasValidSpot ? 'success' : 'warn'}>{plan.hasValidSpot ? 'spot ok' : 'spot inválido'}</StatusPill>
                         </div>
-                        <div className="mt-3 text-xs text-[#8a8174]">{creator?.username || creator?.email || 'Sin creador'} · {formatDateTime(plan.created_at)}</div>
+                        <div className="mt-3 text-xs text-[#8a8174]">{getPublicUsername(creator, 'Sin creador')} · {formatDateTime(plan.created_at)}</div>
                       </button>
                     );
                   })}
@@ -1123,7 +1167,7 @@ export default function Admin() {
                             return (
                               <div key={row.id} className="flex items-center justify-between rounded-2xl border border-black/8 px-3 py-3 text-sm">
                                 <div>
-                                  <div className="font-semibold text-[#111111]">{person?.username || person?.email || row.user_id}</div>
+                                  <div className="font-semibold text-[#111111]">{getPublicUsername(person, 'Usuario')}</div>
                                   <div className="text-[#8a8174]">{row.status} · {formatDateTime(row.created_at)}</div>
                                 </div>
                                 <AdminActionButton variant="danger" onClick={() => deleteMutation.mutate({ table: 'plan_members', id: row.id })}>Expulsar</AdminActionButton>
@@ -1140,7 +1184,7 @@ export default function Admin() {
                           {messages.filter((row) => row.plan_id === selectedPlan.id).slice(-6).map((row) => (
                             <div key={row.id} className="rounded-2xl border border-black/8 px-3 py-3">
                               <div className="flex items-center justify-between gap-2 text-xs text-[#8a8174]">
-                                <span>{userMap.get(row.user_id)?.username || userMap.get(row.user_id)?.email || row.user_id}</span>
+                                <span>{getPublicUsername(userMap.get(row.user_id), 'Usuario')}</span>
                                 <span>{formatDateTime(row.created_at)}</span>
                               </div>
                               <div className="mt-2 text-sm text-[#111111]">{row.content}</div>
@@ -1181,7 +1225,7 @@ export default function Admin() {
                         <div className="mt-3 space-y-2 text-sm text-[#5d574d]">
                           <div className="rounded-2xl border border-black/8 px-3 py-2">Creado: {formatDateTime(selectedPlan.created_at)}</div>
                           <div className="rounded-2xl border border-black/8 px-3 py-2">Última edición: {formatDateTime(selectedPlan.updated_at)}</div>
-                          <div className="rounded-2xl border border-black/8 px-3 py-2">Creador: {userMap.get(selectedPlan.created_by)?.username || userMap.get(selectedPlan.created_by)?.email || '—'}</div>
+                          <div className="rounded-2xl border border-black/8 px-3 py-2">Creador: {getPublicUsername(userMap.get(selectedPlan.created_by), '—')}</div>
                         </div>
                       </div>
                     </div>
@@ -1194,7 +1238,7 @@ export default function Admin() {
 
         {!isLoading && activeTab === 'reports' ? (
           <Shell title="Reportes / moderación" subtitle="Mientras no exista una tabla formal de reportes, este inbox usa señales reales del contenido para priorizar revisión.">
-            {openReports.length ? (
+            {attentionQueue.length ? (
               <div className="grid gap-3">
                 {openReports.map((item) => (
                   <div key={item.id} className="rounded-[24px] border border-black/8 bg-white px-4 py-4">
@@ -1236,10 +1280,10 @@ export default function Admin() {
                       className={cn('rounded-[24px] border px-4 py-4 text-left transition', selectedUser?.id === person.id ? 'border-[#141414] bg-white shadow-[0_12px_30px_rgba(34,25,11,0.08)]' : 'border-black/8 bg-[#fffdf9] hover:bg-white')}
                     >
                       <div className="flex items-start gap-4">
-                        <div className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-[#141414] text-lg font-black text-[#efbf3a]">{(person.username || person.email || 'U').slice(0, 1).toUpperCase()}</div>
+                        <div className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-[#141414] text-lg font-black text-[#efbf3a]">{getAvatarLetter(person, 'U')}</div>
                         <div className="min-w-0 flex-1">
                           <div className="flex flex-wrap items-center gap-2">
-                            <div className="truncate text-base font-black text-[#111111]">{person.username || person.email}</div>
+                            <div className="truncate text-base font-black text-[#111111]">{getPublicUsername(person)}</div>
                             <StatusPill tone={person.role === 'admin' ? 'dark' : 'neutral'}>{person.roleLabel}</StatusPill>
                             <StatusPill tone={person.state === 'banned' ? 'danger' : person.state === 'warned' ? 'warn' : 'success'}>{person.state}</StatusPill>
                           </div>
@@ -1264,7 +1308,7 @@ export default function Admin() {
                   <div className="grid gap-4 lg:grid-cols-[1fr,1fr]">
                     <div className="rounded-[24px] border border-black/8 bg-white p-4">
                       <div className="flex items-center gap-4">
-                        <div className="grid h-16 w-16 place-items-center rounded-2xl bg-[#141414] text-2xl font-black text-[#efbf3a]">{(selectedUser.username || selectedUser.email || 'U').slice(0, 1).toUpperCase()}</div>
+                        <div className="grid h-16 w-16 place-items-center rounded-2xl bg-[#141414] text-2xl font-black text-[#efbf3a]">{getAvatarLetter(selectedUser, 'U')}</div>
                         <div>
                           <div className="text-2xl font-black tracking-[-0.04em] text-[#111111]">{selectedUser.username || 'Usuario sin nombre'}</div>
                           <div className="mt-1 text-sm text-[#6d665b]">{selectedUser.email}</div>
@@ -1358,7 +1402,7 @@ export default function Admin() {
                           <StatusPill tone={isSuspiciousText(row.content) ? 'danger' : 'neutral'}>{isSuspiciousText(row.content) ? 'reportado' : 'normal'}</StatusPill>
                           <div className="text-base font-black text-[#111111]">{planMap.get(row.plan_id)?.title || 'Plan'}</div>
                         </div>
-                        <div className="mt-2 text-sm text-[#6d665b]">{userMap.get(row.user_id)?.username || userMap.get(row.user_id)?.email || row.user_id} · {formatDateTime(row.created_at)}</div>
+                        <div className="mt-2 text-sm text-[#6d665b]">{getPublicUsername(userMap.get(row.user_id), 'Usuario')} · {formatDateTime(row.created_at)}</div>
                         <div className="mt-3 rounded-2xl border border-black/8 bg-[#fffaf1] px-3 py-3 text-sm leading-7 text-[#111111]">{row.content}</div>
                       </div>
                       <div className="flex flex-wrap gap-2 lg:justify-end">

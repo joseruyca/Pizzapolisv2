@@ -17,8 +17,7 @@ function getFallbackProfile(user) {
     id: user?.id,
     email: user?.email || '',
     username:
-      user?.user_metadata?.username ||
-      user?.user_metadata?.full_name ||
+      String(user?.user_metadata?.username || user?.user_metadata?.full_name || '').trim() ||
       'Usuario',
     avatar_url: user?.user_metadata?.avatar_url || '',
     role: 'user',
@@ -31,7 +30,7 @@ function normalizeResolvedProfile(profile, fallbackUser = null) {
   return {
     ...(fallback || {}),
     ...(profile || {}),
-    username: profile?.username || fallback?.username || 'Usuario',
+    username: String(profile?.username || fallback?.username || '').trim() || 'Usuario',
   };
 }
 
@@ -43,9 +42,7 @@ function bridgeUser(user, profile) {
 
   const resolvedProfile = profile || getFallbackProfile(user);
   const displayName =
-    resolvedProfile.username ||
-    user.user_metadata?.username ||
-    user.user_metadata?.full_name ||
+    String(resolvedProfile.username || user.user_metadata?.username || user.user_metadata?.full_name || '').trim() ||
     'Usuario';
 
   const bridged = {
@@ -53,7 +50,7 @@ function bridgeUser(user, profile) {
     email: user.email,
     full_name: displayName,
     username:
-      resolvedProfile.username || user.user_metadata?.username || user.user_metadata?.full_name || 'Usuario',
+      String(resolvedProfile.username || user.user_metadata?.username || user.user_metadata?.full_name || '').trim() || 'Usuario',
     role: resolvedProfile.role || 'user',
     avatar_url: resolvedProfile.avatar_url || '',
   };

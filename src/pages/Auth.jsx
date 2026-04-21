@@ -169,7 +169,7 @@ export default function AuthPage() {
           {mode === 'signup' && (
             <Field
               icon={User}
-              placeholder="Username"
+              placeholder="Nombre visible"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               required

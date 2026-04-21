@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Send, MessageCircle } from "lucide-react";
 import { supabase } from "@/lib/supabase";
+import { getPublicUsername, getAvatarLetter } from "@/lib/display-name";
 
 function fmtDate(value) {
   if (!value) return "";
@@ -71,9 +72,9 @@ export default function CommentsSection({ placeId, comments, user, onRequireAuth
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
                   <div className="w-6 h-6 bg-red-600/30 rounded-full flex items-center justify-center">
-                    <span className="text-[10px] font-bold text-red-400">{(comment.profile?.username || "?")[0].toUpperCase()}</span>
+                    <span className="text-[10px] font-bold text-red-400">{getAvatarLetter(comment.profile, "?")}</span>
                   </div>
-                  <span className="text-sm font-medium text-stone-300">{comment.profile?.username || "Usuario"}</span>
+                  <span className="text-sm font-medium text-stone-300">{getPublicUsername(comment.profile)}</span>
                 </div>
                 <span className="text-xs text-stone-600">{fmtDate(comment.created_at)}</span>
               </div>

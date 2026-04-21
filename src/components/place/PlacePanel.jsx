@@ -12,6 +12,7 @@ import { ZINDEX } from "@/lib/zindex";
 import { formatPrice, getGoogleMapsUrl } from "@/lib/place-helpers";
 import { supabase } from "@/lib/supabase";
 import { createPageUrl } from "@/utils";
+import { getPublicUsername, getAvatarLetter } from "@/lib/display-name";
 
 function InfoCard({ label, value, icon: Icon, accent = "text-stone-400", children }) {
   return (
@@ -42,7 +43,7 @@ async function fetchComments(spotId) {
   const rows = data || [];
   const userIds = Array.from(new Set(rows.map((row) => row.user_id).filter(Boolean)));
   const profiles = userIds.length
-    ? ((await supabase.from("profiles").select("id,email,username").in("id", userIds)).data || [])
+    ? ((await supabase.from("profiles").select("id,username").in("id", userIds)).data || [])
     : [];
   const profileMap = new Map(profiles.map((profile) => [profile.id, profile]));
   return rows.map((row) => ({ ...row, profile: profileMap.get(row.user_id) || null }));
@@ -58,7 +59,7 @@ async function fetchPhotos(spotId) {
   const rows = data || [];
   const userIds = Array.from(new Set(rows.map((row) => row.user_id).filter(Boolean)));
   const profiles = userIds.length
-    ? ((await supabase.from("profiles").select("id,email,username").in("id", userIds)).data || [])
+    ? ((await supabase.from("profiles").select("id,username").in("id", userIds)).data || [])
     : [];
   const profileMap = new Map(profiles.map((profile) => [profile.id, profile]));
   return Promise.all(rows.map(async (row) => ({ ...row, photo_url: await resolveSpotPhoto(row.photo_url), profile: profileMap.get(row.user_id) || null })));

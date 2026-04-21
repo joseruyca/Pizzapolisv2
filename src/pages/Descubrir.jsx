@@ -9,6 +9,7 @@ import { createPageUrl } from "@/utils";
 import { supabase } from "@/lib/supabase";
 import { formatPrice } from "@/lib/place-helpers";
 import { toast } from "@/components/ui/use-toast";
+import { getPublicUsername, getAvatarLetter } from "@/lib/display-name";
 
 async function resolveSpotPhoto(value) {
   if (!value) return null;
@@ -18,7 +19,7 @@ async function resolveSpotPhoto(value) {
 }
 
 function avatarLabel(text) {
-  return text?.slice(0, 1)?.toUpperCase() || "?";
+  return getAvatarLetter({ username: text }, "?");
 }
 
 async function fetchDiscoverPlans() {
@@ -34,7 +35,7 @@ async function fetchDiscoverPlans() {
   const spotIds = Array.from(new Set(rows.map((row) => row.spot_id).filter(Boolean)));
 
   const [{ data: profiles }, { data: spots }, { data: members }] = await Promise.all([
-    creatorIds.length ? supabase.from("profiles").select("id,email,username,role").in("id", creatorIds) : Promise.resolve({ data: [] }),
+    creatorIds.length ? supabase.from("profiles").select("id,username,role").in("id", creatorIds) : Promise.resolve({ data: [] }),
     spotIds.length
       ? supabase.from("spots").select("id,name,address,slice_price,best_slice,photo_url,quick_note,status,average_rating,ratings_count").in("id", spotIds)
       : Promise.resolve({ data: [] }),
@@ -160,7 +161,7 @@ function SwipeCard({ current, onSkip, onJoin }) {
           <div className="absolute right-3 top-3 rounded-full border border-white/12 bg-black/88 px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-[#7bc18a] shadow-[0_10px_24px_rgba(0,0,0,0.28)]">{seatsLeft} libres</div>
           <div className="absolute bottom-2.5 left-3 right-3 flex items-end justify-between gap-3">
             <div className="min-w-0 rounded-full border border-white/12 bg-black/88 px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-white shadow-[0_10px_24px_rgba(0,0,0,0.28)]">
-              Host · {current.host?.username || "Usuario"}
+              Host · {getPublicUsername(current.host)}
             </div>
           </div>
         </div>
