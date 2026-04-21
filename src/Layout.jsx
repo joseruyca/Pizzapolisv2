@@ -132,7 +132,7 @@ export default function Layout({ children, currentPageName }) {
                     <div className="mt-8 rounded-[28px] border border-black/8 bg-[#f4ede2] p-5 shadow-[0_18px_40px_rgba(39,29,14,0.08)]">
                       <div className="text-base font-bold text-[#141414]">{isAuthenticated ? 'Tu cuenta' : 'Explora sin cuenta'}</div>
                       <div className="mt-2 text-sm leading-6 text-[#6d665b]">
-                        {user?.full_name || user?.email || 'Puedes explorar el mapa sin registrarte. Entra para crear planes, usar grupos y gestionar tu perfil.'}
+                        {user?.username || user?.full_name || 'Puedes explorar el mapa sin registrarte. Entra para crear planes, usar grupos y gestionar tu perfil.'}
                       </div>
                       {isAuthenticated ? (
                         <Button onClick={logout} variant="outline" className="mt-4 h-12 w-full rounded-2xl border-black/10 bg-white text-[#141414] hover:bg-[#fffdf8]">

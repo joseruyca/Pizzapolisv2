@@ -160,7 +160,7 @@ export default function CrearQuedada() {
         .single();
       if (planError) throw planError;
 
-      const introText = `${user.full_name || user.email} created this plan at ${selectedPlace.name}.`;
+      const introText = `${user.username || user.full_name || "Usuario"} created this plan at ${selectedPlace.name}.`;
       const [memberRes, messageRes] = await Promise.all([
         supabase.from("plan_members").upsert({ plan_id: createdPlan.id, user_id: user.id, status: "joined" }, { onConflict: "plan_id,user_id" }),
         supabase.from("messages").insert({ plan_id: createdPlan.id, user_id: user.id, content: introText }),

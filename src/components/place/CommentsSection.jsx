@@ -71,9 +71,9 @@ export default function CommentsSection({ placeId, comments, user, onRequireAuth
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
                   <div className="w-6 h-6 bg-red-600/30 rounded-full flex items-center justify-center">
-                    <span className="text-[10px] font-bold text-red-400">{(comment.profile?.username || comment.profile?.email || "?")[0].toUpperCase()}</span>
+                    <span className="text-[10px] font-bold text-red-400">{(comment.profile?.username || "?")[0].toUpperCase()}</span>
                   </div>
-                  <span className="text-sm font-medium text-stone-300">{comment.profile?.username || comment.profile?.email || "Anonymous"}</span>
+                  <span className="text-sm font-medium text-stone-300">{comment.profile?.username || "Usuario"}</span>
                 </div>
                 <span className="text-xs text-stone-600">{fmtDate(comment.created_at)}</span>
               </div>

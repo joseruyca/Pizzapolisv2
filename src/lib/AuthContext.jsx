@@ -13,14 +13,13 @@ const AuthContext = createContext();
 const USER_STORAGE_KEY = 'pizzapolis_current_user';
 
 function getFallbackProfile(user) {
-  const emailName = user?.email?.split('@')[0] || 'usuario';
   return {
     id: user?.id,
     email: user?.email || '',
     username:
       user?.user_metadata?.username ||
       user?.user_metadata?.full_name ||
-      emailName,
+      'Usuario',
     avatar_url: user?.user_metadata?.avatar_url || '',
     role: 'user',
   };
@@ -28,20 +27,11 @@ function getFallbackProfile(user) {
 
 function normalizeResolvedProfile(profile, fallbackUser = null) {
   const fallback = fallbackUser ? getFallbackProfile(fallbackUser) : null;
-  const emailName = fallbackUser?.email?.split('@')[0] || '';
-  const username = profile?.username;
-  const shouldPromoteFullName = Boolean(
-    fallback?.username &&
-    username &&
-    emailName &&
-    username.toLowerCase() === emailName.toLowerCase() &&
-    fallback.username.toLowerCase() !== emailName.toLowerCase(),
-  );
 
   return {
     ...(fallback || {}),
     ...(profile || {}),
-    username: shouldPromoteFullName ? fallback.username : (profile?.username || fallback?.username || emailName || 'usuario'),
+    username: profile?.username || fallback?.username || 'Usuario',
   };
 }
 
@@ -53,9 +43,9 @@ function bridgeUser(user, profile) {
 
   const resolvedProfile = profile || getFallbackProfile(user);
   const displayName =
-    user.user_metadata?.full_name ||
     resolvedProfile.username ||
-    user.email ||
+    user.user_metadata?.username ||
+    user.user_metadata?.full_name ||
     'Usuario';
 
   const bridged = {
@@ -63,7 +53,7 @@ function bridgeUser(user, profile) {
     email: user.email,
     full_name: displayName,
     username:
-      resolvedProfile.username || user.email?.split('@')[0] || 'user',
+      resolvedProfile.username || user.user_metadata?.username || user.user_metadata?.full_name || 'Usuario',
     role: resolvedProfile.role || 'user',
     avatar_url: resolvedProfile.avatar_url || '',
   };

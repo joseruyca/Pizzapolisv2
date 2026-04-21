@@ -99,7 +99,7 @@ export default function PhotoGallery({ placeId, photos, user, onRequireAuth }) {
             {lightbox > 0 && <button className="absolute left-4 text-white/60 hover:text-white z-10" onClick={(e) => { e.stopPropagation(); navigateLightbox(-1); }}><ChevronLeft className="w-8 h-8" /></button>}
             {lightbox < photos.length - 1 && <button className="absolute right-4 text-white/60 hover:text-white z-10" onClick={(e) => { e.stopPropagation(); navigateLightbox(1); }}><ChevronRight className="w-8 h-8" /></button>}
             <img src={photos[lightbox]?.photo_url} alt="" className="max-w-[90vw] max-h-[85vh] object-contain rounded-lg" onClick={(e) => e.stopPropagation()} />
-            <div className="absolute bottom-4 text-stone-400 text-xs">{photos[lightbox]?.profile?.username || photos[lightbox]?.profile?.email || ""}</div>
+            <div className="absolute bottom-4 text-stone-400 text-xs">{photos[lightbox]?.profile?.username || "Usuario"}</div>
           </motion.div>
         )}
       </AnimatePresence>

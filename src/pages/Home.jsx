@@ -153,6 +153,7 @@ export default function Home() {
               selectedPlace={selectedPlace || previewPlace}
               savedPlaceIds={[]}
               onSelectPlace={(place) => {
+                setSelectedPlace(null);
                 setPreviewPlace(place);
                 setListOpen(false);
               }}

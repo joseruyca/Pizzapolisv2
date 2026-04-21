@@ -48,7 +48,7 @@ export default function AuthPage() {
   const [mode, setMode] = useState('signin');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [fullName, setFullName] = useState('');
+  const [username, setUsername] = useState('');
   const [rememberMe, setRememberMe] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [localError, setLocalError] = useState('');
@@ -90,7 +90,7 @@ export default function AuthPage() {
         return;
       }
 
-      await signUp({ email: email.trim(), password, fullName: fullName.trim() });
+      await signUp({ email: email.trim(), password, fullName: username.trim() });
       persistRememberChoice();
       setSuccess('Cuenta creada. Revisa tu email para confirmar la cuenta.');
       setMode('signin');
@@ -169,9 +169,9 @@ export default function AuthPage() {
           {mode === 'signup' && (
             <Field
               icon={User}
-              placeholder="Nombre visible"
-              value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
+              placeholder="Username"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
               required
             />
           )}

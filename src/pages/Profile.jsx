@@ -62,8 +62,8 @@ export default function Profile() {
 
   if (!user) return <div className="min-h-[calc(100vh-64px)] bg-[#060606]" />;
 
-  const displayName = profile?.username || user.full_name || user.email?.split("@")[0] || "Usuario";
-  const handle = (profile?.username || user.email?.split("@")[0] || "usuario").toLowerCase().replace(/\s+/g, "_");
+  const displayName = profile?.username || user.username || user.full_name || "Usuario";
+  const handle = (profile?.username || user.username || user.full_name || "usuario").toLowerCase().replace(/\s+/g, "_");
 
   const items = [
     { icon: CalendarDays, label: "Mis grupos", page: "MisMatches" },

@@ -157,7 +157,6 @@ export default function PizzaMap({
       className={`h-full w-full map-canvas ${controlsHidden ? "map-ui-hidden" : ""}`}
       zoomControl={false}
       attributionControl={false}
-      preferCanvas
     >
       <TileLayer
         key={tileUrl}
@@ -183,7 +182,7 @@ export default function PizzaMap({
           key={place.id}
           position={[place.latitude, place.longitude]}
           icon={createPriceIcon(place, selectedPlace?.id === place.id, savedPlaceIds.includes(place.id))}
-          eventHandlers={{ click: () => onSelectPlace(place) }}
+          eventHandlers={{ click: () => onSelectPlace(place), mousedown: () => onSelectPlace(place), touchstart: () => onSelectPlace(place) }}
         />
       ))}
     </MapContainer>

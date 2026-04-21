@@ -84,7 +84,7 @@ export default function PinPopup({ place, onClose, onViewDetails }) {
               </div>
 
               <Button onClick={onViewDetails} className="mt-4 h-11 w-full rounded-2xl bg-red-600 text-white font-bold hover:bg-red-500">
-                Ver place details
+                Ver detalles
                 <ChevronRight className="ml-1 h-4 w-4" />
               </Button>
             </div>
