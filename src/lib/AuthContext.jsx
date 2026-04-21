@@ -268,6 +268,37 @@ export const AuthProvider = ({ children }) => {
     return data;
   };
 
+  const signInWithOAuth = async (provider, nextPath = '/home') => {
+    if (!supabase) throw new Error('Supabase no está configurado.');
+    const baseUrl = import.meta.env.VITE_APP_URL || window.location.origin;
+    const redirectTo = `${baseUrl.replace(/\/$/, '')}/auth?next=${encodeURIComponent(nextPath)}`;
+
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider,
+      options: {
+        redirectTo,
+      },
+    });
+
+    if (error) throw error;
+    return data;
+  };
+
+  const resetPassword = async (email) => {
+    if (!supabase) throw new Error('Supabase no está configurado.');
+    if (!email) throw new Error('Escribe tu email para recuperar la contraseña.');
+
+    const baseUrl = import.meta.env.VITE_APP_URL || window.location.origin;
+    const redirectTo = `${baseUrl.replace(/\/$/, '')}/auth`;
+
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo,
+    });
+
+    if (error) throw error;
+    return true;
+  };
+
   const logout = async () => {
     try {
       if (supabase) await supabase.auth.signOut();
@@ -325,6 +356,8 @@ export const AuthProvider = ({ children }) => {
       checkAppState,
       signIn,
       signUp,
+      signInWithOAuth,
+      resetPassword,
       isSupabaseConfigured,
     }),
     [

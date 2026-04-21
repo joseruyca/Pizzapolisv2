@@ -31,8 +31,8 @@ export default function SearchFilters({ filters, onFiltersChange, onLocateMe }) 
     }`;
 
   return (
-    <div ref={panelRef} className="absolute left-4 right-4 top-4 sm:right-auto sm:w-[390px]" style={{ zIndex: ZINDEX.MAP_CONTROLS }}>
-      <div className="rounded-[28px] border border-black/8 bg-[#fffaf2]/92 p-2 backdrop-blur-xl shadow-[0_20px_50px_rgba(39,29,14,0.18)]">
+    <div ref={panelRef} className="pointer-events-none absolute left-4 right-4 top-4 sm:right-auto sm:w-[390px]" style={{ zIndex: ZINDEX.MAP_CONTROLS }}>
+      <div className="pointer-events-auto rounded-[28px] border border-black/8 bg-[#fffaf2]/92 p-2 backdrop-blur-xl shadow-[0_20px_50px_rgba(39,29,14,0.18)]">
         <div className="flex items-center gap-2">
           <div className="relative flex-1">
             <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#8e8578]" />
@@ -60,7 +60,7 @@ export default function SearchFilters({ filters, onFiltersChange, onLocateMe }) 
       </div>
 
       <AnimatePresence>
-        {expanded && <FilterPanel filters={filters} onFiltersChange={onFiltersChange} resultCount={0} onClose={() => setExpanded(false)} />}
+        {expanded && <div className="pointer-events-auto"><FilterPanel filters={filters} onFiltersChange={onFiltersChange} resultCount={0} onClose={() => setExpanded(false)} /></div>}
       </AnimatePresence>
     </div>
   );
