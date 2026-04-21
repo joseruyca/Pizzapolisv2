@@ -48,6 +48,26 @@
     display: none !important;
   }
 
+  .leaflet-pane,
+  .leaflet-marker-icon,
+  .leaflet-marker-shadow,
+  .leaflet-interactive {
+    pointer-events: auto !important;
+  }
+
+  .leaflet-marker-icon,
+  .leaflet-interactive {
+    cursor: pointer;
+  }
+
+  .leaflet-map-pane {
+    z-index: 100 !important;
+  }
+
+  .leaflet-marker-pane {
+    z-index: 650 !important;
+  }
+
   .map-ui-hidden .leaflet-control-container,
   .map-ui-hidden .leaflet-pane {
     pointer-events: none;
@@ -62,13 +82,4 @@
     background: none;
     border: none;
   }
-
-  .pizza-marker,
-  .pizza-marker *,
-  .leaflet-marker-icon,
-  .leaflet-marker-icon * {
-    pointer-events: auto !important;
-    cursor: pointer;
-  }
-
 }

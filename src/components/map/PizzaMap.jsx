@@ -183,12 +183,7 @@ export default function PizzaMap({
           key={place.id}
           position={[place.latitude, place.longitude]}
           icon={createPriceIcon(place, selectedPlace?.id === place.id, savedPlaceIds.includes(place.id))}
-          riseOnHover
-          eventHandlers={{
-            click: () => onSelectPlace(place),
-            mousedown: () => onSelectPlace(place),
-            touchstart: () => onSelectPlace(place),
-          }}
+          eventHandlers={{ click: () => onSelectPlace(place) }}
         />
       ))}
     </MapContainer>

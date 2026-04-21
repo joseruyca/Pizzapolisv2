@@ -26,6 +26,25 @@ function getFallbackProfile(user) {
   };
 }
 
+function normalizeResolvedProfile(profile, fallbackUser = null) {
+  const fallback = fallbackUser ? getFallbackProfile(fallbackUser) : null;
+  const emailName = fallbackUser?.email?.split('@')[0] || '';
+  const username = profile?.username;
+  const shouldPromoteFullName = Boolean(
+    fallback?.username &&
+    username &&
+    emailName &&
+    username.toLowerCase() === emailName.toLowerCase() &&
+    fallback.username.toLowerCase() !== emailName.toLowerCase(),
+  );
+
+  return {
+    ...(fallback || {}),
+    ...(profile || {}),
+    username: shouldPromoteFullName ? fallback.username : (profile?.username || fallback?.username || emailName || 'usuario'),
+  };
+}
+
 function bridgeUser(user, profile) {
   if (!user) {
     localStorage.removeItem(USER_STORAGE_KEY);
@@ -73,10 +92,7 @@ async function fetchProfileByUserId(userId, fallbackUser = null) {
     return fallbackUser ? getFallbackProfile(fallbackUser) : null;
   }
 
-  return {
-    ...(fallbackUser ? getFallbackProfile(fallbackUser) : {}),
-    ...data,
-  };
+  return normalizeResolvedProfile(data, fallbackUser);
 }
 
 export const AuthProvider = ({ children }) => {
@@ -252,6 +268,7 @@ export const AuthProvider = ({ children }) => {
   const signUp = async ({ email, password, fullName }) => {
     if (!supabase) throw new Error('Supabase no está configurado.');
 
+    const cleanName = String(fullName || '').trim();
     const baseUrl = import.meta.env.VITE_APP_URL || window.location.origin;
     const redirectTo = `${baseUrl.replace(/\/$/, '')}/auth/confirm`;
 
@@ -259,42 +276,50 @@ export const AuthProvider = ({ children }) => {
       email,
       password,
       options: {
-        data: { full_name: fullName },
+        data: { full_name: cleanName, username: cleanName },
         emailRedirectTo: redirectTo,
       },
     });
 
     if (error) throw error;
+
+    if (data?.user?.id && cleanName) {
+      const { error: profileError } = await supabase.from('profiles').upsert(
+        {
+          id: data.user.id,
+          email,
+          username: cleanName,
+          avatar_url: data.user.user_metadata?.avatar_url || '',
+        },
+        { onConflict: 'id' },
+      );
+      if (profileError) {
+        console.warn('Profile upsert warning:', profileError.message || profileError);
+      }
+    }
+
     return data;
   };
 
-  const signInWithOAuth = async (provider, nextPath = '/home') => {
+  const signInWithProvider = async (provider) => {
     if (!supabase) throw new Error('Supabase no está configurado.');
     const baseUrl = import.meta.env.VITE_APP_URL || window.location.origin;
-    const redirectTo = `${baseUrl.replace(/\/$/, '')}/auth?next=${encodeURIComponent(nextPath)}`;
-
+    const redirectTo = `${baseUrl.replace(/\/$/, '')}/auth/confirm`;
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider,
-      options: {
-        redirectTo,
-      },
+      options: { redirectTo },
     });
-
     if (error) throw error;
     return data;
   };
 
   const resetPassword = async (email) => {
     if (!supabase) throw new Error('Supabase no está configurado.');
-    if (!email) throw new Error('Escribe tu email para recuperar la contraseña.');
-
+    const cleanEmail = String(email || '').trim();
+    if (!cleanEmail) throw new Error('Escribe tu email primero.');
     const baseUrl = import.meta.env.VITE_APP_URL || window.location.origin;
     const redirectTo = `${baseUrl.replace(/\/$/, '')}/auth`;
-
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo,
-    });
-
+    const { error } = await supabase.auth.resetPasswordForEmail(cleanEmail, { redirectTo });
     if (error) throw error;
     return true;
   };
@@ -356,7 +381,7 @@ export const AuthProvider = ({ children }) => {
       checkAppState,
       signIn,
       signUp,
-      signInWithOAuth,
+      signInWithProvider,
       resetPassword,
       isSupabaseConfigured,
     }),
