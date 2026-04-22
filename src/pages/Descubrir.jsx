@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence, useMotionValue, useTransform, animate } from "framer-motion";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -58,7 +58,7 @@ async function fetchDiscoverPlans() {
       slice_price: Number(spot?.slice_price ?? 0),
       average_rating: Number(spot?.average_rating ?? 0),
       best_slice: spot?.best_slice || "Optional",
-      description: plan.quick_note || spot?.quick_note || "Quick pizza plan. Easy join, clear time, no vueltas.",
+      description: plan.quick_note || spot?.quick_note || "Quick pizza plan. Easy join, clear time, zero friction.",
     };
   });
 }
@@ -158,7 +158,7 @@ function SwipeCard({ current, onSkip, onJoin }) {
           )}
           <div className="absolute inset-0 bg-gradient-to-b from-black/22 via-black/20 to-black/78" />
           <div className="absolute left-3 top-3 rounded-full border border-white/12 bg-black/88 px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-[#efbf3a] shadow-[0_10px_24px_rgba(0,0,0,0.28)]">Slice plan</div>
-          <div className="absolute right-3 top-3 rounded-full border border-white/12 bg-black/88 px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-[#7bc18a] shadow-[0_10px_24px_rgba(0,0,0,0.28)]">{seatsLeft} libres</div>
+          <div className="absolute right-3 top-3 rounded-full border border-white/12 bg-black/88 px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-[#7bc18a] shadow-[0_10px_24px_rgba(0,0,0,0.28)]">{seatsLeft} seats left</div>
           <div className="absolute bottom-2.5 left-3 right-3 flex items-end justify-between gap-3">
             <div className="min-w-0 rounded-full border border-white/12 bg-black/88 px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-white shadow-[0_10px_24px_rgba(0,0,0,0.28)]">
               Host · {getPublicUsername(current.host)}
@@ -192,7 +192,7 @@ function SwipeCard({ current, onSkip, onJoin }) {
           </div>
 
           <div className="rounded-[17px] border border-black/8 bg-[#fffaf2] px-3.5 py-2.5">
-            <div className="text-[8px] font-black uppercase tracking-[0.18em] text-[#8a8174]">Descripción</div>
+            <div className="text-[8px] font-black uppercase tracking-[0.18em] text-[#8a8174]">Description</div>
             <div className="mt-1 line-clamp-3 text-[12.5px] leading-[1.45] text-[#4e473d]">{current.description}</div>
           </div>
 
@@ -207,6 +207,9 @@ function SwipeCard({ current, onSkip, onJoin }) {
   );
 }
 
+const STORAGE_DISMISSED = "pizzapolis_discover_dismissed";
+const STORAGE_JOINED = "pizzapolis_discover_joined_hidden";
+
 export default function Descubrir() {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -218,13 +221,16 @@ export default function Descubrir() {
   const [minSeatsLeft, setMinSeatsLeft] = useState(1);
   const [minRating, setMinRating] = useState(0);
   const [sortMode, setSortMode] = useState("all");
-  const [dismissedIds, setDismissedIds] = useState([]);
-  const [joinedHiddenIds, setJoinedHiddenIds] = useState([]);
+  const [dismissedIds, setDismissedIds] = useState(() => { try { return JSON.parse(localStorage.getItem(STORAGE_DISMISSED) || "[]"); } catch { return []; } });
+  const [joinedHiddenIds, setJoinedHiddenIds] = useState(() => { try { return JSON.parse(localStorage.getItem(STORAGE_JOINED) || "[]"); } catch { return []; } });
 
   const { data: plans = [], isLoading } = useQuery({
     queryKey: ["discover-plans"],
     queryFn: fetchDiscoverPlans,
   });
+
+  useEffect(() => { localStorage.setItem(STORAGE_DISMISSED, JSON.stringify(dismissedIds)); }, [dismissedIds]);
+  useEffect(() => { localStorage.setItem(STORAGE_JOINED, JSON.stringify(joinedHiddenIds)); }, [joinedHiddenIds]);
 
   const { data: joinedPlanIds = [] } = useQuery({
     queryKey: ["discover-joined-plan-ids", user?.id],
@@ -238,8 +244,12 @@ export default function Descubrir() {
 
   const filtered = useMemo(() => {
     const blockedIds = new Set([...(dismissedIds || []), ...(joinedHiddenIds || []), ...(joinedPlanIds || [])]);
+    const now = new Date();
     let next = (plans || []).filter((plan) => {
       if (!plan?.id || blockedIds.has(plan.id)) return false;
+      if (user?.id && plan.created_by === user.id) return false;
+      const planDate = new Date(`${plan.plan_date}T${String(plan.plan_time || "23:59").slice(0, 5) || "23:59"}`);
+      if (!Number.isNaN(planDate.getTime()) && planDate < now) return false;
       const seatsLeft = Math.max((plan.max_people || 0) - (plan.joined_count || 0), 0);
       const price = Number(plan.slice_price || 0);
       const rating = Number(plan.average_rating || 0);
@@ -252,7 +262,7 @@ export default function Descubrir() {
     if (sortMode === "spots") next = [...next].sort((a, b) => ((b.max_people || 0) - (b.joined_count || 0)) - ((a.max_people || 0) - (a.joined_count || 0)));
 
     return next;
-  }, [plans, maxPrice, minSeatsLeft, minRating, sortMode, dismissedIds, joinedHiddenIds, joinedPlanIds]);
+  }, [plans, maxPrice, minSeatsLeft, minRating, sortMode, dismissedIds, joinedHiddenIds, joinedPlanIds, user?.id]);
 
   React.useEffect(() => {
     if (index > filtered.length - 1) setIndex(0);
@@ -272,7 +282,7 @@ export default function Descubrir() {
     },
     onSuccess: async () => {
       setJoinedHiddenIds((prev) => [...new Set([...prev, current.id])]);
-      const joinedToast = toast({ title: "Te has unido al plan", description: "Ya estás dentro del grupo. Puedes seguir deslizando." });
+      const joinedToast = toast({ title: "You joined this plan", description: "You are in. Keep swiping." });
       setTimeout(() => joinedToast.dismiss(), 1400);
       await queryClient.invalidateQueries({ queryKey: ["discover-plans"] });
       await queryClient.invalidateQueries({ queryKey: ["discover-joined-plan-ids", user?.id] });
@@ -280,7 +290,7 @@ export default function Descubrir() {
       setIndex(0);
     },
     onError: (error) => {
-      toast({ title: "No se pudo unir al plan", description: error?.message || "Vuelve a intentarlo.", variant: "destructive" });
+      toast({ title: "Could not join the plan", description: error?.message || "Try again.", variant: "destructive" });
     },
   });
 
@@ -312,7 +322,7 @@ export default function Descubrir() {
             >
               <ArrowLeft className="h-5 w-5" />
             </button>
-            <div className="text-center text-[11px] font-black uppercase tracking-[0.24em] text-white/48">Swipe plans</div>
+            <div className="text-center text-[11px] font-black uppercase tracking-[0.24em] text-white/48">Discover</div>
             <button
               type="button"
               onClick={() => setFiltersOpen((prev) => !prev)}
@@ -407,10 +417,10 @@ export default function Descubrir() {
           ) : (
             <div className="flex h-full flex-col justify-center rounded-[32px] border border-white/10 bg-[#111111] p-8 text-center">
               <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-[28px] bg-white/[0.04] text-4xl">🍕</div>
-              <h1 className="mt-6 text-3xl font-black text-white">No hay más planes ahora mismo</h1>
-              <p className="mt-3 text-sm leading-7 text-stone-400">Prueba a relajar filtros o vuelve más tarde.</p>
+              <h1 className="mt-6 text-3xl font-black text-white">No more plans right now</h1>
+              <p className="mt-3 text-sm leading-7 text-stone-400">Try relaxing your filters or come back later.</p>
               <button type="button" onClick={() => navigate(createPageUrl("Home"))} className="mt-6 inline-flex h-12 items-center justify-center rounded-2xl bg-red-600 px-5 text-sm font-bold text-white">
-                Volver al mapa
+                Back to map
               </button>
             </div>
           )}

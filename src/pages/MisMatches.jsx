@@ -178,7 +178,7 @@ function GroupListItem({ group, active, onSelect }) {
           </div>
           <div className="mt-1 truncate text-xs text-stone-400">{group.pizzeria_nombre}</div>
           <div className="mt-2 flex items-center justify-between gap-3">
-            <div className="truncate text-sm text-stone-300">{group.lastMessage?.content || group.descripcion || "No hay mensajes todavía"}</div>
+            <div className="truncate text-sm text-stone-300">{group.lastMessage?.content || group.descripcion || "No messages yet"}</div>
           </div>
         </div>
       </div>
@@ -263,8 +263,8 @@ export default function MisMatches() {
     },
     onError: (error) => {
       toast({
-        title: "No se pudo enviar el mensaje",
-        description: error?.message || "Revisa permisos o vuelve a intentarlo.",
+        title: "Could not send the message",
+        description: error?.message || "Check permissions or try again.",
         variant: "destructive",
       });
     },
@@ -275,7 +275,7 @@ export default function MisMatches() {
     sendMutation.mutate(messageText.trim());
   }
 
-  if (!user || isLoading) return <div className="flex min-h-[calc(100vh-64px)] items-center justify-center bg-[#060606] text-white">Cargando…</div>;
+  if (!user || isLoading) return <div className="flex min-h-[calc(100vh-64px)] items-center justify-center bg-[#060606] text-white">Loading…</div>;
 
   if (!groups.length) {
     return (
@@ -283,9 +283,9 @@ export default function MisMatches() {
         <div className="mx-auto flex h-full max-w-md items-center">
           <div className="w-full rounded-[30px] border border-white/10 bg-[#111] p-8 text-center">
           <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-[28px] bg-white/[0.04] text-4xl">💬</div>
-          <h1 className="mt-6 text-3xl font-black text-white">Todavía no te has unido a ningún grupo</h1>
-          <p className="mt-3 text-sm leading-7 text-stone-400">Cuando digas que sí a un plan en Descubrir o crees uno, entrarás automáticamente a su grupo y aparecerá aquí.</p>
-          <Link to={createPageUrl("Descubrir")} className="mt-6 inline-flex h-12 w-full items-center justify-center rounded-2xl bg-red-600 text-sm font-bold text-white">Ir a descubrir</Link>
+          <h1 className="mt-6 text-3xl font-black text-white">You have not joined any groups yet</h1>
+          <p className="mt-3 text-sm leading-7 text-stone-400">When you like a plan in Discover or create one yourself, the group appears here automatically.</p>
+          <Link to={createPageUrl("Descubrir")} className="mt-6 inline-flex h-12 w-full items-center justify-center rounded-2xl bg-red-600 text-sm font-bold text-white">Go to Discover</Link>
           </div>
         </div>
       </div>
@@ -300,14 +300,14 @@ export default function MisMatches() {
             <div className="border-b border-white/6 px-4 py-4">
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <h1 className="text-[2rem] font-black tracking-tight text-white">Mis grupos</h1>
-                  <p className="mt-1 text-sm text-stone-400">Tus chats y planes reales.</p>
+                  <h1 className="text-[2rem] font-black tracking-tight text-white">My groups</h1>
+                  <p className="mt-1 text-sm text-stone-400">Your real chats and pizza plans.</p>
                 </div>
                 <span className="inline-flex h-10 min-w-10 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] px-3 text-sm font-bold text-white">{visible.length}</span>
               </div>
               <div className="mt-4 flex gap-2">
-                <button onClick={() => setTab("upcoming")} className={`rounded-full px-4 py-2 text-sm font-semibold ${tab === "upcoming" ? "bg-red-600 text-white" : "border border-white/10 bg-white/[0.04] text-stone-300"}`}>Próximos</button>
-                <button onClick={() => setTab("history")} className={`rounded-full px-4 py-2 text-sm font-semibold ${tab === "history" ? "bg-red-600 text-white" : "border border-white/10 bg-white/[0.04] text-stone-300"}`}>Historial</button>
+                <button onClick={() => setTab("upcoming")} className={`rounded-full px-4 py-2 text-sm font-semibold ${tab === "upcoming" ? "bg-red-600 text-white" : "border border-white/10 bg-white/[0.04] text-stone-300"}`}>Upcoming</button>
+                <button onClick={() => setTab("history")} className={`rounded-full px-4 py-2 text-sm font-semibold ${tab === "history" ? "bg-red-600 text-white" : "border border-white/10 bg-white/[0.04] text-stone-300"}`}>History</button>
               </div>
             </div>
             <div className="min-h-0 flex-1 overflow-y-auto px-2 py-2 space-y-2">

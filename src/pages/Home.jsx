@@ -83,7 +83,7 @@ export default function Home() {
   });
 
   const { data: places = [] } = useQuery({
-    queryKey: ["places-supabase"],
+    queryKey: ['places-supabase'],
     queryFn: fetchPlaces,
     enabled: Boolean(isSupabaseConfigured && supabase),
   });
@@ -93,6 +93,12 @@ export default function Home() {
     queryFn: fetchActivePlanCounts,
     enabled: Boolean(isSupabaseConfigured && supabase),
   });
+
+  const mergedPlaces = useMemo(() => {
+    const existing = new Map((places || []).map((place) => [String(place.name).toLowerCase(), place]));
+    const fallback = fallbackRealSpots.filter((spot) => !existing.has(String(spot.name).toLowerCase())).map((spot) => normalizeSpot({ ...spot, photo_url: null }));
+    return [...(places || []), ...fallback].slice(0, Math.max((places || []).length, 10));
+  }, [places]);
 
   const hangoutsByPlace = useMemo(() => {
     const map = {};
@@ -104,8 +110,8 @@ export default function Home() {
   }, [activePlans]);
 
   const enrichedPlaces = useMemo(
-    () => places.map((place) => ({ ...place, active_hangouts_count: hangoutsByPlace[place.id] || 0 })),
-    [places, hangoutsByPlace],
+    () => mergedPlaces.map((place) => ({ ...place, active_hangouts_count: hangoutsByPlace[place.id] || 0 })),
+    [mergedPlaces, hangoutsByPlace],
   );
 
   const filteredPlaces = useMemo(() => {
@@ -190,7 +196,7 @@ export default function Home() {
 
           <button onClick={() => setListOpen((prev) => !prev)} className="home-map-count md:hidden">
             <List className="h-4 w-4" />
-            <span>{filteredPlaces.length} sitios</span>
+            <span>{filteredPlaces.length} spots</span>
           </button>
 
           <button onClick={handleAddPin} className="home-map-fab" aria-label="Add Spot">
@@ -216,7 +222,7 @@ export default function Home() {
 
           {selectedPlace && <PlacePanel place={selectedPlace} onClose={() => setSelectedPlace(null)} user={user} />}
           <AddPinModal open={addPinOpen} onClose={() => setAddPinOpen(false)} user={user} />
-          <LoginPrompt open={loginPrompt} onClose={() => setLoginPrompt(false)} message="Sign in to create and join pizza hangouts with friends." />
+          <LoginPrompt open={loginPrompt} onClose={() => setLoginPrompt(false)} message="Sign in to create and join pizza plans." />
         </div>
       </section>
 

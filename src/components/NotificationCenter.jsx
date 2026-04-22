@@ -1,154 +1,59 @@
-import React, { useState } from "react";
-import { base44 } from "@/api/base44Client";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Bell, X, MessageCircle, Heart } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
-import { ZINDEX } from "@/lib/zindex";
+import React, { useEffect, useMemo, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { Bell, MessageCircle, Users, X } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { supabase } from '@/lib/supabase';
+import { ZINDEX } from '@/lib/zindex';
+import { readAppSettings } from '@/lib/appSettings';
+
+function NotificationIcon({ type }) {
+  if (type === 'message') return <MessageCircle className="w-5 h-5 text-blue-400" />;
+  return <Users className="w-5 h-5 text-emerald-400" />;
+}
+
+async function fetchNotifications(user) {
+  if (!user?.id) return [];
+  const settings = readAppSettings();
+  const [{ data: joinedRows }, { data: ownedPlans }] = await Promise.all([
+    supabase.from('plan_members').select('plan_id,created_at').eq('user_id', user.id).eq('status', 'joined'),
+    supabase.from('plans').select('id,title').eq('created_by', user.id),
+  ]);
+  const joinedIds = (joinedRows || []).map((row) => row.plan_id).filter(Boolean);
+  const ownedIds = (ownedPlans || []).map((row) => row.id).filter(Boolean);
+  const notifications = [];
+  if (settings.notifications.messageAlerts && joinedIds.length) {
+    const { data: messages } = await supabase.from('messages').select('id,plan_id,content,created_at,user_id').in('plan_id', joinedIds).neq('user_id', user.id).order('created_at', { ascending: false }).limit(8);
+    const { data: plans } = await supabase.from('plans').select('id,title').in('id', joinedIds);
+    const planMap = new Map((plans || []).map((plan) => [plan.id, plan.title]));
+    (messages || []).forEach((message) => notifications.push({ id: `message-${message.id}`, type: 'message', title: planMap.get(message.plan_id) || 'New group message', description: message.content, created_at: message.created_at }));
+  }
+  if (settings.notifications.groupAlerts && ownedIds.length) {
+    const { data: members } = await supabase.from('plan_members').select('id,plan_id,created_at,user_id').in('plan_id', ownedIds).neq('user_id', user.id).order('created_at', { ascending: false }).limit(8);
+    const planMap = new Map((ownedPlans || []).map((plan) => [plan.id, plan.title]));
+    (members || []).forEach((member) => notifications.push({ id: `member-${member.id}`, type: 'group', title: 'New member joined', description: `${planMap.get(member.plan_id) || 'Your plan'} has a new member.`, created_at: member.created_at }));
+  }
+  return notifications.sort((a, b) => new Date(b.created_at) - new Date(a.created_at)).slice(0, 12);
+}
 
 export default function NotificationCenter({ user }) {
   const [open, setOpen] = useState(false);
-  const queryClient = useQueryClient();
-
-  const { data: notifications = [] } = useQuery({
-    queryKey: ["notifications", user?.id],
-    queryFn: async () => {
-      if (!user) return [];
-      const notifs = await base44.entities.Notification.filter(
-        { user_id: user.id },
-        "-created_date"
-      );
-      return notifs;
-    },
-    refetchInterval: 3000,
-    enabled: !!user,
-  });
-
-  const unreadCount = notifications.filter((n) => !n.leida).length;
-
-  const handleMarkAsRead = async (notificationId) => {
-    await base44.entities.Notification.update(notificationId, { leida: true });
-    queryClient.invalidateQueries({ queryKey: ["notifications", user?.id] });
-  };
-
-  const handleDismiss = async (notificationId) => {
-    await base44.entities.Notification.delete(notificationId);
-    queryClient.invalidateQueries({ queryKey: ["notifications", user?.id] });
-  };
-
+  const [dismissed, setDismissed] = useState([]);
+  const [notified, setNotified] = useState([]);
+  const { data: notifications = [] } = useQuery({ queryKey: ['notifications-supabase', user?.id], queryFn: () => fetchNotifications(user), refetchInterval: 15000, enabled: !!user?.id });
+  const visible = useMemo(() => notifications.filter((item) => !dismissed.includes(item.id)), [notifications, dismissed]);
+  const unreadCount = visible.length;
+  useEffect(() => {
+    const settings = readAppSettings();
+    if (!settings.notifications.pushEnabled || typeof window === 'undefined' || !('Notification' in window) || Notification.permission !== 'granted') return;
+    visible.slice(0, 3).forEach((item) => {
+      if (notified.includes(item.id)) return;
+      new Notification(item.title, { body: item.description });
+      setNotified((prev) => [...prev, item.id]);
+    });
+  }, [visible, notified]);
   if (!user) return null;
-
-  const NotificationIcon = ({ tipo }) => {
-    switch (tipo) {
-      case "nuevo_mensaje":
-        return <MessageCircle className="w-5 h-5 text-blue-400" />;
-      case "nuevo_match":
-        return <Heart className="w-5 h-5 text-red-400" />;
-      default:
-        return <Bell className="w-5 h-5 text-stone-400" />;
-    }
-  };
-
-  return (
-    <div className="relative" onClick={(e) => e.stopPropagation()}>
-      <button
-        onClick={() => setOpen(!open)}
-        className="relative p-2 text-stone-400 hover:text-white hover:bg-white/5 rounded-lg transition-colors"
-      >
-        <Bell className="w-5 h-5" />
-        {unreadCount > 0 && (
-          <span className="absolute top-0 right-0 w-5 h-5 bg-red-600 text-white text-xs font-bold rounded-full flex items-center justify-center">
-            {unreadCount > 9 ? "9+" : unreadCount}
-          </span>
-        )}
-      </button>
-
-      <AnimatePresence>
-        {open && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0"
-              onClick={() => setOpen(false)}
-              style={{ zIndex: ZINDEX.NOTIFICATION_BACKDROP }}
-            />
-            <motion.div
-              initial={{ opacity: 0, y: -10, scale: 0.95 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: -10, scale: 0.95 }}
-              className="absolute top-full right-0 mt-2 w-80 bg-[#141414] border border-white/10 rounded-2xl shadow-2xl shadow-black/60 overflow-hidden"
-              style={{ zIndex: ZINDEX.NOTIFICATION_POPUP }}
-            >
-              <div className="p-4 border-b border-white/5 flex items-center justify-between">
-                <h3 className="font-semibold text-white">Notificaciones</h3>
-                {unreadCount > 0 && (
-                  <button
-                    onClick={async () => {
-                      for (const n of notifications.filter((n) => !n.leida)) {
-                        await handleMarkAsRead(n.id);
-                      }
-                    }}
-                    className="text-xs text-stone-400 hover:text-stone-200 transition-colors"
-                  >
-                    Marcar todo como leído
-                  </button>
-                )}
-              </div>
-
-              <div className="max-h-96 overflow-y-auto">
-                {notifications.length === 0 ? (
-                  <div className="p-8 text-center">
-                    <Bell className="w-10 h-10 text-stone-700 mx-auto mb-3" />
-                    <p className="text-stone-500 text-sm">No hay notificaciones</p>
-                  </div>
-                ) : (
-                  <div className="divide-y divide-white/5">
-                    {notifications.slice(0, 10).map((notification) => (
-                      <motion.div
-                        key={notification.id}
-                        layout
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        exit={{ opacity: 0, x: 20 }}
-                        className={`p-4 flex gap-3 hover:bg-white/5 transition-colors ${
-                          !notification.leida ? "bg-white/[0.05]" : ""
-                        }`}
-                        onClick={() => {
-                          if (!notification.leida) {
-                            handleMarkAsRead(notification.id);
-                          }
-                        }}
-                      >
-                        <div className="mt-1">
-                          <NotificationIcon tipo={notification.tipo} />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium text-sm text-white truncate">
-                            {notification.titulo}
-                          </p>
-                          <p className="text-xs text-stone-500 mt-0.5 line-clamp-2">
-                            {notification.descripcion}
-                          </p>
-                        </div>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDismiss(notification.id);
-                          }}
-                          className="text-stone-600 hover:text-white transition-colors mt-1"
-                        >
-                          <X className="w-4 h-4" />
-                        </button>
-                      </motion.div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
-    </div>
-  );
+  return <div className="relative" onClick={(e) => e.stopPropagation()}>
+    <button onClick={() => setOpen((prev) => !prev)} className="relative p-2 text-stone-400 hover:text-white hover:bg-white/5 rounded-lg transition-colors"><Bell className="w-5 h-5" />{unreadCount > 0 && <span className="absolute top-0 right-0 w-5 h-5 bg-red-600 text-white text-xs font-bold rounded-full flex items-center justify-center">{unreadCount > 9 ? '9+' : unreadCount}</span>}</button>
+    <AnimatePresence>{open && <><div className="fixed inset-0" style={{ zIndex: ZINDEX.overlay }} onClick={() => setOpen(false)} /><motion.div initial={{ opacity: 0, y: -10, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -10, scale: 0.96 }} className="absolute right-0 mt-2 w-80 max-h-[75vh] overflow-hidden rounded-2xl border border-white/10 bg-[#101010] shadow-2xl" style={{ zIndex: ZINDEX.notificationPanel }}><div className="border-b border-white/10 p-4"><div className="flex items-center justify-between"><h3 className="font-semibold text-white">Notifications</h3><button onClick={() => setDismissed(visible.map((item) => item.id))} className="text-xs text-stone-400 hover:text-white">Mark all seen</button></div></div><div className="overflow-y-auto max-h-[60vh]">{visible.length === 0 ? <div className="p-6 text-center text-stone-500 text-sm">No new notifications.</div> : <div className="p-2 space-y-1">{visible.map((notification) => <motion.div key={notification.id} layout className="flex items-start gap-3 p-3 rounded-xl hover:bg-white/5 transition-colors"><div className="mt-1"><NotificationIcon type={notification.type} /></div><div className="flex-1 min-w-0"><p className="font-medium text-sm text-white truncate">{notification.title}</p><p className="text-xs text-stone-500 mt-0.5 line-clamp-2">{notification.description}</p></div><button onClick={() => setDismissed((prev) => [...prev, notification.id])} className="text-stone-600 hover:text-white transition-colors mt-1"><X className="w-4 h-4" /></button></motion.div>)}</div>}</div></motion.div></>}</AnimatePresence>
+  </div>;
 }
