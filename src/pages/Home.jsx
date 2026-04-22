@@ -12,6 +12,7 @@ import LoginPrompt from "@/components/shared/LoginPrompt";
 import PinPopup from "@/components/map/PinPopup";
 import { getValueLabel, isOpenNow } from "@/lib/place-helpers";
 import { MAP_STYLES } from "@/lib/constants";
+import { fallbackRealSpots } from "@/utils";
 
 async function resolveSpotPhoto(value) {
   if (!value) return null;
