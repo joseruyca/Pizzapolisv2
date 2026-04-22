@@ -9,14 +9,7 @@ import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import AuthPage from './pages/Auth';
 import AuthConfirm from './pages/AuthConfirm';
-import Favorites from './pages/Favorites';
-import Trending from './pages/Trending';
 import Admin from './pages/Admin';
-import MyLists from './pages/MyLists';
-import Stats from './pages/Stats';
-import Recomendaciones from './pages/Recomendaciones';
-import Leaderboards from './pages/Leaderboards';
-import Guides from './pages/Guides';
 
 const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
@@ -91,24 +84,10 @@ const AppRoutes = () => (
         <Route path={`/${path.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase()}`} element={<Navigate to={lowerAlias(path)} replace />} />
       </React.Fragment>
     ))}
-    <Route path="/favorites" element={<ProtectedPage pageName="Favorites" Component={Favorites} />} />
-    <Route path="/Favorites" element={<Navigate to="/favorites" replace />} />
-    <Route path="/trending" element={<LayoutWrapper currentPageName="Trending"><Trending /></LayoutWrapper>} />
-    <Route path="/Trending" element={<Navigate to="/trending" replace />} />
     <Route path="/admin" element={<ProtectedRoute><AdminRoute><LayoutWrapper currentPageName="Admin"><Admin /></LayoutWrapper></AdminRoute></ProtectedRoute>} />
     <Route path="/Admin" element={<Navigate to="/admin" replace />} />
-    <Route path="/mylists" element={<ProtectedPage pageName="MyLists" Component={MyLists} />} />
-    <Route path="/MyLists" element={<Navigate to="/mylists" replace />} />
-    <Route path="/stats" element={<ProtectedPage pageName="Stats" Component={Stats} />} />
-    <Route path="/Stats" element={<Navigate to="/stats" replace />} />
-    <Route path="/recomendaciones" element={<LayoutWrapper currentPageName="Recomendaciones"><Recomendaciones /></LayoutWrapper>} />
-    <Route path="/Recomendaciones" element={<Navigate to="/recomendaciones" replace />} />
-    <Route path="/leaderboards" element={<LayoutWrapper currentPageName="Leaderboards"><Leaderboards /></LayoutWrapper>} />
-    <Route path="/Leaderboards" element={<Navigate to="/leaderboards" replace />} />
-    <Route path="/guides" element={<LayoutWrapper currentPageName="Guides"><Guides /></LayoutWrapper>} />
     <Route path="/mis-matches" element={<Navigate to="/mismatches" replace />} />
     <Route path="/crear-quedada" element={<Navigate to="/crearquedada" replace />} />
-    <Route path="/Guides" element={<Navigate to="/guides" replace />} />
     <Route path="*" element={<PageNotFound />} />
   </Routes>
 );

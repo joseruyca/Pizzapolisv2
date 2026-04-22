@@ -17,12 +17,8 @@ function Field({ icon: Icon, ...props }) {
   );
 }
 
-function ProviderButton({ children, onClick, disabled }) {
-  return <button type="button" onClick={onClick} disabled={disabled} className="flex h-12 items-center justify-center rounded-2xl border border-black/10 bg-white text-sm font-semibold text-[#111] transition hover:bg-[#fbfaf7] disabled:opacity-50">{children}</button>;
-}
-
 export default function AuthPage() {
-  const { signIn, signUp, signInWithProvider, resetPassword, isAuthenticated, isLoadingAuth, authError, isSupabaseConfigured } = useAuth();
+  const { signIn, signUp, resetPassword, isAuthenticated, isLoadingAuth, authError, isSupabaseConfigured } = useAuth();
   const [searchParams] = useSearchParams();
   const [mode, setMode] = useState('signin');
   const [email, setEmail] = useState('');
@@ -69,7 +65,7 @@ export default function AuthPage() {
   return (
     <div className="auth-screen grid min-h-screen place-items-center bg-[#f4efe6] px-4 py-6 text-[#111]">
       <div className="w-full max-w-[380px] rounded-[34px] border border-black/10 bg-[#fffaf1] p-5 shadow-[0_28px_70px_rgba(34,25,11,0.12)] md:p-6">
-        <div className="mb-6 flex items-center gap-4"><div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#f0bf39] text-2xl">🍕</div><div><div className="text-[2rem] font-black leading-none tracking-[-0.05em]">Pizzapolis</div><div className="mt-1 text-sm text-[#6e6558]">Public username, private email.</div></div></div>
+        <div className="mb-6 flex items-center gap-4"><div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#f0bf39] text-2xl">🍕</div><div><div className="text-[2rem] font-black leading-none tracking-[-0.05em]">Pizzapolis</div><div className="mt-1 text-sm text-[#6e6558]">Simple access: username public, email private.</div></div></div>
         {!isSupabaseConfigured && <div className="mb-4 rounded-2xl border border-[#efc5bc] bg-[#fff0ea] p-3 text-sm text-[#b54834]">Supabase is missing. Add <code>VITE_SUPABASE_URL</code> and <code>VITE_SUPABASE_PUBLISHABLE_KEY</code>.</div>}
         <div className="mb-5 flex rounded-2xl bg-[#eee3d2] p-1">
           <button type="button" onClick={() => setMode('signup')} className={`h-11 flex-1 rounded-xl text-sm font-bold ${mode === 'signup' ? 'bg-white text-[#111] shadow-sm' : 'text-[#857b6b]'}`}>Create account</button>
@@ -85,12 +81,6 @@ export default function AuthPage() {
           {success && <div className="rounded-2xl border border-[#d7e6d1] bg-[#eef7ec] p-3 text-sm text-[#216b33]">{success}</div>}
           <Button disabled={submitting || !isSupabaseConfigured} className="h-12 w-full rounded-2xl border-0 bg-[#6d6cf7] text-base font-bold text-white hover:bg-[#5f5eee]">{submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}{mode === 'signin' ? 'Login' : 'Create account'}<ArrowRight className="ml-2 h-4 w-4" /></Button>
         </form>
-        <div className="my-5 flex items-center gap-3 text-xs text-[#9a9182]"><div className="h-px flex-1 bg-black/10" /><span>or sign in with</span><div className="h-px flex-1 bg-black/10" /></div>
-        <div className="grid grid-cols-3 gap-3">
-          <ProviderButton onClick={() => signInWithProvider('facebook')} disabled={!isSupabaseConfigured}>Facebook</ProviderButton>
-          <ProviderButton onClick={() => signInWithProvider('google')} disabled={!isSupabaseConfigured}>Google</ProviderButton>
-          <ProviderButton onClick={() => signInWithProvider('apple')} disabled={!isSupabaseConfigured}>Apple</ProviderButton>
-        </div>
         <Link to="/home" className="mt-5 inline-flex h-12 w-full items-center justify-center rounded-2xl border border-black/10 bg-white text-sm font-semibold text-[#111] hover:bg-[#fbfaf7]">Continue as guest</Link>
       </div>
     </div>

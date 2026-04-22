@@ -1,8 +1,7 @@
 export const APP_SETTINGS_KEY = 'pizzapolis_app_settings';
 export const defaultAppSettings = {
-  notifications: { pushEnabled: false, messageAlerts: true, groupAlerts: true, marketingAlerts: false },
+  notifications: { pushEnabled: false, messageAlerts: true, groupAlerts: true },
   language: 'English',
-  location: { usePreciseLocation: true, mapCity: 'New York City', distanceUnit: 'miles' },
   privacy: { showProfile: true, showJoinedPlans: true, allowMessagesFromMembers: true },
   account: { rememberMe: true },
 };
@@ -15,7 +14,6 @@ export function readAppSettings() {
       ...defaultAppSettings,
       ...parsed,
       notifications: { ...defaultAppSettings.notifications, ...(parsed.notifications || {}) },
-      location: { ...defaultAppSettings.location, ...(parsed.location || {}) },
       privacy: { ...defaultAppSettings.privacy, ...(parsed.privacy || {}) },
       account: { ...defaultAppSettings.account, ...(parsed.account || {}) },
     };
