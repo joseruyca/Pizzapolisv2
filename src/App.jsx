@@ -3,6 +3,7 @@ import { Toaster } from '@/components/ui/toaster';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClientInstance } from '@/lib/query-client';
 import { pagesConfig } from './pages.config';
+import { createPageUrl } from '@/utils';
 import { BrowserRouter as Router, Route, Routes, Navigate, useLocation } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
@@ -63,7 +64,7 @@ function ProtectedPage({ pageName, Component }) {
   );
 }
 
-const lowerAlias = (path) => `/${path.toLowerCase()}`;
+const lowerAlias = (path) => createPageUrl(path);
 const kebabAlias = (path) => '/' + path.replace(/([a-z])([A-Z])/g, '$1-$2').replace(/\s+/g, '-').toLowerCase();
 
 const AppRoutes = () => (
@@ -107,7 +108,6 @@ const AppRoutes = () => (
     <Route path="/guides" element={<LayoutWrapper currentPageName="Guides"><Guides /></LayoutWrapper>} />
     <Route path="/mis-matches" element={<Navigate to="/mismatches" replace />} />
     <Route path="/crear-quedada" element={<Navigate to="/crearquedada" replace />} />
-    <Route path="/settings" element={<Navigate to="/settingspage" replace />} />
     <Route path="/Guides" element={<Navigate to="/guides" replace />} />
     <Route path="*" element={<PageNotFound />} />
   </Routes>
