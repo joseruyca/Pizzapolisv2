@@ -10,9 +10,7 @@ import PlaceListPanel from "@/components/map/PlaceListPanel";
 import AddPinModal from "@/components/map/AddPinModal";
 import LoginPrompt from "@/components/shared/LoginPrompt";
 import PinPopup from "@/components/map/PinPopup";
-import { getValueLabel, isOpenNow } from "@/lib/place-helpers";
 import { MAP_STYLES } from "@/lib/constants";
-import { fallbackRealSpots } from "@/utils";
 
 async function resolveSpotPhoto(value) {
   if (!value) return null;
@@ -72,15 +70,13 @@ export default function Home() {
   const [userLocation, setUserLocation] = useState(null);
   const [filters, setFilters] = useState({
     search: "",
-    boroughs: [],
-    prices: [],
-    categories: [],
-    sortBy: "",
-    cheapOnly: false,
-    valueOnly: false,
-    openNow: false,
-    lateNight: false,
-    featuredOnly: false,
+    priceBands: [],
+    minRating: 0,
+    withPhoto: false,
+    withActivePlans: false,
+    withBestSlice: false,
+    withNotes: false,
+    sortBy: "price_low",
   });
 
   const { data: places = [] } = useQuery({
@@ -95,12 +91,6 @@ export default function Home() {
     enabled: Boolean(isSupabaseConfigured && supabase),
   });
 
-  const mergedPlaces = useMemo(() => {
-    const existing = new Map((places || []).map((place) => [String(place.name).toLowerCase(), place]));
-    const fallback = fallbackRealSpots.filter((spot) => !existing.has(String(spot.name).toLowerCase())).map((spot) => normalizeSpot({ ...spot, photo_url: null }));
-    return [...(places || []), ...fallback].slice(0, Math.max((places || []).length, 10));
-  }, [places]);
-
   const hangoutsByPlace = useMemo(() => {
     const map = {};
     activePlans.forEach((plan) => {
@@ -111,8 +101,8 @@ export default function Home() {
   }, [activePlans]);
 
   const enrichedPlaces = useMemo(
-    () => mergedPlaces.map((place) => ({ ...place, active_hangouts_count: hangoutsByPlace[place.id] || 0 })),
-    [mergedPlaces, hangoutsByPlace],
+    () => (places || []).map((place) => ({ ...place, active_hangouts_count: hangoutsByPlace[place.id] || 0 })),
+    [places, hangoutsByPlace],
   );
 
   const filteredPlaces = useMemo(() => {
@@ -123,19 +113,32 @@ export default function Home() {
         (p) =>
           p.name?.toLowerCase().includes(q) ||
           p.address?.toLowerCase().includes(q) ||
-          p.neighborhood?.toLowerCase().includes(q) ||
-          p.borough?.toLowerCase().includes(q) ||
-          p.best_known_slice?.toLowerCase().includes(q),
+          p.best_known_slice?.toLowerCase().includes(q) ||
+          p.quick_note?.toLowerCase().includes(q),
       );
     }
-    if (filters.boroughs?.length) result = result.filter((p) => filters.boroughs.includes(p.borough));
-    if (filters.cheapOnly) result = result.filter((p) => Number(p.standard_slice_price || 0) <= 3.5);
-    if (filters.valueOnly) result = result.filter((p) => ["Steal", "Best budget", "Worth it"].includes(getValueLabel(p)));
-    if (filters.openNow) result = result.filter((p) => isOpenNow(p.hours));
-    if (filters.featuredOnly) result = result.filter((p) => Boolean(p.featured));
+    if (filters.priceBands?.length) {
+      result = result.filter((p) => {
+        const price = Number(p.standard_slice_price || 0);
+        return filters.priceBands.some((band) => {
+          if (band === "budget") return price > 0 && price <= 3;
+          if (band === "mid") return price > 3 && price <= 5;
+          if (band === "premium") return price > 5;
+          return true;
+        });
+      });
+    }
+    if (Number(filters.minRating || 0) > 0) result = result.filter((p) => Number(p.average_rating || 0) >= Number(filters.minRating));
+    if (filters.withPhoto) result = result.filter((p) => Boolean(p.photo_url));
+    if (filters.withActivePlans) result = result.filter((p) => Number(p.active_hangouts_count || 0) > 0);
+    if (filters.withBestSlice) result = result.filter((p) => Boolean(String(p.best_known_slice || "").trim()));
+    if (filters.withNotes) result = result.filter((p) => Boolean(String(p.quick_note || "").trim()));
     if (filters.sortBy === "rating") result.sort((a, b) => (b.average_rating || 0) - (a.average_rating || 0));
-    if (filters.sortBy === "featured") result.sort((a, b) => Number(Boolean(b.featured)) - Number(Boolean(a.featured)));
+    if (filters.sortBy === "reviews") result.sort((a, b) => Number(b.ratings_count || 0) - Number(a.ratings_count || 0));
+    if (filters.sortBy === "active_plans") result.sort((a, b) => Number(b.active_hangouts_count || 0) - Number(a.active_hangouts_count || 0));
     if (filters.sortBy === "price_low") result.sort((a, b) => Number(a.standard_slice_price || 0) - Number(b.standard_slice_price || 0));
+    if (filters.sortBy === "price_high") result.sort((a, b) => Number(b.standard_slice_price || 0) - Number(a.standard_slice_price || 0));
+    if (filters.sortBy === "name") result.sort((a, b) => String(a.name || "").localeCompare(String(b.name || "")));
     if (useMapArea && mapBounds) result = result.filter((p) => mapBounds.contains([p.latitude, p.longitude]));
     return result;
   }, [enrichedPlaces, filters, useMapArea, mapBounds]);

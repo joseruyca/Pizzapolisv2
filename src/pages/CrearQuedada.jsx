@@ -4,7 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/lib/AuthContext";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase";
-import { createPageUrl, fallbackRealSpots } from '@/utils';
+import { createPageUrl } from '@/utils';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -238,7 +238,7 @@ export default function CrearQuedada() {
               </div>
 
               <div className="mb-3 text-xs leading-6 text-stone-400">
-                Search the exact spot name or area. We only show fast autocomplete results while you type, so this still feels clean when the map has thousands of spots.
+                Search only among the spots you already added and approved. No built-in demo spots are injected anymore, so the list stays fully editable by you.
               </div>
 
               {selectedPlace ? (
@@ -248,7 +248,7 @@ export default function CrearQuedada() {
                 </div>
               ) : (
                 <div className="rounded-[22px] border border-dashed border-white/10 bg-white/[0.02] px-4 py-5 text-sm text-stone-400">
-                  Start typing to find one approved spot from the map.
+                  No spot selected yet. Search one of your real approved spots.
                 </div>
               )}
             </section>

@@ -5,7 +5,7 @@ import { AnimatePresence } from 'framer-motion';
 import { ZINDEX } from '@/lib/zindex';
 import FilterPanel from './FilterPanel';
 
-export default function SearchFilters({ filters, onFiltersChange, onLocateMe }) {
+export default function SearchFilters({ filters, onFiltersChange, onLocateMe, resultCount = 0 }) {
   const [expanded, setExpanded] = useState(false);
   const [searchText, setSearchText] = useState(filters.search || '');
   const panelRef = useRef(null);
@@ -37,7 +37,7 @@ export default function SearchFilters({ filters, onFiltersChange, onLocateMe }) 
           <div className="relative flex-1">
             <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#8e8578]" />
             <Input
-              placeholder="Buscar barrio, pizzería..."
+              placeholder="Search by spot, address, best slice or note"
               value={searchText}
               onChange={(e) => handleSearch(e.target.value)}
               className="h-11 rounded-2xl border-black/10 bg-white pl-10 pr-10 text-sm font-medium text-[#141414] placeholder:text-[#9c9385] shadow-none focus-visible:ring-[#efbf3a]"
@@ -60,7 +60,7 @@ export default function SearchFilters({ filters, onFiltersChange, onLocateMe }) 
       </div>
 
       <AnimatePresence>
-        {expanded && <div className="pointer-events-auto"><FilterPanel filters={filters} onFiltersChange={onFiltersChange} resultCount={0} onClose={() => setExpanded(false)} /></div>}
+        {expanded && <div className="pointer-events-auto"><FilterPanel filters={filters} onFiltersChange={onFiltersChange} resultCount={resultCount} onClose={() => setExpanded(false)} /></div>}
       </AnimatePresence>
     </div>
   );
