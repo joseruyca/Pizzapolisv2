@@ -99,9 +99,9 @@ export default function App() {
       <QueryClientProvider client={queryClientInstance}>
         <Router>
           <AppRoutes />
+          <FloatingSupportButton />
         </Router>
         <Toaster richColors position="top-center" closeButton />
-        <FloatingSupportButton />
       </QueryClientProvider>
     </AuthProvider>
   );
