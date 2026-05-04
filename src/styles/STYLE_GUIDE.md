@@ -52,3 +52,8 @@ This folder centralizes the visual system so future changes are easier.
 - `floating-back-button`
 - `chat-shell`
 - `chat-input-shell`
+
+## State architecture
+- Server state should live in TanStack Query.
+- Temporary UI state should live in Zustand stores under `src/stores/`.
+- Forms should use React Hook Form + Zod validators from `src/lib/validators/`.
