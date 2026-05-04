@@ -1,5 +1,6 @@
 import React from 'react';
 import { Toaster } from 'sonner';
+import FloatingSupportButton from '@/components/shared/FloatingSupportButton';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClientInstance } from '@/lib/query-client';
 import { pagesConfig } from './pages.config';
@@ -100,6 +101,7 @@ export default function App() {
           <AppRoutes />
         </Router>
         <Toaster richColors position="top-center" closeButton />
+        <FloatingSupportButton />
       </QueryClientProvider>
     </AuthProvider>
   );
