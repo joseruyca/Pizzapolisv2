@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { Link, Navigate, useSearchParams } from 'react-router-dom'
+import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { ArrowRight, Chrome, Loader2, Lock, Mail, User } from 'lucide-react'
@@ -40,6 +40,7 @@ export default function AuthPage() {
   } = useAuth()
 
   const [searchParams] = useSearchParams()
+  const navigate = useNavigate()
   const [mode, setMode] = useState(authModes.SIGN_IN)
   const [submitting, setSubmitting] = useState(false)
   const [successMessage, setSuccessMessage] = useState('')
@@ -111,7 +112,7 @@ export default function AuthPage() {
         await signIn(values.email.trim(), values.password)
         persistRememberChoice()
         toast.success('Welcome back to Pizzapolis')
-        window.location.replace(nextUrl)
+        navigate(nextUrl, { replace: true })
         return
       }
 

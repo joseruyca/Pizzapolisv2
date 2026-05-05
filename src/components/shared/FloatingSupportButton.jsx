@@ -1,28 +1,13 @@
-import React, { useEffect, useState } from 'react';
-import { Coffee } from 'lucide-react';
+import React from "react";
+import { Coffee } from "lucide-react";
+import { useLocation } from "react-router-dom";
 
-const DEFAULT_URL = 'https://buymeacoffee.com';
-const HIDDEN_ROUTES = new Set(['/descubrir']);
-
-function getCurrentPath() {
-  if (typeof window === 'undefined') return '/';
-  return window.location.pathname || '/';
-}
+const DEFAULT_URL = "https://buymeacoffee.com";
+const HIDDEN_ROUTES = new Set(["/descubrir"]);
 
 export default function FloatingSupportButton() {
-  const [pathname, setPathname] = useState(getCurrentPath);
+  const { pathname } = useLocation();
   const href = import.meta.env.VITE_BUYMEACOFFEE_URL || DEFAULT_URL;
-
-  useEffect(() => {
-    const updatePath = () => setPathname(getCurrentPath());
-    updatePath();
-    window.addEventListener('popstate', updatePath);
-    window.addEventListener('hashchange', updatePath);
-    return () => {
-      window.removeEventListener('popstate', updatePath);
-      window.removeEventListener('hashchange', updatePath);
-    };
-  }, []);
 
   if (HIDDEN_ROUTES.has(pathname)) return null;
 
