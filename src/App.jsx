@@ -8,7 +8,6 @@ import { createPageUrl } from '@/utils';
 import { BrowserRouter as Router, Route, Routes, Navigate, useLocation } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
-import AppErrorBoundary from '@/components/app/AppErrorBoundary';
 import AuthPage from './pages/Auth';
 import AuthConfirm from './pages/AuthConfirm';
 import Admin from './pages/Admin';
@@ -98,12 +97,10 @@ export default function App() {
   return (
     <AuthProvider>
       <QueryClientProvider client={queryClientInstance}>
-        <AppErrorBoundary>
-          <Router>
-            <AppRoutes />
-            <FloatingSupportButton />
-          </Router>
-        </AppErrorBoundary>
+        <Router>
+          <AppRoutes />
+          <FloatingSupportButton />
+        </Router>
         <Toaster richColors position="top-center" closeButton />
       </QueryClientProvider>
     </AuthProvider>

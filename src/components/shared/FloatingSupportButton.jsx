@@ -1,9 +1,9 @@
-import React from "react";
-import { Coffee } from "lucide-react";
-import { useLocation } from "react-router-dom";
+import React from 'react';
+import { Coffee } from 'lucide-react';
+import { useLocation } from 'react-router-dom';
 
-const DEFAULT_URL = "https://buymeacoffee.com";
-const HIDDEN_ROUTES = new Set(["/descubrir"]);
+const DEFAULT_URL = 'https://buymeacoffee.com';
+const HIDDEN_ROUTES = new Set(['/descubrir']);
 
 export default function FloatingSupportButton() {
   const { pathname } = useLocation();
