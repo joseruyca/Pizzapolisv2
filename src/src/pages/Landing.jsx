@@ -93,6 +93,25 @@ export default function Landing() {
               </p>
 
               <div className="mt-auto space-y-4">
+                <div className="flex items-center justify-center gap-2" aria-label="Slide indicators">
+                  {slides.map((item, i) => (
+                    <button
+                      key={`${item.eyebrow}-dot`}
+                      type="button"
+                      onClick={() => setIndex(i)}
+                      className={`h-2.5 rounded-full transition-all duration-200 ${
+                        i === index ? 'w-7 bg-white shadow-[0_0_0_4px_rgba(255,255,255,0.08)]' : 'w-2.5 bg-white/35 hover:bg-white/60'
+                      }`}
+                      aria-label={`Go to slide ${i + 1}`}
+                      aria-pressed={i === index}
+                    />
+                  ))}
+                </div>
+
+                <div className="text-center text-[11px] font-bold uppercase tracking-[0.18em] text-white/55">
+                  Desliza para ver más
+                </div>
+
                 <div className="grid grid-cols-3 gap-2">
                   {slides.map((item, i) => (
                     <button
