@@ -1,11 +1,19 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Search, SlidersHorizontal, X, Compass } from 'lucide-react';
+import { Compass, MapPinned, Search, SlidersHorizontal, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { AnimatePresence } from 'framer-motion';
 import { ZINDEX } from '@/lib/zindex';
 import FilterPanel from './FilterPanel';
 
-export default function SearchFilters({ filters, onFiltersChange, onLocateMe, resultCount = 0 }) {
+export default function SearchFilters({
+  filters,
+  onFiltersChange,
+  onLocateMe,
+  resultCount = 0,
+  hasMapMoved = false,
+  usingMapArea = false,
+  onSearchArea,
+}) {
   const [expanded, setExpanded] = useState(false);
   const [searchText, setSearchText] = useState(filters.search || '');
   const panelRef = useRef(null);
@@ -58,6 +66,19 @@ export default function SearchFilters({ filters, onFiltersChange, onLocateMe, re
           </button>
         </div>
       </div>
+
+      {hasMapMoved && onSearchArea ? (
+        <button
+          type="button"
+          onClick={() => onSearchArea(usingMapArea ? "disable" : "enable")}
+          className={`pointer-events-auto mt-2 inline-flex h-10 items-center gap-2 rounded-2xl border px-3 text-xs font-black uppercase tracking-[0.12em] shadow-[0_14px_30px_rgba(39,29,14,0.16)] transition ${
+            usingMapArea ? "border-[#f1df9c] bg-[#efbf3a] text-[#141414]" : "border-black/8 bg-[#fffaf2]/95 text-[#141414] hover:bg-white"
+          }`}
+        >
+          <MapPinned className="h-4 w-4" />
+          {usingMapArea ? "Showing map area" : "Search this area"}
+        </button>
+      ) : null}
 
       <AnimatePresence>
         {expanded && <div className="pointer-events-auto"><FilterPanel filters={filters} onFiltersChange={onFiltersChange} resultCount={resultCount} onClose={() => setExpanded(false)} /></div>}

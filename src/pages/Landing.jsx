@@ -1,24 +1,24 @@
 import React, { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { createPageUrl } from '@/utils';
-import { ArrowRight, Map, Flame, Users } from 'lucide-react';
+import { ArrowRight, Flame, Map, Pizza, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { createPageUrl } from '@/utils';
 
 const slides = [
   {
     eyebrow: 'Public map',
-    title: 'Find great slices faster.',
-    text: 'Open the map, compare price, rating and best slice, and find spots that are actually worth it.',
+    title: 'Great slices, faster.',
+    text: 'Open the map, compare price, rating and best slice, and find the spots worth your time.',
     icon: Map,
-    tone: 'from-[#0f0f0f] via-[#151515] to-[#242424]',
+    tone: 'from-[#111111] via-[#181818] to-[#2b2b28]',
     accent: 'text-[#f3be35]',
     summary: 'Price + map',
   },
   {
     eyebrow: 'Discover plans',
-    title: 'Swipe into the plans you actually want.',
-    text: 'A fast swipe experience to join real pizza meetups in seconds, without endless lists.',
+    title: 'Swipe into plans you want.',
+    text: 'Join real pizza meetups in seconds with a swipe experience that stays quick and focused.',
     icon: Flame,
     tone: 'from-[#2a140f] via-[#571d16] to-[#8f2c21]',
     accent: 'text-[#ffd6c9]',
@@ -26,10 +26,10 @@ const slides = [
   },
   {
     eyebrow: 'Your account',
-    title: 'Create plans, add spots, chat with your group.',
-    text: 'Your account unlocks the social layer: publish, save, join groups and move faster through the app.',
+    title: 'Create plans and groups.',
+    text: 'Publish places, save plans, join groups and keep the social layer organized from one account.',
     icon: Users,
-    tone: 'from-[#243118] via-[#314721] to-[#496931]',
+    tone: 'from-[#173322] via-[#255334] to-[#3f744c]',
     accent: 'text-[#f4f0d7]',
     summary: 'Account + groups',
   },
@@ -46,20 +46,22 @@ export default function Landing() {
   };
 
   return (
-    <div className="h-dvh overflow-hidden bg-[#f4efe6] text-[#111111]">
+    <div className="h-dvh overflow-hidden bg-[#f5f0e7] text-[#111111]">
       <div className="mx-auto flex h-dvh w-full max-w-[430px] flex-col overflow-hidden px-4 pb-3 pt-4">
         <div className="shrink-0 pb-3">
           <div className="flex items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-[18px] bg-[#f0bf39] text-[22px] shadow-[0_16px_32px_rgba(240,191,57,0.22)]">🍕</div>
+            <div className="flex h-12 w-12 items-center justify-center rounded-[18px] bg-[#f0bf39] text-[#111111] shadow-[0_16px_32px_rgba(240,191,57,0.22)]">
+              <Pizza className="h-6 w-6" />
+            </div>
             <div className="min-w-0">
-              <div className="text-[clamp(1.95rem,7vw,2.45rem)] font-black leading-none tracking-[-0.055em]">Pizzapolis</div>
+              <div className="text-[clamp(1.95rem,7vw,2.45rem)] font-black leading-none tracking-tight">Pizzapolis</div>
               <div className="mt-1 text-[10px] font-black uppercase tracking-[0.22em] text-[#8a8174]">spots, plans and groups</div>
             </div>
           </div>
         </div>
 
         <div className="flex min-h-0 flex-1 flex-col justify-center pb-4">
-          <div className="rounded-[34px] border border-black/10 bg-[#fffaf1] p-3 shadow-[0_24px_60px_rgba(34,25,11,0.12)]">
+          <div className="rounded-[28px] border border-black/10 bg-[#fffaf1] p-3 shadow-[0_24px_60px_rgba(34,25,11,0.12)]">
             <motion.div
               key={slide.eyebrow}
               drag="x"
@@ -72,14 +74,14 @@ export default function Landing() {
               initial={{ opacity: 0, y: 16, scale: 0.985 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               transition={{ type: 'spring', stiffness: 280, damping: 26 }}
-              className={`relative flex min-h-[438px] flex-col overflow-hidden rounded-[30px] bg-gradient-to-br ${slide.tone} p-5 text-white`}
+              className={`relative flex min-h-[438px] flex-col overflow-hidden rounded-[24px] bg-gradient-to-br ${slide.tone} p-5 text-white`}
             >
               <div className="flex items-start justify-between gap-4">
                 <div className="min-w-0">
                   <div className="inline-flex rounded-full border border-white/10 bg-white/10 px-3 py-1 text-[11px] font-black uppercase tracking-[0.2em] text-white/90">
                     {slide.eyebrow}
                   </div>
-                  <h1 className="mt-4 max-w-[14rem] text-[clamp(2rem,8.5vw,2.9rem)] font-black leading-[0.92] tracking-[-0.06em]">
+                  <h1 className="mt-4 max-w-[14rem] text-[clamp(2rem,8.5vw,2.9rem)] font-black leading-[0.94] tracking-tight">
                     {slide.title}
                   </h1>
                 </div>
@@ -88,9 +90,7 @@ export default function Landing() {
                 </div>
               </div>
 
-              <p className="mt-5 max-w-[17rem] text-[15px] leading-7 text-white/82">
-                {slide.text}
-              </p>
+              <p className="mt-5 max-w-[17rem] text-[15px] leading-7 text-white/82">{slide.text}</p>
 
               <div className="mt-auto space-y-4 pt-5">
                 <div className="grid grid-cols-3 gap-2">
@@ -125,9 +125,7 @@ export default function Landing() {
                     ))}
                   </div>
 
-                  <div className="mt-4 text-center text-[11px] font-bold uppercase tracking-[0.18em] text-white/55">
-                    Swipe to see more
-                  </div>
+                  <div className="mt-4 text-center text-[11px] font-bold uppercase tracking-[0.18em] text-white/55">Swipe to see more</div>
                 </div>
               </div>
             </motion.div>
@@ -136,13 +134,13 @@ export default function Landing() {
 
         <div className="shrink-0 space-y-3">
           <Link to={createPageUrl('Home')}>
-            <Button className="h-14 w-full rounded-[22px] border-0 bg-[#f0bf39] px-5 text-base font-black text-[#111111] shadow-[0_18px_36px_rgba(240,191,57,0.22)] hover:bg-[#d9a826]">
+            <Button className="h-14 w-full rounded-[18px] border-0 bg-[#f0bf39] px-5 text-base font-black text-[#111111] shadow-[0_18px_36px_rgba(240,191,57,0.22)] hover:bg-[#d9a826]">
               Go to map
               <ArrowRight className="ml-2 h-5 w-5" />
             </Button>
           </Link>
           <Link to="/auth">
-            <Button variant="outline" className="h-14 w-full rounded-[22px] border-black/10 bg-[#fffaf1] text-base font-semibold text-[#141414] hover:bg-white">
+            <Button variant="outline" className="h-14 w-full rounded-[18px] border-black/10 bg-[#fffaf1] text-base font-semibold text-[#141414] hover:bg-white">
               Go to my account
             </Button>
           </Link>

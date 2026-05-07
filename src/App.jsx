@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { Suspense, lazy } from 'react';
 import { Toaster } from 'sonner';
 import FloatingSupportButton from '@/components/shared/FloatingSupportButton';
 import { QueryClientProvider } from '@tanstack/react-query';
@@ -8,9 +8,9 @@ import { createPageUrl } from '@/utils';
 import { BrowserRouter as Router, Route, Routes, Navigate, useLocation } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
-import AuthPage from './pages/Auth';
-import AuthConfirm from './pages/AuthConfirm';
-import Admin from './pages/Admin';
+const AuthPage = lazy(() => import('./pages/Auth'));
+const AuthConfirm = lazy(() => import('./pages/AuthConfirm'));
+const Admin = lazy(() => import('./pages/Admin'));
 
 const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
@@ -62,6 +62,7 @@ const lowerAlias = (path) => createPageUrl(path);
 const kebabAlias = (path) => '/' + path.replace(/([a-z])([A-Z])/g, '$1-$2').replace(/\s+/g, '-').toLowerCase();
 
 const AppRoutes = () => (
+  <Suspense fallback={<LoadingScreen />}>
   <Routes>
     <Route path="/auth" element={<AuthPage />} />
     <Route path="/auth/confirm" element={<AuthConfirm />} />
@@ -91,6 +92,7 @@ const AppRoutes = () => (
     <Route path="/crear-quedada" element={<Navigate to="/crearquedada" replace />} />
     <Route path="*" element={<PageNotFound />} />
   </Routes>
+  </Suspense>
 );
 
 export default function App() {

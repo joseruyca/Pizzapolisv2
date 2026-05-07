@@ -1,17 +1,18 @@
-import React, { useEffect, useMemo, useState } from "react";
+﻿import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence, useMotionValue, useTransform, animate } from "framer-motion";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Check, DollarSign, MapPin, Settings2, Star, Users, X } from "lucide-react";
+import { ArrowLeft, Check, DollarSign, MapPin, Pizza, Settings2, Star, Users, X } from "lucide-react";
 import LoginPrompt from "@/components/shared/LoginPrompt";
 import { useAuth } from "@/lib/AuthContext";
 import { createPageUrl } from "@/utils";
-import { supabase } from "@/lib/supabase";
+import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 import { formatPrice } from "@/lib/place-helpers";
 import { toast } from "@/components/ui/use-toast";
 import { getPublicUsername, getAvatarLetter } from "@/lib/display-name";
 
 async function resolveSpotPhoto(value) {
+  if (!isSupabaseConfigured || !supabase) return null;
   if (!value) return null;
   if (String(value).startsWith("http")) return value;
   const { data } = await supabase.storage.from("spot-photos").createSignedUrl(value, 60 * 60);
@@ -23,6 +24,7 @@ function avatarLabel(text) {
 }
 
 async function fetchDiscoverPlans() {
+  if (!isSupabaseConfigured || !supabase) return [];
   const { data: plans, error } = await supabase
     .from("plans")
     .select("id,title,plan_date,plan_time,max_people,quick_note,status,created_by,spot_id")
@@ -154,14 +156,14 @@ function SwipeCard({ current, onSkip, onJoin }) {
           {current.spot?.photo_url ? (
             <img src={current.spot.photo_url} alt={current.spot?.name || current.title} className="h-full w-full object-cover" />
           ) : (
-            <div className="flex h-full items-center justify-center text-6xl">🍕</div>
+            <div className="flex h-full items-center justify-center text-6xl"><Pizza className="h-16 w-16" /></div>
           )}
           <div className="absolute inset-0 bg-gradient-to-b from-black/22 via-black/20 to-black/78" />
           <div className="absolute left-3 top-3 rounded-full border border-white/12 bg-black/88 px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-[#efbf3a] shadow-[0_10px_24px_rgba(0,0,0,0.28)]">Slice plan</div>
           <div className="absolute right-3 top-3 rounded-full border border-white/12 bg-black/88 px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-[#7bc18a] shadow-[0_10px_24px_rgba(0,0,0,0.28)]">{seatsLeft} seats left</div>
           <div className="absolute bottom-2.5 left-3 right-3 flex items-end justify-between gap-3">
             <div className="min-w-0 rounded-full border border-white/12 bg-black/88 px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-white shadow-[0_10px_24px_rgba(0,0,0,0.28)]">
-              Host · {getPublicUsername(current.host)}
+              Host - {getPublicUsername(current.host)}
             </div>
           </div>
         </div>
@@ -170,7 +172,7 @@ function SwipeCard({ current, onSkip, onJoin }) {
           <div className="flex items-start justify-between gap-2.5">
             <div className="min-w-0 flex-1">
               <div className="text-[9px] font-black uppercase tracking-[0.16em] text-[#8a8174]">
-                {current.plan_date} · {String(current.plan_time || "").slice(0, 5)}
+                {current.plan_date} - {String(current.plan_time || "").slice(0, 5)}
               </div>
               <h2 className="mt-1 line-clamp-2 text-[clamp(1.22rem,5vw,1.65rem)] font-black leading-[0.92] tracking-[-0.05em] text-[#141414]">
                 {current.title}
@@ -227,6 +229,7 @@ export default function Descubrir() {
   const { data: plans = [], isLoading } = useQuery({
     queryKey: ["discover-plans"],
     queryFn: fetchDiscoverPlans,
+    enabled: Boolean(isSupabaseConfigured && supabase),
   });
 
   useEffect(() => { localStorage.setItem(STORAGE_DISMISSED, JSON.stringify(dismissedIds)); }, [dismissedIds]);
@@ -236,6 +239,7 @@ export default function Descubrir() {
     queryKey: ["discover-joined-plan-ids", user?.id],
     enabled: Boolean(user?.id),
     queryFn: async () => {
+      if (!isSupabaseConfigured || !supabase) return [];
       const { data, error } = await supabase.from("plan_members").select("plan_id").eq("user_id", user.id).eq("status", "joined");
       if (error) throw error;
       return (data || []).map((row) => row.plan_id);
@@ -273,6 +277,7 @@ export default function Descubrir() {
   const joinMutation = useMutation({
     mutationFn: async () => {
       if (!user || !current) throw new Error("Login required");
+      if (!isSupabaseConfigured || !supabase) throw new Error("Service unavailable");
       const { error } = await supabase.from("plan_members").upsert(
         { plan_id: current.id, user_id: user.id, status: "joined" },
         { onConflict: "plan_id,user_id" }
@@ -416,7 +421,7 @@ export default function Descubrir() {
             </>
           ) : (
             <div className="flex h-full flex-col justify-center rounded-[32px] border border-white/10 bg-[#111111] p-8 text-center">
-              <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-[28px] bg-white/[0.04] text-4xl">🍕</div>
+              <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-[28px] bg-white/[0.04] text-4xl"><Pizza className="h-16 w-16" /></div>
               <h1 className="mt-6 text-3xl font-black text-white">No more plans right now</h1>
               <p className="mt-3 text-sm leading-7 text-stone-400">Try relaxing your filters or come back later.</p>
               <button type="button" onClick={() => navigate(createPageUrl("Home"))} className="mt-6 inline-flex h-12 items-center justify-center rounded-2xl bg-red-600 px-5 text-sm font-bold text-white">
@@ -431,3 +436,4 @@ export default function Descubrir() {
     </div>
   );
 }
+

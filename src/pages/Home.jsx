@@ -11,6 +11,7 @@ import AddPinModal from "@/components/map/AddPinModal";
 import LoginPrompt from "@/components/shared/LoginPrompt";
 import PinPopup from "@/components/map/PinPopup";
 import { MAP_STYLES } from "@/lib/constants";
+import { toast } from "@/components/ui/use-toast";
 
 async function resolveSpotPhoto(value) {
   if (!value) return null;
@@ -177,18 +178,35 @@ export default function Home() {
             <div className="home-map-topshade" />
           </div>
 
-          <SearchFilters
-            filters={filters}
-            onFiltersChange={setFilters}
-            onLocateMe={() => {
-              if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition((position) => {
-                  const { latitude, longitude } = position.coords;
-                  setUserLocation({ lat: latitude, lng: longitude });
-                  setListOpen(false);
-                });
-              }
-            }}
+            <SearchFilters
+              filters={filters}
+              onFiltersChange={setFilters}
+              resultCount={filteredPlaces.length}
+              onLocateMe={() => {
+                if (navigator.geolocation) {
+                  navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                      const { latitude, longitude } = position.coords;
+                      setUserLocation({ lat: latitude, lng: longitude });
+                      setListOpen(false);
+                    },
+                    () => {
+                      toast({
+                        title: "Location unavailable",
+                        description: "Allow location access or search the map manually.",
+                        variant: "destructive",
+                      });
+                    },
+                    { enableHighAccuracy: true, timeout: 8000, maximumAge: 60000 },
+                  );
+                } else {
+                  toast({
+                    title: "Location unsupported",
+                    description: "Your browser does not support geolocation.",
+                    variant: "destructive",
+                  });
+                }
+              }}
             hasMapMoved={hasMapMoved}
             usingMapArea={useMapArea}
             onSearchArea={(mode) => {
