@@ -133,10 +133,10 @@ function GroupInfoSheet({ group, open, onClose }) {
 
           <div className="mt-4 flex flex-wrap gap-2">
             {group.participants.map((person) => (
-              <div key={person.id} className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-stone-200">
+              <Link to={`/profile/${person.id}`} key={person.id} className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-stone-200 hover:bg-white/[0.08]">
                 <div className="grid h-7 w-7 place-items-center rounded-full bg-gradient-to-br from-[#efbf3a] to-[#df5b43] text-[11px] font-bold text-white">{avatar(getPublicUsername(person))}</div>
                 {getPublicUsername(person)}
-              </div>
+              </Link>
             ))}
           </div>
 
@@ -158,7 +158,7 @@ function MessageRow({ message, currentUserId, usersById }) {
   return (
     <div className={`flex ${own ? "justify-end" : "justify-start"}`}>
       <div className={`max-w-[82%] rounded-[22px] px-4 py-3 ${own ? "rounded-br-md bg-[#e62f2f] text-white" : "rounded-bl-md border border-white/6 bg-[#171717] text-stone-100"}`}>
-        {!own ? <div className="mb-1 text-[11px] font-bold uppercase tracking-[0.12em] text-stone-500">{getPublicUsername(sender)}</div> : null}
+        {!own ? <Link to={`/profile/${sender?.id || message.user_id}`} className="mb-1 block text-[11px] font-bold uppercase tracking-[0.12em] text-stone-500 hover:text-stone-300">{getPublicUsername(sender)}</Link> : null}
         <div className="text-sm leading-6">{message.content}</div>
       </div>
     </div>
@@ -344,10 +344,10 @@ export default function MisMatches() {
               <div className="min-h-0 flex-1 overflow-y-auto bg-[radial-gradient(circle_at_top,rgba(220,38,38,0.12),transparent_24%),linear-gradient(180deg,#0b0b0b_0%,#0a0a0a_100%)] px-4 py-4 pb-4">
                 <div className="mb-4 flex flex-wrap gap-2">
                   {selected.participants.map((person) => (
-                    <div key={person.id} className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-2 text-xs text-stone-200">
+                    <Link to={`/profile/${person.id}`} key={person.id} className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-2 text-xs text-stone-200 hover:bg-white/[0.08]">
                       <div className="grid h-6 w-6 place-items-center rounded-full bg-gradient-to-br from-[#efbf3a] to-[#df5b43] text-[10px] font-bold text-white">{avatar(getPublicUsername(person))}</div>
                       {getPublicUsername(person)}
-                    </div>
+                    </Link>
                   ))}
                 </div>
                 <div className="space-y-3 pb-2">

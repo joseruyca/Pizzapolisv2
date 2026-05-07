@@ -1,6 +1,6 @@
-﻿import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { List, MapPin } from "lucide-react";
+import { List, MapPin, Search, WifiOff } from "lucide-react";
 import { useAuth } from "@/lib/AuthContext";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 import PizzaMap from "@/components/map/PizzaMap";
@@ -12,9 +12,11 @@ import LoginPrompt from "@/components/shared/LoginPrompt";
 import PinPopup from "@/components/map/PinPopup";
 import { MAP_STYLES } from "@/lib/constants";
 import { toast } from "@/components/ui/use-toast";
+import { readSavedSpotIds, toggleSavedSpot } from "@/lib/user-actions";
 
 async function resolveSpotPhoto(value) {
   if (!value) return null;
+  if (!isSupabaseConfigured || !supabase) return null;
   if (String(value).startsWith("http")) return value;
   const { data } = await supabase.storage.from("spot-photos").createSignedUrl(value, 60 * 60);
   return data?.signedUrl || null;
@@ -37,6 +39,7 @@ function normalizeSpot(row) {
 }
 
 async function fetchPlaces() {
+  if (!isSupabaseConfigured || !supabase) return [];
   const { data, error } = await supabase
     .from("spots")
     .select("id,name,address,lat,lng,slice_price,best_slice,quick_note,photo_url,status,created_by,average_rating,ratings_count")
@@ -47,10 +50,8 @@ async function fetchPlaces() {
 }
 
 async function fetchActivePlanCounts() {
-  const { data, error } = await supabase
-    .from("plans")
-    .select("id,spot_id")
-    .eq("status", "active");
+  if (!isSupabaseConfigured || !supabase) return [];
+  const { data, error } = await supabase.from("plans").select("id,spot_id").eq("status", "active");
   if (error) throw error;
   return data || [];
 }
@@ -66,6 +67,7 @@ export default function Home() {
   const [loginPrompt, setLoginPrompt] = useState(false);
   const [mapStyle] = useState("dark");
   const [userLocation, setUserLocation] = useState(null);
+  const [savedPlaceIds, setSavedPlaceIds] = useState([]);
   const [filters, setFilters] = useState({
     search: "",
     priceBands: [],
@@ -78,7 +80,7 @@ export default function Home() {
   });
 
   const { data: places = [] } = useQuery({
-    queryKey: ['places-supabase'],
+    queryKey: ["places-supabase"],
     queryFn: fetchPlaces,
     enabled: Boolean(isSupabaseConfigured && supabase),
   });
@@ -88,6 +90,10 @@ export default function Home() {
     queryFn: fetchActivePlanCounts,
     enabled: Boolean(isSupabaseConfigured && supabase),
   });
+
+  useEffect(() => {
+    setSavedPlaceIds(readSavedSpotIds(user?.id));
+  }, [user?.id]);
 
   const hangoutsByPlace = useMemo(() => {
     const map = {};
@@ -148,7 +154,27 @@ export default function Home() {
     setAddPinOpen(true);
   };
 
+  const handleToggleSaved = async (place) => {
+    if (!place?.id) return;
+    const isSaved = savedPlaceIds.includes(place.id);
+    try {
+      const next = await toggleSavedSpot(user?.id, place.id, isSaved);
+      setSavedPlaceIds(next);
+      toast({
+        title: isSaved ? "Spot removed" : "Spot saved",
+        description: isSaved ? "It is no longer in your saved places." : "You can find it again from this device.",
+      });
+    } catch (error) {
+      toast({
+        title: "Could not update saved spots",
+        description: error.message || "Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const currentMapStyle = MAP_STYLES.find((style) => style.id === mapStyle) || MAP_STYLES[0];
+  const showMapNotice = !isSupabaseConfigured || enrichedPlaces.length === 0 || filteredPlaces.length === 0;
 
   return (
     <>
@@ -158,7 +184,7 @@ export default function Home() {
             <PizzaMap
               places={filteredPlaces}
               selectedPlace={selectedPlace || previewPlace}
-              savedPlaceIds={[]}
+              savedPlaceIds={savedPlaceIds}
               onSelectPlace={(place) => {
                 setSelectedPlace(null);
                 setPreviewPlace(place);
@@ -170,37 +196,58 @@ export default function Home() {
             />
             <div className="home-map-gradient" />
             <div className="home-map-topshade" />
+            {showMapNotice && (
+              <div className="pointer-events-none absolute left-4 right-4 top-[184px] z-[420] sm:left-6 sm:right-auto sm:w-[360px]">
+                <div className="rounded-[24px] border border-black/10 bg-[#fffaf1]/95 p-4 shadow-[0_18px_50px_rgba(20,20,20,0.18)] backdrop-blur-xl">
+                  <div className="flex items-start gap-3">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[#111111] text-white">
+                      {!isSupabaseConfigured ? <WifiOff className="h-5 w-5" /> : <Search className="h-5 w-5" />}
+                    </div>
+                    <div>
+                      <p className="text-sm font-black text-[#111111]">
+                        {!isSupabaseConfigured ? "Connect Supabase to load live spots" : "No spots match this view"}
+                      </p>
+                      <p className="mt-1 text-xs leading-5 text-[#6f644f]">
+                        {!isSupabaseConfigured
+                          ? "The app is ready, but it needs the project URL and key in Vercel to show real data."
+                          : "Try fewer filters or add the first pizza spot for this area."}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
-            <SearchFilters
-              filters={filters}
-              onFiltersChange={setFilters}
-              resultCount={filteredPlaces.length}
-              onLocateMe={() => {
-                if (navigator.geolocation) {
-                  navigator.geolocation.getCurrentPosition(
-                    (position) => {
-                      const { latitude, longitude } = position.coords;
-                      setUserLocation({ lat: latitude, lng: longitude });
-                      setListOpen(false);
-                    },
-                    () => {
-                      toast({
-                        title: "Location unavailable",
-                        description: "Allow location access or search the map manually.",
-                        variant: "destructive",
-                      });
-                    },
-                    { enableHighAccuracy: true, timeout: 8000, maximumAge: 60000 },
-                  );
-                } else {
-                  toast({
-                    title: "Location unsupported",
-                    description: "Your browser does not support geolocation.",
-                    variant: "destructive",
-                  });
-                }
-              }}
+          <SearchFilters
+            filters={filters}
+            onFiltersChange={setFilters}
+            resultCount={filteredPlaces.length}
+            onLocateMe={() => {
+              if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                  (position) => {
+                    const { latitude, longitude } = position.coords;
+                    setUserLocation({ lat: latitude, lng: longitude });
+                    setListOpen(false);
+                  },
+                  () => {
+                    toast({
+                      title: "Location unavailable",
+                      description: "Allow location access or search the map manually.",
+                      variant: "destructive",
+                    });
+                  },
+                  { enableHighAccuracy: true, timeout: 8000, maximumAge: 60000 },
+                );
+              } else {
+                toast({
+                  title: "Location unsupported",
+                  description: "Your browser does not support geolocation.",
+                  variant: "destructive",
+                });
+              }
+            }}
           />
 
           <button onClick={() => setListOpen((prev) => !prev)} className="home-map-count md:hidden">
@@ -229,7 +276,15 @@ export default function Home() {
             onSortDirectionChange={setSheetSortDirection}
           />
 
-          {selectedPlace && <PlacePanel place={selectedPlace} onClose={() => setSelectedPlace(null)} user={user} />}
+          {selectedPlace && (
+            <PlacePanel
+              place={selectedPlace}
+              onClose={() => setSelectedPlace(null)}
+              user={user}
+              saved={savedPlaceIds.includes(selectedPlace.id)}
+              onToggleSaved={() => handleToggleSaved(selectedPlace)}
+            />
+          )}
           <AddPinModal open={addPinOpen} onClose={() => setAddPinOpen(false)} user={user} />
           <LoginPrompt open={loginPrompt} onClose={() => setLoginPrompt(false)} message="Sign in to create and join pizza plans." />
         </div>
@@ -246,4 +301,3 @@ export default function Home() {
     </>
   );
 }
-

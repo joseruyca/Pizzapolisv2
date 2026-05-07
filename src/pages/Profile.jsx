@@ -75,10 +75,14 @@ export default function Profile() {
     username: '',
     bio: '',
     city: '',
+    neighborhood: '',
     favorite_slice: '',
     favorite_spot_id: '',
+    pizza_style: '',
+    dietary_notes: '',
     instagram_url: '',
     website_url: '',
+    profile_visibility: 'public',
   });
 
   const { data: bundle, isLoading } = useQuery({
@@ -104,12 +108,16 @@ export default function Profile() {
       username: liveProfile.username || '',
       bio: liveProfile.bio || '',
       city: liveProfile.city || '',
+      neighborhood: liveProfile.neighborhood || '',
       favorite_slice: liveProfile.favorite_slice || '',
       favorite_spot_id: liveProfile.favorite_spot_id || '',
+      pizza_style: liveProfile.pizza_style || '',
+      dietary_notes: liveProfile.dietary_notes || '',
       instagram_url: liveProfile.instagram_url || '',
       website_url: liveProfile.website_url || '',
+      profile_visibility: liveProfile.profile_visibility || 'public',
     });
-  }, [liveProfile.id, liveProfile.username, liveProfile.bio, liveProfile.city, liveProfile.favorite_slice, liveProfile.favorite_spot_id, liveProfile.instagram_url, liveProfile.website_url]);
+  }, [liveProfile.id, liveProfile.username, liveProfile.bio, liveProfile.city, liveProfile.neighborhood, liveProfile.favorite_slice, liveProfile.favorite_spot_id, liveProfile.pizza_style, liveProfile.dietary_notes, liveProfile.instagram_url, liveProfile.website_url, liveProfile.profile_visibility]);
 
   const saveProfile = useMutation({
     mutationFn: async () => {
@@ -118,10 +126,14 @@ export default function Profile() {
         username: form.username.trim() || displayName,
         bio: form.bio.trim() || null,
         city: form.city.trim() || null,
+        neighborhood: form.neighborhood.trim() || null,
         favorite_slice: form.favorite_slice.trim() || null,
         favorite_spot_id: form.favorite_spot_id || null,
+        pizza_style: form.pizza_style.trim() || null,
+        dietary_notes: form.dietary_notes.trim() || null,
         instagram_url: form.instagram_url.trim() || null,
         website_url: form.website_url.trim() || null,
+        profile_visibility: form.profile_visibility || 'public',
         updated_at: new Date().toISOString(),
       };
       const { error } = await supabase.from('profiles').update(payload).eq('id', user.id);
@@ -165,10 +177,10 @@ export default function Profile() {
   return (
     <div className="min-h-[calc(100vh-64px)] bg-[#060606] px-4 py-4 text-white">
       <div className="mx-auto grid max-w-6xl gap-5 lg:grid-cols-[0.9fr,1.1fr]">
-        <section className="rounded-[30px] border border-white/10 bg-[#101010] p-5 shadow-[0_20px_60px_rgba(0,0,0,0.35)]">
-          <div className="flex items-start justify-between gap-4">
-            <div className="flex items-center gap-4">
-              <div className="relative flex h-24 w-24 items-center justify-center overflow-hidden rounded-[28px] border border-white/10 bg-gradient-to-br from-[#efbf3a] to-[#df5b43] text-3xl font-black text-white">
+        <section className="rounded-[26px] border border-white/10 bg-[#101010] p-4 shadow-[0_20px_60px_rgba(0,0,0,0.35)] sm:rounded-[30px] sm:p-5">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex min-w-0 flex-col gap-4 min-[380px]:flex-row min-[380px]:items-center">
+              <div className="relative flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-[24px] border border-white/10 bg-gradient-to-br from-[#efbf3a] to-[#df5b43] text-3xl font-black text-white sm:h-24 sm:w-24 sm:rounded-[28px]">
                 {avatarPreview ? <img src={avatarPreview} alt={displayName} className="h-full w-full object-cover" /> : displayName.slice(0, 1).toUpperCase()}
                 <label className="absolute bottom-2 right-2 grid h-9 w-9 cursor-pointer place-items-center rounded-full bg-black/75 text-white">
                   <Upload className="h-4 w-4" />
@@ -176,11 +188,12 @@ export default function Profile() {
                 </label>
               </div>
               <div className="min-w-0">
-                <div className="text-[2rem] font-black tracking-tight text-white">{displayName}</div>
+                <div className="break-words text-[clamp(1.65rem,9vw,2rem)] font-black tracking-tight text-white">{displayName}</div>
                 <div className="text-sm text-stone-500">@{handle}</div>
                 <div className="mt-2 flex flex-wrap gap-2">
                   {role === 'admin' ? <span className="rounded-full bg-[#efbf3a] px-3 py-1 text-xs font-black text-[#141414]">Admin</span> : null}
                   {liveProfile.city ? <span className="rounded-full border border-white/10 px-3 py-1 text-xs font-bold text-stone-300">{liveProfile.city}</span> : null}
+                  {liveProfile.neighborhood ? <span className="rounded-full border border-white/10 px-3 py-1 text-xs font-bold text-stone-300">{liveProfile.neighborhood}</span> : null}
                 </div>
               </div>
             </div>
@@ -203,6 +216,18 @@ export default function Profile() {
               <MapPin className="h-4 w-4 text-[#efbf3a]" />
               <div className="mt-2 text-xs font-bold uppercase tracking-[0.14em] text-stone-500">Favorite spot</div>
               <div className="mt-1 font-black">{favoriteSpot?.name || 'Not set'}</div>
+            </div>
+          </div>
+          <div className="mt-3 grid gap-3 sm:grid-cols-2">
+            <div className="rounded-[22px] border border-white/10 bg-white/[0.04] p-4">
+              <Pizza className="h-4 w-4 text-[#efbf3a]" />
+              <div className="mt-2 text-xs font-bold uppercase tracking-[0.14em] text-stone-500">Pizza style</div>
+              <div className="mt-1 font-black">{liveProfile.pizza_style || 'Not set'}</div>
+            </div>
+            <div className="rounded-[22px] border border-white/10 bg-white/[0.04] p-4">
+              <Award className="h-4 w-4 text-[#efbf3a]" />
+              <div className="mt-2 text-xs font-bold uppercase tracking-[0.14em] text-stone-500">Dietary notes</div>
+              <div className="mt-1 font-black">{liveProfile.dietary_notes || 'Not set'}</div>
             </div>
           </div>
 
@@ -250,8 +275,20 @@ export default function Profile() {
                   <Input value={form.city} onChange={(e) => setForm((prev) => ({ ...prev, city: e.target.value }))} className="border-white/10 bg-white/[0.04] text-white" />
                 </div>
                 <div>
+                  <Label className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-stone-500">Neighborhood</Label>
+                  <Input value={form.neighborhood} onChange={(e) => setForm((prev) => ({ ...prev, neighborhood: e.target.value }))} className="border-white/10 bg-white/[0.04] text-white" />
+                </div>
+                <div>
                   <Label className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-stone-500">Favorite slice</Label>
                   <Input value={form.favorite_slice} onChange={(e) => setForm((prev) => ({ ...prev, favorite_slice: e.target.value }))} placeholder="Pepperoni, grandma, margherita..." className="border-white/10 bg-white/[0.04] text-white" />
+                </div>
+                <div>
+                  <Label className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-stone-500">Pizza style</Label>
+                  <Input value={form.pizza_style} onChange={(e) => setForm((prev) => ({ ...prev, pizza_style: e.target.value }))} placeholder="Cheap slices, classics, date-night spots..." className="border-white/10 bg-white/[0.04] text-white" />
+                </div>
+                <div>
+                  <Label className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-stone-500">Dietary notes</Label>
+                  <Input value={form.dietary_notes} onChange={(e) => setForm((prev) => ({ ...prev, dietary_notes: e.target.value }))} placeholder="Vegetarian, halal, gluten-free..." className="border-white/10 bg-white/[0.04] text-white" />
                 </div>
                 <div>
                   <Label className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-stone-500">Favorite spot</Label>
@@ -260,9 +297,24 @@ export default function Profile() {
                     {(bundle?.spots || []).map((spot) => <option key={spot.id} value={spot.id}>{spot.name}</option>)}
                   </select>
                 </div>
+                <div>
+                  <Label className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-stone-500">Profile visibility</Label>
+                  <select value={form.profile_visibility} onChange={(e) => setForm((prev) => ({ ...prev, profile_visibility: e.target.value }))} className="h-10 w-full rounded-md border border-white/10 bg-[#171717] px-3 text-sm text-white">
+                    <option value="public">Public</option>
+                    <option value="private">Private</option>
+                  </select>
+                </div>
                 <div className="sm:col-span-2">
                   <Label className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-stone-500">Bio</Label>
                   <Textarea value={form.bio} onChange={(e) => setForm((prev) => ({ ...prev, bio: e.target.value }))} className="min-h-[110px] border-white/10 bg-white/[0.04] text-white" />
+                </div>
+                <div>
+                  <Label className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-stone-500">Instagram URL</Label>
+                  <Input value={form.instagram_url} onChange={(e) => setForm((prev) => ({ ...prev, instagram_url: e.target.value }))} className="border-white/10 bg-white/[0.04] text-white" />
+                </div>
+                <div>
+                  <Label className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-stone-500">Website URL</Label>
+                  <Input value={form.website_url} onChange={(e) => setForm((prev) => ({ ...prev, website_url: e.target.value }))} className="border-white/10 bg-white/[0.04] text-white" />
                 </div>
               </div>
               <Button disabled={saveProfile.isPending} onClick={() => saveProfile.mutate()} className="mt-5 h-12 rounded-2xl bg-[#efbf3a] px-5 font-black text-[#141414] hover:bg-[#dbab23]">

@@ -1,5 +1,5 @@
 ﻿import React, { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence, useMotionValue, useTransform, animate } from "framer-motion";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Check, DollarSign, MapPin, Pizza, Settings2, Star, Users, X } from "lucide-react";
@@ -162,9 +162,9 @@ function SwipeCard({ current, onSkip, onJoin }) {
           <div className="absolute left-3 top-3 rounded-full border border-white/12 bg-black/88 px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-[#efbf3a] shadow-[0_10px_24px_rgba(0,0,0,0.28)]">Slice plan</div>
           <div className="absolute right-3 top-3 rounded-full border border-white/12 bg-black/88 px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-[#7bc18a] shadow-[0_10px_24px_rgba(0,0,0,0.28)]">{seatsLeft} seats left</div>
           <div className="absolute bottom-2.5 left-3 right-3 flex items-end justify-between gap-3">
-            <div className="min-w-0 rounded-full border border-white/12 bg-black/88 px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-white shadow-[0_10px_24px_rgba(0,0,0,0.28)]">
+            <Link to={`/profile/${current.created_by}`} onClick={(event) => event.stopPropagation()} className="min-w-0 rounded-full border border-white/12 bg-black/88 px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-white shadow-[0_10px_24px_rgba(0,0,0,0.28)] hover:bg-black">
               Host - {getPublicUsername(current.host)}
-            </div>
+            </Link>
           </div>
         </div>
 
@@ -344,7 +344,7 @@ export default function Descubrir() {
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
-                className="absolute inset-x-0 top-[calc(100%+12px)] z-30 rounded-[28px] border border-white/10 bg-[#111111] p-4 shadow-[0_24px_60px_rgba(0,0,0,0.42)]"
+                className="absolute inset-x-0 top-[calc(100%+12px)] z-30 max-h-[min(68dvh,520px)] overflow-y-auto rounded-[28px] border border-white/10 bg-[#111111] p-4 shadow-[0_24px_60px_rgba(0,0,0,0.42)]"
               >
                 <div className="space-y-4">
                   <div>

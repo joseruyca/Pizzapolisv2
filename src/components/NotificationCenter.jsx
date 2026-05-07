@@ -2,7 +2,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { Bell, MessageCircle, Users, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { supabase } from '@/lib/supabase';
+import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { ZINDEX } from '@/lib/zindex';
 import { readAppSettings } from '@/lib/appSettings';
 
@@ -34,22 +34,26 @@ function NotificationIcon({ type }) {
 
 async function fetchNotifications(user) {
   if (!user?.id) return [];
+  if (!isSupabaseConfigured || !supabase) return [];
   const settings = readAppSettings();
-  const [{ data: joinedRows }, { data: ownedPlans }] = await Promise.all([
+  const [{ data: joinedRows, error: joinedError }, { data: ownedPlans, error: plansError }] = await Promise.all([
     supabase.from('plan_members').select('plan_id,created_at').eq('user_id', user.id).eq('status', 'joined'),
     supabase.from('plans').select('id,title').eq('created_by', user.id),
   ]);
+  if (joinedError || plansError) return [];
   const joinedIds = (joinedRows || []).map((row) => row.plan_id).filter(Boolean);
   const ownedIds = (ownedPlans || []).map((row) => row.id).filter(Boolean);
   const notifications = [];
   if (settings.notifications.messageAlerts && joinedIds.length) {
-    const { data: messages } = await supabase.from('messages').select('id,plan_id,content,created_at,user_id').in('plan_id', joinedIds).neq('user_id', user.id).order('created_at', { ascending: false }).limit(20);
-    const { data: plans } = await supabase.from('plans').select('id,title').in('id', joinedIds);
+    const { data: messages, error: messagesError } = await supabase.from('messages').select('id,plan_id,content,created_at,user_id').in('plan_id', joinedIds).neq('user_id', user.id).order('created_at', { ascending: false }).limit(20);
+    const { data: plans, error: plansLookupError } = await supabase.from('plans').select('id,title').in('id', joinedIds);
+    if (messagesError || plansLookupError) return notifications;
     const planMap = new Map((plans || []).map((plan) => [plan.id, plan.title]));
     (messages || []).forEach((message) => notifications.push({ id: `message-${message.id}`, type: 'message', title: planMap.get(message.plan_id) || 'New group message', description: message.content, created_at: message.created_at }));
   }
   if (settings.notifications.groupAlerts && ownedIds.length) {
-    const { data: members } = await supabase.from('plan_members').select('id,plan_id,created_at,user_id').in('plan_id', ownedIds).neq('user_id', user.id).order('created_at', { ascending: false }).limit(20);
+    const { data: members, error: membersError } = await supabase.from('plan_members').select('id,plan_id,created_at,user_id').in('plan_id', ownedIds).neq('user_id', user.id).order('created_at', { ascending: false }).limit(20);
+    if (membersError) return notifications;
     const planMap = new Map((ownedPlans || []).map((plan) => [plan.id, plan.title]));
     (members || []).forEach((member) => notifications.push({ id: `member-${member.id}`, type: 'group', title: 'New member joined', description: `${planMap.get(member.plan_id) || 'Your plan'} has a new member.`, created_at: member.created_at }));
   }
@@ -78,7 +82,7 @@ export default function NotificationCenter({ user }) {
     queryKey: ['notifications-supabase', user?.id],
     queryFn: () => fetchNotifications(user),
     refetchInterval: 15000,
-    enabled: !!user?.id,
+    enabled: Boolean(user?.id && isSupabaseConfigured && supabase),
   });
 
   const visible = useMemo(() => notifications.filter((item) => {

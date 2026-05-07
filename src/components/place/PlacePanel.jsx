@@ -1,7 +1,7 @@
 ﻿import React, { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
-import { MapPin, Clock, ChevronLeft, Coins, Users, MessageCircle, Sparkles, ArrowUpRight, Plus, Star } from "lucide-react";
+import { MapPin, ChevronLeft, Coins, MessageCircle, Sparkles, ArrowUpRight, Plus, Star, Bookmark, Flag, ShieldCheck, UserRound, CalendarDays } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import CommentsSection from "./CommentsSection";
@@ -10,9 +10,11 @@ import LoginPrompt from "../shared/LoginPrompt";
 import StarRating from "@/components/shared/StarRating";
 import { ZINDEX } from "@/lib/zindex";
 import { formatPrice, getGoogleMapsUrl } from "@/lib/place-helpers";
-import { supabase } from "@/lib/supabase";
+import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 import { createPageUrl } from "@/utils";
-import { getPublicUsername, getAvatarLetter } from "@/lib/display-name";
+import { getPublicUsername } from "@/lib/display-name";
+import { submitSpotReport } from "@/lib/user-actions";
+import { toast } from "@/components/ui/use-toast";
 
 function InfoCard({ label, value, icon: Icon, accent = "text-stone-400", children }) {
   return (
@@ -28,12 +30,14 @@ function InfoCard({ label, value, icon: Icon, accent = "text-stone-400", childre
 
 async function resolveSpotPhoto(value) {
   if (!value) return null;
+  if (!isSupabaseConfigured || !supabase) return null;
   if (String(value).startsWith("http")) return value;
   const { data } = await supabase.storage.from("spot-photos").createSignedUrl(value, 60 * 60);
   return data?.signedUrl || null;
 }
 
 async function fetchComments(spotId) {
+  if (!isSupabaseConfigured || !supabase) return [];
   const { data, error } = await supabase
     .from("spot_comments")
     .select("id,content,status,created_at,user_id")
@@ -50,6 +54,7 @@ async function fetchComments(spotId) {
 }
 
 async function fetchPhotos(spotId) {
+  if (!isSupabaseConfigured || !supabase) return [];
   const { data, error } = await supabase
     .from("spot_photos")
     .select("id,photo_url,status,created_at,user_id")
@@ -66,6 +71,7 @@ async function fetchPhotos(spotId) {
 }
 
 async function fetchRelatedPlans(spotId) {
+  if (!isSupabaseConfigured || !supabase) return [];
   const { data, error } = await supabase
     .from("plans")
     .select("id,title,plan_date,plan_time,max_people,status")
@@ -77,7 +83,7 @@ async function fetchRelatedPlans(spotId) {
   return data || [];
 }
 
-export default function PlacePanel({ place, onClose, user }) {
+export default function PlacePanel({ place, onClose, user, saved = false, onToggleSaved }) {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("info");
   const [loginPrompt, setLoginPrompt] = useState({ open: false, message: "" });
@@ -85,6 +91,10 @@ export default function PlacePanel({ place, onClose, user }) {
   const [ratingSaved, setRatingSaved] = useState(false);
   const [isSavingRating, setIsSavingRating] = useState(false);
   const [ratingError, setRatingError] = useState("");
+  const [reportOpen, setReportOpen] = useState(false);
+  const [reportReason, setReportReason] = useState("wrong_info");
+  const [reportDetails, setReportDetails] = useState("");
+  const [reportBusy, setReportBusy] = useState(false);
   const [ratingSummary, setRatingSummary] = useState({
     average: Number(place?.average_rating || 0),
     count: Number(place?.ratings_count || 0),
@@ -93,24 +103,24 @@ export default function PlacePanel({ place, onClose, user }) {
   const { data: comments = [] } = useQuery({
     queryKey: ["spot-comments", place?.id],
     queryFn: () => fetchComments(place.id),
-    enabled: !!place,
+    enabled: Boolean(place?.id && isSupabaseConfigured && supabase),
   });
 
   const { data: photos = [] } = useQuery({
     queryKey: ["spot-photos", place?.id],
     queryFn: () => fetchPhotos(place.id),
-    enabled: !!place,
+    enabled: Boolean(place?.id && isSupabaseConfigured && supabase),
   });
 
   const { data: relatedPlans = [] } = useQuery({
     queryKey: ["spot-related-plans", place?.id],
     queryFn: () => fetchRelatedPlans(place.id),
-    enabled: !!place,
+    enabled: Boolean(place?.id && isSupabaseConfigured && supabase),
   });
 
   const { data: persistedRating } = useQuery({
     queryKey: ["spot-my-rating", place?.id, user?.id],
-    enabled: !!place?.id && !!user?.id,
+    enabled: Boolean(place?.id && user?.id && isSupabaseConfigured && supabase),
     queryFn: async () => {
       const { data, error } = await supabase
         .from("spot_ratings")
@@ -132,6 +142,12 @@ export default function PlacePanel({ place, onClose, user }) {
   const displaySlicePrice = place.standard_slice_price ?? place.slice_price ?? 0;
   const displayBestSlice = place.best_known_slice || place.best_slice || "Optional";
   const displayRating = Number(ratingSummary.average || 0);
+  const trustSignals = [
+    place.photo_url ? "Photo added" : null,
+    approvedComments.length ? `${approvedComments.length} community notes` : null,
+    ratingSummary.count ? `${ratingSummary.count} ratings` : null,
+    relatedPlans.length ? `${relatedPlans.length} active plans` : null,
+  ].filter(Boolean);
 
   useEffect(() => {
     setRatingSummary({
@@ -151,6 +167,7 @@ export default function PlacePanel({ place, onClose, user }) {
   }, [place?.id, user?.id, persistedRating]);
 
   const refreshSpotRatingSummary = async (spotId) => {
+    if (!isSupabaseConfigured || !supabase) return;
     const { data, error } = await supabase
       .from("spot_ratings")
       .select("rating")
@@ -182,6 +199,11 @@ export default function PlacePanel({ place, onClose, user }) {
   const handleRatePlace = async (value) => {
     if (!user?.id) {
       setLoginPrompt({ open: true, message: "Sign in to save your own rating for this spot." });
+      return;
+    }
+
+    if (!isSupabaseConfigured || !supabase) {
+      setRatingError("Connect Supabase before saving ratings.");
       return;
     }
 
@@ -217,10 +239,36 @@ export default function PlacePanel({ place, onClose, user }) {
       setRatingSaved(true);
       window.setTimeout(() => setRatingSaved(false), 1600);
     } catch (error) {
-      console.error("Rating save error:", error);
       setRatingError(error.message || "Could not save your rating.");
     } finally {
       setIsSavingRating(false);
+    }
+  };
+
+  const handleReport = async () => {
+    if (!place?.id) return;
+    setReportBusy(true);
+    try {
+      const result = await submitSpotReport({
+        userId: user?.id,
+        spotId: place.id,
+        reason: reportReason,
+        details: reportDetails.trim(),
+      });
+      setReportOpen(false);
+      setReportDetails("");
+      toast({
+        title: "Report received",
+        description: result.persisted ? "The admin team can review it now." : "It was saved locally until the reports table is connected.",
+      });
+    } catch (error) {
+      toast({
+        title: "Could not send report",
+        description: error.message || "Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setReportBusy(false);
     }
   };
 
@@ -228,6 +276,7 @@ export default function PlacePanel({ place, onClose, user }) {
 
   const tabs = [
     { id: "info", label: "Info" },
+    { id: "plans", label: "Plans", count: relatedPlans.length },
     { id: "comments", label: "Comments", count: approvedComments.length },
     { id: "photos", label: "Photos", count: approvedPhotos.length },
   ];
@@ -284,6 +333,19 @@ export default function PlacePanel({ place, onClose, user }) {
               <p className="mt-2 text-sm leading-6 text-stone-300">{place.quick_note || place.description || "No quick note yet."}</p>
             </div>
 
+            <div className="mt-4 rounded-[24px] border border-white/10 bg-white/[0.035] p-4">
+              <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.16em] text-stone-400">
+                <ShieldCheck className="h-3.5 w-3.5" />Community signals
+              </div>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {(trustSignals.length ? trustSignals : ["Needs community details"]).map((signal) => (
+                  <span key={signal} className="rounded-full border border-white/10 bg-black/30 px-3 py-1 text-xs font-semibold text-stone-300">
+                    {signal}
+                  </span>
+                ))}
+              </div>
+            </div>
+
             <div className="mt-4 grid gap-2 sm:grid-cols-2">
               <a href={googleMapsUrl} target="_blank" rel="noreferrer" className="inline-flex h-11 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.03] text-white hover:bg-white/[0.08]">
                 <ArrowUpRight className="mr-2 h-4 w-4" />Open in maps
@@ -292,6 +354,34 @@ export default function PlacePanel({ place, onClose, user }) {
                 <Plus className="mr-2 h-4 w-4" />Create plan here
               </Link>
             </div>
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              <button onClick={onToggleSaved} className={`inline-flex h-11 items-center justify-center rounded-2xl border text-sm font-bold transition ${saved ? "border-yellow-400/40 bg-yellow-400/15 text-yellow-100" : "border-white/10 bg-white/[0.03] text-stone-200 hover:bg-white/[0.08]"}`}>
+                <Bookmark className={`mr-2 h-4 w-4 ${saved ? "fill-yellow-300 text-yellow-300" : ""}`} />{saved ? "Saved" : "Save spot"}
+              </button>
+              <button onClick={() => setReportOpen((prev) => !prev)} className="inline-flex h-11 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.03] text-sm font-bold text-stone-200 transition hover:bg-white/[0.08]">
+                <Flag className="mr-2 h-4 w-4" />Report
+              </button>
+            </div>
+            {place.created_by ? (
+              <Link to={`/profile/${place.created_by}`} className="mt-3 inline-flex h-11 w-full items-center justify-center rounded-2xl border border-white/10 bg-black/25 text-sm font-bold text-stone-200 transition hover:bg-white/[0.06]">
+                <UserRound className="mr-2 h-4 w-4" />View contributor profile
+              </Link>
+            ) : null}
+            {reportOpen ? (
+              <div className="mt-3 rounded-[22px] border border-white/10 bg-black/35 p-4">
+                <label className="text-[11px] font-bold uppercase tracking-[0.16em] text-stone-500">What needs attention?</label>
+                <select value={reportReason} onChange={(event) => setReportReason(event.target.value)} className="mt-2 h-11 w-full rounded-2xl border border-white/10 bg-[#111111] px-3 text-sm text-white outline-none">
+                  <option value="wrong_info">Wrong info</option>
+                  <option value="closed">Place closed</option>
+                  <option value="duplicate">Duplicate spot</option>
+                  <option value="unsafe">Unsafe or inappropriate</option>
+                </select>
+                <textarea value={reportDetails} onChange={(event) => setReportDetails(event.target.value)} placeholder="Add a short note for admins" className="mt-2 min-h-20 w-full rounded-2xl border border-white/10 bg-[#111111] px-3 py-3 text-sm text-white outline-none placeholder:text-stone-600" />
+                <Button onClick={handleReport} disabled={reportBusy} className="mt-3 h-10 w-full rounded-2xl bg-white text-[#111111] font-bold hover:bg-stone-100">
+                  {reportBusy ? "Sending..." : "Send report"}
+                </Button>
+              </div>
+            ) : null}
           </div>
 
           <div className="sticky top-0 z-10 border-b border-white/5 bg-[#0d0d0d]/95 px-5 py-3 backdrop-blur-lg">
@@ -336,6 +426,36 @@ export default function PlacePanel({ place, onClose, user }) {
                     </div>
                   ) : <div className="mt-2 text-sm text-stone-400">No active plans for this spot yet.</div>}
                 </div>
+              </div>
+            ) : null}
+
+            {activeTab === "plans" ? (
+              <div className="space-y-4">
+                <div className="rounded-[24px] border border-white/10 bg-white/[0.03] p-4">
+                  <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.16em] text-stone-500">
+                    <CalendarDays className="h-3.5 w-3.5" />Plans at this spot
+                  </div>
+                  <p className="mt-2 text-sm leading-6 text-stone-400">Create a plan from this place or join an active one when the community has something open.</p>
+                  <Link to={`${createPageUrl('CrearQuedada')}?place=${place.id}`} className="mt-4 inline-flex h-11 w-full items-center justify-center rounded-2xl bg-red-600 text-sm font-bold text-white hover:bg-red-500">
+                    <Plus className="mr-2 h-4 w-4" />Create a plan here
+                  </Link>
+                </div>
+                {relatedPlans.length ? (
+                  relatedPlans.map((plan) => (
+                    <div key={plan.id} className="rounded-[22px] border border-white/10 bg-white/[0.03] p-4">
+                      <div className="font-black text-white">{plan.title}</div>
+                      <div className="mt-2 flex flex-wrap gap-2 text-xs text-stone-400">
+                        <span className="rounded-full border border-white/10 bg-black/25 px-3 py-1">{plan.plan_date}</span>
+                        <span className="rounded-full border border-white/10 bg-black/25 px-3 py-1">{String(plan.plan_time || "").slice(0, 5)}</span>
+                        <span className="rounded-full border border-white/10 bg-black/25 px-3 py-1">{plan.max_people} people</span>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="rounded-[22px] border border-dashed border-white/12 bg-white/[0.02] p-5 text-center text-sm text-stone-400">
+                    No active plans here yet.
+                  </div>
+                )}
               </div>
             ) : null}
 
