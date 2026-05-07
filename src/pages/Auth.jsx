@@ -78,14 +78,8 @@ export default function AuthPage() {
 
   useEffect(() => {
     setSuccessMessage('')
-    reset(
-      (currentValues) => ({
-        ...currentValues,
-        password: '',
-        username: mode === authModes.SIGN_UP ? currentValues.username : '',
-      }),
-      { keepValues: true, keepDirty: false, keepErrors: false },
-    )
+    setValue('password', '')
+    if (mode === authModes.SIGN_IN) setValue('username', '')
   }, [mode, reset])
 
   if (isLoadingAuth) {
@@ -116,14 +110,19 @@ export default function AuthPage() {
         return
       }
 
-      await signUp({
+      const result = await signUp({
         email: values.email.trim(),
         password: values.password,
         fullName: values.username.trim(),
       })
       persistRememberChoice()
-      setSuccessMessage('Account created. Check your inbox to confirm your email.')
-      toast.success('Account created. Confirm your email to continue.')
+      if (result?.session?.user) {
+        toast.success('Account created. Welcome to Pizzapolis')
+        navigate(nextUrl, { replace: true })
+        return
+      }
+      setSuccessMessage('Account created. Check your inbox to confirm your email. If confirmation is disabled in Supabase, you can login now.')
+      toast.success('Account created. Check your email or login now.')
       setMode(authModes.SIGN_IN)
     } catch (error) {
       toast.error(error?.message || 'Could not complete authentication.')
@@ -191,7 +190,7 @@ export default function AuthPage() {
 
             {!isSupabaseConfigured ? (
               <div className="mb-4 rounded-2xl border border-[#efc5bc] bg-[#fff0ea] p-3 text-sm text-[#b54834]">
-                Supabase is missing. Add <code>VITE_SUPABASE_URL</code> and <code>VITE_SUPABASE_PUBLISHABLE_KEY</code>.
+                Supabase is missing. Add <code>VITE_SUPABASE_URL</code> plus <code>VITE_SUPABASE_PUBLISHABLE_KEY</code> or <code>VITE_SUPABASE_ANON_KEY</code> in Vercel.
               </div>
             ) : null}
 
@@ -279,6 +278,11 @@ export default function AuthPage() {
 
               {authError?.message ? (
                 <div className="rounded-2xl border border-[#efc5bc] bg-[#fff0ea] p-3 text-sm text-[#b54834]">{authError.message}</div>
+              ) : null}
+              {isSupabaseConfigured ? (
+                <div className="rounded-2xl border border-[#d8d0c1] bg-[#fbf6ed] p-3 text-xs leading-5 text-[#6d665b]">
+                  If login fails, check that email/password auth is enabled in Supabase and your email is confirmed.
+                </div>
               ) : null}
               {successMessage ? (
                 <div className="rounded-2xl border border-[#d7e6d1] bg-[#eef7ec] p-3 text-sm text-[#216b33]">{successMessage}</div>

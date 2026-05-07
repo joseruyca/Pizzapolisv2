@@ -1,6 +1,6 @@
 ﻿import React, { useEffect, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { CheckCircle2, Loader2, Map, XCircle } from 'lucide-react';
+import { CheckCircle2, Loader2, Map, Pizza, XCircle } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
 function getHashParams() {
@@ -9,12 +9,12 @@ function getHashParams() {
 }
 
 function friendlyMessage(raw) {
-  if (!raw) return 'No pudimos confirmar tu email. Pide un enlace nuevo e intÃ©ntalo otra vez.';
+  if (!raw) return 'No pudimos confirmar tu email. Pide un enlace nuevo e intentalo otra vez.';
   const text = String(raw);
   if (text.includes('expired') || text.includes('otp_expired')) return 'Este enlace ha caducado. Pide uno nuevo desde la pantalla de acceso.';
-  if (text.includes('invalid')) return 'Este enlace no es valido o ya fue usado. Pide uno nuevo e intÃ©ntalo otra vez.';
+  if (text.includes('invalid')) return 'Este enlace no es valido o ya fue usado. Pide uno nuevo e intentalo otra vez.';
   if (text.includes('stole it') || text.includes('released because another request stole it')) {
-    return 'El enlace ya fue procesado. Vamos a comprobar si tu cuenta quedÃ³ confirmada igualmente.';
+    return 'El enlace ya fue procesado. Vamos a comprobar si tu cuenta quedo confirmada igualmente.';
   }
   return text;
 }
@@ -68,7 +68,7 @@ export default function AuthConfirm() {
           const { error } = await supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken });
           if (error) throw error;
         } else {
-          throw new Error('Faltan datos de confirmaciÃ³n en el enlace.');
+          throw new Error('Faltan datos de confirmacion en el enlace.');
         }
 
         if (!active) return;
@@ -85,7 +85,7 @@ export default function AuthConfirm() {
             if (retry?.data?.session?.user) {
               if (!active) return;
               setStatus('success');
-              setMessage('Tu cuenta ya quedÃ³ confirmada. Entrando en Pizzapolis...');
+              setMessage('Tu cuenta ya quedo confirmada. Entrando en Pizzapolis...');
               window.history.replaceState({}, document.title, '/auth/confirm');
               window.setTimeout(() => navigate(next, { replace: true }), 900);
               return;
@@ -110,9 +110,9 @@ export default function AuthConfirm() {
   return (
     <div className="grid min-h-screen place-items-center bg-[#f4efe6] px-6 text-[#141414]">
       <div className="w-full max-w-md rounded-[34px] border border-black/8 bg-[#fffaf2] p-6 shadow-[0_24px_60px_rgba(39,29,14,0.12)]">
-        <div className="mb-5 inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-[#efbf3a] text-2xl shadow-[0_18px_38px_rgba(239,191,58,0.24)]">ðŸ•</div>
+        <div className="mb-5 inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-[#efbf3a] text-[#141414] shadow-[0_18px_38px_rgba(239,191,58,0.24)]"><Pizza className="h-7 w-7" /></div>
         <h1 className="text-3xl font-black tracking-tight">Pizzapolis</h1>
-        <p className="mt-2 text-[#6d665b]">ConfirmaciÃ³n de email</p>
+        <p className="mt-2 text-[#6d665b]">Confirmacion de email</p>
 
         <div className="mt-8 rounded-[28px] border border-black/8 bg-white p-6 text-center">
           {status === 'loading' && <Loader2 className="mx-auto h-10 w-10 animate-spin text-[#dbab23]" />}
@@ -122,7 +122,7 @@ export default function AuthConfirm() {
           {success && (
             <div className="mt-5 rounded-2xl border border-[#d8ebd4] bg-[#eef7ec] p-4 text-left text-sm text-[#2f7a35]">
               <div className="font-semibold">Tu cuenta esta activa.</div>
-              <div className="mt-1">Ya puedes crear planes, aÃ±adir spots y unirte a grupos.</div>
+              <div className="mt-1">Ya puedes crear planes, anadir spots y unirte a grupos.</div>
             </div>
           )}
         </div>
@@ -140,4 +140,5 @@ export default function AuthConfirm() {
     </div>
   );
 }
+
 

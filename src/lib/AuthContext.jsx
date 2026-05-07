@@ -32,6 +32,18 @@ function normalizeResolvedProfile(profile, fallbackUser = null) {
   };
 }
 
+function friendlyAuthError(error) {
+  const raw = String(error?.message || error || '');
+  const lower = raw.toLowerCase();
+  if (lower.includes('invalid login credentials')) return 'Email o contrasena incorrectos.';
+  if (lower.includes('email not confirmed')) return 'Tu email aun no esta confirmado. Revisa tu correo o pide un nuevo enlace.';
+  if (lower.includes('signup is disabled')) return 'El registro esta desactivado en Supabase Auth.';
+  if (lower.includes('user already registered') || lower.includes('already registered')) return 'Ya existe una cuenta con ese email. Inicia sesion.';
+  if (lower.includes('rate limit')) return 'Demasiados intentos. Espera un minuto y prueba de nuevo.';
+  if (lower.includes('network') || lower.includes('failed to fetch')) return 'No se pudo conectar con Supabase. Revisa la URL y la clave publica.';
+  return raw || 'No se pudo completar la autenticacion.';
+}
+
 
 function mapSessionUser(sessionUser, resolvedProfile = null) {
   if (!sessionUser) return null;
@@ -67,6 +79,45 @@ async function fetchProfileByUserId(userId, fallbackUser = null) {
   }
 
   return normalizeResolvedProfile(data, fallbackUser);
+}
+
+async function ensureProfileForUser(sessionUser, cleanName = '') {
+  if (!supabase || !sessionUser?.id) return getFallbackProfile(sessionUser);
+  const fallback = getFallbackProfile(sessionUser);
+  const username = String(cleanName || fallback.username || '').trim() || 'Usuario';
+
+  const existing = await fetchProfileByUserId(sessionUser.id, sessionUser);
+  if (existing?.id && existing.username) return existing;
+
+  try {
+    const payload = {
+      id: sessionUser.id,
+      email: sessionUser.email || '',
+      username,
+      avatar_url: sessionUser.user_metadata?.avatar_url || '',
+      role: 'user',
+    };
+    const payloadWithTimestamp = { ...payload, updated_at: new Date().toISOString() };
+    const { data, error } = await supabase
+      .from('profiles')
+      .upsert(payloadWithTimestamp, { onConflict: 'id' })
+      .select('id,email,username,avatar_url,role')
+      .maybeSingle();
+    if (error?.message?.toLowerCase?.().includes('updated_at')) {
+      const retry = await supabase
+        .from('profiles')
+        .upsert(payload, { onConflict: 'id' })
+        .select('id,email,username,avatar_url,role')
+        .maybeSingle();
+      if (retry.error) throw retry.error;
+      return normalizeResolvedProfile(retry.data || payload, sessionUser);
+    }
+    if (error) throw error;
+    return normalizeResolvedProfile(data || payload, sessionUser);
+  } catch (error) {
+    console.warn('Profile ensure warning:', error?.message || error);
+    return normalizeResolvedProfile({ ...fallback, username }, sessionUser);
+  }
 }
 
 export const AuthProvider = ({ children }) => {
@@ -175,10 +226,7 @@ export const AuthProvider = ({ children }) => {
       } catch (error) {
         console.error('Session restore error:', error);
         clearSession();
-        setAuthError({
-          type: 'session_error',
-          message: error.message || 'No se pudo restaurar la sesion.',
-        });
+        setAuthError({ type: 'session_error', message: friendlyAuthError(error) || 'No se pudo restaurar la sesion.' });
       } finally {
         if (mountedRef.current) {
           setIsLoadingAuth(false);
@@ -223,15 +271,13 @@ export const AuthProvider = ({ children }) => {
       password,
     });
 
-    if (error) throw error;
+    if (error) throw new Error(friendlyAuthError(error));
 
     const nextSessionUser = data?.user || data?.session?.user || null;
 
     if (nextSessionUser) {
-      setSessionUser(nextSessionUser);
-      setUser(mapSessionUser(nextSessionUser, getFallbackProfile(nextSessionUser)));
-      setIsAuthenticated(true);
-      await resolveProfile(nextSessionUser);
+      const resolved = await ensureProfileForUser(nextSessionUser);
+      applyResolvedUser(nextSessionUser, resolved);
     }
 
     setIsLoadingAuth(false);
@@ -254,21 +300,12 @@ export const AuthProvider = ({ children }) => {
       },
     });
 
-    if (error) throw error;
+    if (error) throw new Error(friendlyAuthError(error));
 
-    if (data?.user?.id && cleanName) {
-      const { error: profileError } = await supabase.from('profiles').upsert(
-        {
-          id: data.user.id,
-          email,
-          username: cleanName,
-          avatar_url: data.user.user_metadata?.avatar_url || '',
-        },
-        { onConflict: 'id' },
-      );
-      if (profileError) {
-        console.warn('Profile upsert warning:', profileError.message || profileError);
-      }
+    const nextSessionUser = data?.session?.user || data?.user || null;
+    if (nextSessionUser) {
+      const resolved = await ensureProfileForUser(nextSessionUser, cleanName);
+      if (data?.session) applyResolvedUser(nextSessionUser, resolved);
     }
 
     return data;
@@ -282,7 +319,7 @@ export const AuthProvider = ({ children }) => {
       provider,
       options: { redirectTo },
     });
-    if (error) throw error;
+    if (error) throw new Error(friendlyAuthError(error));
     return data;
   };
 
@@ -293,7 +330,7 @@ export const AuthProvider = ({ children }) => {
     const baseUrl = import.meta.env.VITE_APP_URL || window.location.origin;
     const redirectTo = `${baseUrl.replace(/\/$/, '')}/auth`;
     const { error } = await supabase.auth.resetPasswordForEmail(cleanEmail, { redirectTo });
-    if (error) throw error;
+    if (error) throw new Error(friendlyAuthError(error));
     return true;
   };
 
