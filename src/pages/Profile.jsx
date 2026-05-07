@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { Award, CalendarDays, Camera, Heart, LogOut, MapPin, MessageSquare, Settings, Shield, Star, Upload, UserRound } from 'lucide-react';
+import { Award, CalendarDays, Camera, Heart, LogOut, MapPin, MessageSquare, Pizza, Settings, Shield, Star, Upload, UserRound } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
