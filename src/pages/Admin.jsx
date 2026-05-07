@@ -10,6 +10,8 @@ import {
   ChevronRight,
   Clock3,
   Copy,
+  Database,
+  Download,
   Eye,
   EyeOff,
   Filter,
@@ -43,6 +45,7 @@ const TABS = [
   { id: 'users', label: 'Usuarios', icon: UserCog },
   { id: 'messages', label: 'Chat', icon: MessageSquare },
   { id: 'photos', label: 'Fotos', icon: ImageIcon },
+  { id: 'operations', label: 'Operaciones', icon: Database },
   { id: 'settings', label: 'Ajustes', icon: Settings2 },
 ];
 
@@ -312,7 +315,7 @@ function useAdminData(enabled) {
       ] = await Promise.all([
         safeFetchRows('spots', 'id,name,address,lat,lng,slice_price,best_slice,quick_note,photo_url,status,created_by,reviewed_by,reviewed_at,created_at,updated_at,average_rating,ratings_count', { orderBy: 'created_at' }),
         safeFetchRows('plans', 'id,spot_id,title,plan_date,plan_time,max_people,quick_note,status,created_by,created_at,updated_at', { orderBy: 'created_at' }),
-        safeFetchRows('profiles', 'id,email,username,avatar_url,role,created_at,updated_at', { orderBy: 'created_at' }),
+        safeFetchRows('profiles', '*', { orderBy: 'created_at' }),
         safeFetchRows('plan_members', 'id,plan_id,user_id,status,created_at', { orderBy: 'created_at' }),
         safeFetchRows('messages', 'id,plan_id,user_id,content,created_at', { orderBy: 'created_at' }),
         safeFetchRows('spot_ratings', 'id,spot_id,user_id,rating,created_at,updated_at', { orderBy: 'updated_at' }),
@@ -398,6 +401,20 @@ function ActionBlock({ icon: Icon, title, text, cta, onClick }) {
   );
 }
 
+function downloadCsv(filename, rows) {
+  const safeRows = rows || [];
+  const columns = Array.from(new Set(safeRows.flatMap((row) => Object.keys(row || {})))).slice(0, 40);
+  const escapeCell = (value) => `"${String(value ?? '').replace(/"/g, '""').replace(/\r?\n/g, ' ')}"`;
+  const csv = [columns.join(','), ...safeRows.map((row) => columns.map((column) => escapeCell(row[column])).join(','))].join('\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
 export default function Admin() {
   const { role, user, profile } = useAuth();
   const enabled = role === 'admin' && isSupabaseConfigured && Boolean(supabase);
@@ -424,6 +441,17 @@ export default function Admin() {
   const diagnostics = data?.diagnostics || [];
   const dashboardStatsRow = data?.dashboardStats?.[0] || null;
   const attentionNowRows = data?.attentionNow || [];
+  const profileCompleteness = React.useMemo(() => {
+    if (!users.length) return { complete: 0, missingBio: 0, missingAvatar: 0, missingFavorite: 0, score: 0 };
+    const complete = users.filter((person) => person.bio && person.avatar_url && person.favorite_spot_id).length;
+    return {
+      complete,
+      missingBio: users.filter((person) => !person.bio).length,
+      missingAvatar: users.filter((person) => !person.avatar_url).length,
+      missingFavorite: users.filter((person) => !person.favorite_spot_id).length,
+      score: Math.round((complete / users.length) * 100),
+    };
+  }, [users]);
 
   const userMap = React.useMemo(() => new Map(users.map((item) => [item.id, item])), [users]);
   const spotMap = React.useMemo(() => new Map(spots.map((item) => [item.id, item])), [spots]);
@@ -1457,6 +1485,49 @@ export default function Admin() {
           </Shell>
         ) : null}
 
+        {!isLoading && activeTab === 'operations' ? (
+          <div className="space-y-5">
+            <Shell
+              title="Centro de operaciones"
+              subtitle="Herramientas para administrar una aplicacion grande: volumen, calidad, exportacion y salud de datos."
+              actions={
+                <>
+                  <AdminActionButton variant="neutral" onClick={() => downloadCsv('pizzapolis-users.csv', users)}><Download className="mr-2 h-4 w-4" />Usuarios CSV</AdminActionButton>
+                  <AdminActionButton variant="neutral" onClick={() => downloadCsv('pizzapolis-spots.csv', spots)}><Download className="mr-2 h-4 w-4" />Spots CSV</AdminActionButton>
+                  <AdminActionButton variant="neutral" onClick={() => downloadCsv('pizzapolis-plans.csv', plans)}><Download className="mr-2 h-4 w-4" />Planes CSV</AdminActionButton>
+                </>
+              }
+            >
+              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                <DetailMetric label="Usuarios totales" value={users.length} />
+                <DetailMetric label="Completitud perfiles" value={`${profileCompleteness.score}%`} tone={profileCompleteness.score > 60 ? 'success' : 'warn'} />
+                <DetailMetric label="Contenido total" value={spots.length + plans.length + messages.length + comments.length + photos.length} />
+                <DetailMetric label="Alertas abiertas" value={openReports.length} tone={openReports.length ? 'danger' : 'success'} />
+              </div>
+
+              <div className="mt-5 grid gap-5 xl:grid-cols-2">
+                <div className="rounded-[24px] border border-black/8 bg-white p-5">
+                  <div className="text-lg font-black text-[#111111]">Calidad de perfiles</div>
+                  <div className="mt-4 grid gap-3">
+                    <DetailMetric label="Sin biografia" value={profileCompleteness.missingBio} tone={profileCompleteness.missingBio ? 'warn' : 'success'} />
+                    <DetailMetric label="Sin foto" value={profileCompleteness.missingAvatar} tone={profileCompleteness.missingAvatar ? 'warn' : 'success'} />
+                    <DetailMetric label="Sin sitio favorito" value={profileCompleteness.missingFavorite} tone={profileCompleteness.missingFavorite ? 'warn' : 'success'} />
+                  </div>
+                </div>
+
+                <div className="rounded-[24px] border border-black/8 bg-white p-5">
+                  <div className="text-lg font-black text-[#111111]">Preparado para miles de usuarios</div>
+                  <div className="mt-4 space-y-3 text-sm leading-7 text-[#5d574d]">
+                    <div className="rounded-2xl border border-black/8 bg-[#fffaf1] px-4 py-3">Usa indices en `profiles.favorite_spot_id`, `spots.status`, `plans.status`, `messages.plan_id` y `spot_comments.status`.</div>
+                    <div className="rounded-2xl border border-black/8 bg-[#fffaf1] px-4 py-3">Mantén acciones destructivas con confirmacion y logs de auditoria.</div>
+                    <div className="rounded-2xl border border-black/8 bg-[#fffaf1] px-4 py-3">Para volumen real, mueve contadores pesados a RPCs o vistas materializadas.</div>
+                  </div>
+                </div>
+              </div>
+            </Shell>
+          </div>
+        ) : null}
+
         {!isLoading && activeTab === 'settings' ? (
           <Shell title="Ajustes / configuracion" subtitle="No enorme, pero sÃ­ Ãºtil para operar y moderar mejor.">
             <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
@@ -1502,5 +1573,6 @@ function MergeIcon() {
     </svg>
   );
 }
+
 
 

@@ -1,6 +1,6 @@
-export function formatPrice(price) {
+﻿export function formatPrice(price) {
   const value = Number(price || 0);
-  return value ? `$${value.toFixed(2)}` : "—";
+  return value ? `$${value.toFixed(2)}` : "-";
 }
 
 export function getValueLabel(place) {
@@ -180,3 +180,4 @@ export function getNearbyComparisons(place, places = []) {
       };
     });
 }
+

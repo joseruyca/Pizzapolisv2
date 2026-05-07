@@ -1,4 +1,4 @@
-import React from "react";
+﻿import React from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { LogIn, X } from "lucide-react";
@@ -29,7 +29,7 @@ export default function LoginPrompt({ open, onClose, message }) {
               <X className="w-5 h-5" />
             </button>
             <div className="w-16 h-16 bg-red-600/20 rounded-2xl flex items-center justify-center mx-auto mb-5">
-              <span className="text-3xl">🍕</span>
+              <span className="text-3xl">ðŸ•</span>
             </div>
             <h3 className="text-xl font-bold mb-2">Join the Hunt</h3>
             <p className="text-stone-400 text-sm mb-6 leading-relaxed">

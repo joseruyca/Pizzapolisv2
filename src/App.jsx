@@ -1,4 +1,4 @@
-import React, { Suspense, lazy } from 'react';
+﻿import React, { Suspense, lazy } from 'react';
 import { Toaster } from 'sonner';
 import FloatingSupportButton from '@/components/shared/FloatingSupportButton';
 import { QueryClientProvider } from '@tanstack/react-query';
@@ -11,6 +11,7 @@ import { AuthProvider, useAuth } from '@/lib/AuthContext';
 const AuthPage = lazy(() => import('./pages/Auth'));
 const AuthConfirm = lazy(() => import('./pages/AuthConfirm'));
 const Admin = lazy(() => import('./pages/Admin'));
+const PublicProfile = lazy(() => import('./pages/PublicProfile'));
 
 const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
@@ -66,6 +67,8 @@ const AppRoutes = () => (
   <Routes>
     <Route path="/auth" element={<AuthPage />} />
     <Route path="/auth/confirm" element={<AuthConfirm />} />
+    <Route path="/profile/:userId" element={<PublicProfile />} />
+    <Route path="/u/:userId" element={<PublicProfile />} />
     <Route path="/" element={<Navigate to={lowerAlias(mainPageKey)} replace />} />
     <Route path={lowerAlias(mainPageKey)} element={PUBLIC_PAGES.has(mainPageKey) ? (<LayoutWrapper currentPageName={mainPageKey}><MainPage /></LayoutWrapper>) : (<ProtectedPage pageName={mainPageKey} Component={MainPage} />)} />
     <Route path={`/${mainPageKey}`} element={<Navigate to={lowerAlias(mainPageKey)} replace />} />
@@ -108,3 +111,4 @@ export default function App() {
     </AuthProvider>
   );
 }
+

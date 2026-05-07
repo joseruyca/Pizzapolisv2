@@ -1,4 +1,4 @@
-import React from "react";
+﻿import React from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, MapPin, Star, ChevronRight, Coins, Image as ImageIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -94,3 +94,4 @@ export default function PinPopup({ place, onClose, onViewDetails }) {
     </AnimatePresence>
   );
 }
+

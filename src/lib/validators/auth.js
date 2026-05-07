@@ -1,4 +1,4 @@
-import { z } from 'zod'
+﻿import { z } from 'zod'
 
 export const authModes = {
   SIGN_IN: 'signin',
@@ -20,3 +20,4 @@ export const signUpSchema = baseSchema.extend({
     .min(2, 'Choose a public username.')
     .max(30, 'Username is too long.'),
 })
+

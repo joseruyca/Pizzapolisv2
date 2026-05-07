@@ -1,4 +1,4 @@
-@layer components {
+﻿@layer components {
   .map-canvas,
   .leaflet-container {
     width: 100%;
@@ -83,3 +83,4 @@
     border: none;
   }
 }
+

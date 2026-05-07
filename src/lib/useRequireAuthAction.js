@@ -1,4 +1,4 @@
-import { useNavigate, useLocation } from "react-router-dom";
+﻿import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/lib/AuthContext";
 
 export function useRequireAuthAction() {
@@ -15,3 +15,4 @@ export function useRequireAuthAction() {
     navigate(`/auth?next=${next}`);
   };
 }
+

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { ChevronRight, Flame, LogOut, Map, Menu, Pizza, PlusCircle, Shield, User, Users } from 'lucide-react';
@@ -176,3 +176,4 @@ export default function Layout({ children, currentPageName }) {
     </div>
   );
 }
+

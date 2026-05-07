@@ -1,4 +1,4 @@
-import React, {
+﻿import React, {
   createContext,
   useState,
   useContext,
@@ -144,7 +144,7 @@ export const AuthProvider = ({ children }) => {
     if (!isSupabaseConfigured) {
       setAuthError({
         type: 'config_missing',
-        message: 'Supabase no está configurado.',
+        message: 'Supabase no esta configurado.',
       });
       setIsProfileReady(true);
       setIsLoadingAuth(false);
@@ -177,7 +177,7 @@ export const AuthProvider = ({ children }) => {
         clearSession();
         setAuthError({
           type: 'session_error',
-          message: error.message || 'No se pudo restaurar la sesión.',
+          message: error.message || 'No se pudo restaurar la sesion.',
         });
       } finally {
         if (mountedRef.current) {
@@ -214,7 +214,7 @@ export const AuthProvider = ({ children }) => {
   }, [clearSession, resolveProfile]);
 
   const signIn = async (email, password) => {
-    if (!supabase) throw new Error('Supabase no está configurado.');
+    if (!supabase) throw new Error('Supabase no esta configurado.');
 
     setAuthError(null);
 
@@ -239,7 +239,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   const signUp = async ({ email, password, fullName }) => {
-    if (!supabase) throw new Error('Supabase no está configurado.');
+    if (!supabase) throw new Error('Supabase no esta configurado.');
 
     const cleanName = String(fullName || '').trim();
     const baseUrl = import.meta.env.VITE_APP_URL || window.location.origin;
@@ -275,7 +275,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   const signInWithProvider = async (provider) => {
-    if (!supabase) throw new Error('Supabase no está configurado.');
+    if (!supabase) throw new Error('Supabase no esta configurado.');
     const baseUrl = import.meta.env.VITE_APP_URL || window.location.origin;
     const redirectTo = `${baseUrl.replace(/\/$/, '')}/auth/confirm`;
     const { data, error } = await supabase.auth.signInWithOAuth({
@@ -287,7 +287,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   const resetPassword = async (email) => {
-    if (!supabase) throw new Error('Supabase no está configurado.');
+    if (!supabase) throw new Error('Supabase no esta configurado.');
     const cleanEmail = String(email || '').trim();
     if (!cleanEmail) throw new Error('Escribe tu email primero.');
     const baseUrl = import.meta.env.VITE_APP_URL || window.location.origin;
@@ -381,3 +381,4 @@ export const useAuth = () => {
   }
   return context;
 };
+

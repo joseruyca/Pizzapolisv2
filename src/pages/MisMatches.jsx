@@ -1,7 +1,7 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+﻿import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, ExternalLink, Info, MapPin, Send, X } from "lucide-react";
+import { ArrowLeft, ExternalLink, Info, MapPin, MessageCircle, Pizza, Send, X } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 import { useAuth } from "@/lib/AuthContext";
@@ -13,12 +13,13 @@ const avatar = (name) => name?.slice(0, 1)?.toUpperCase() || "?";
 function fmtDate(date, time) {
   if (!date) return "";
   const d = new Date(`${date}T${time || "20:00"}`);
-  if (Number.isNaN(d.getTime())) return `${date} · ${String(time || "").slice(0, 5)}`;
+  if (Number.isNaN(d.getTime())) return `${date} - ${String(time || "").slice(0, 5)}`;
   return d.toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
 }
 
 
 async function resolveSpotPhoto(value) {
+  if (!isSupabaseConfigured || !supabase) return null;
   if (!value) return null;
   if (String(value).startsWith("http")) return value;
   const { data } = await supabase.storage.from("spot-photos").createSignedUrl(value, 60 * 60);
@@ -31,6 +32,7 @@ function mapUrl(spot) {
 }
 
 async function fetchGroups(userId) {
+  if (!isSupabaseConfigured || !supabase) return [];
   const [{ data: owned }, { data: joined }] = await Promise.all([
     supabase.from("plans").select("id").eq("created_by", userId),
     supabase.from("plan_members").select("plan_id").eq("user_id", userId).eq("status", "joined"),
@@ -94,7 +96,7 @@ function GroupInfoSheet({ group, open, onClose }) {
     <div className="fixed inset-0 z-[1400] bg-black/55 backdrop-blur-sm" onClick={onClose}>
       <div className="absolute inset-x-0 bottom-0 mx-auto max-w-lg overflow-hidden rounded-t-[30px] border border-white/10 bg-[#101010] text-white shadow-2xl" onClick={(e) => e.stopPropagation()}>
         <div className="relative h-44 border-b border-white/10 bg-black">
-          {group.place?.photo_url ? <img src={group.place.photo_url} alt={group.pizzeria_nombre} className="h-full w-full object-cover" /> : <div className="flex h-full items-center justify-center text-6xl">🍕</div>}
+          {group.place?.photo_url ? <img src={group.place.photo_url} alt={group.pizzeria_nombre} className="h-full w-full object-cover" /> : <div className="flex h-full items-center justify-center text-[#efbf3a]"><Pizza className="h-16 w-16" /></div>}
           <div className="absolute inset-0 bg-gradient-to-b from-black/15 via-black/35 to-black/85" />
           <div className="absolute inset-x-0 bottom-0 p-5">
             <div className="inline-flex rounded-full bg-[#efbf3a] px-3 py-1 text-xs font-black uppercase tracking-[0.14em] text-[#141414]">${Number(group.place?.slice_price || 0).toFixed(2)} slice</div>
@@ -250,6 +252,7 @@ export default function MisMatches() {
   const sendMutation = useMutation({
     mutationFn: async (text) => {
       if (!selected) throw new Error("No group selected");
+      if (!isSupabaseConfigured || !supabase) throw new Error("Chat service is not configured yet.");
       const { error } = await supabase.from("messages").insert({
         plan_id: selected.id,
         user_id: user.id,
@@ -275,14 +278,14 @@ export default function MisMatches() {
     sendMutation.mutate(messageText.trim());
   }
 
-  if (!user || isLoading) return <div className="flex min-h-[calc(100vh-64px)] items-center justify-center bg-[#060606] text-white">Loading…</div>;
+  if (!user || isLoading) return <div className="flex min-h-[calc(100vh-64px)] items-center justify-center bg-[#060606] text-white">Loading...</div>;
 
   if (!groups.length) {
     return (
       <div className="h-[calc(100dvh-var(--header-height)-5.5rem)] overflow-hidden bg-[#060606] px-4 py-6">
         <div className="mx-auto flex h-full max-w-md items-center">
           <div className="w-full rounded-[30px] border border-white/10 bg-[#111] p-8 text-center">
-          <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-[28px] bg-white/[0.04] text-4xl">💬</div>
+          <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-[28px] bg-white/[0.04] text-[#efbf3a]"><MessageCircle className="h-10 w-10" /></div>
           <h1 className="mt-6 text-3xl font-black text-white">You have not joined any groups yet</h1>
           <p className="mt-3 text-sm leading-7 text-stone-400">When you like a plan in Discover or create one yourself, the group appears here automatically.</p>
           <Link to={createPageUrl("Descubrir")} className="mt-6 inline-flex h-12 w-full items-center justify-center rounded-2xl bg-red-600 text-sm font-bold text-white">Go to Discover</Link>

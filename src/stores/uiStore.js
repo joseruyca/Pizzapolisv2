@@ -1,4 +1,4 @@
-import { create } from 'zustand'
+﻿import { create } from 'zustand'
 
 export const useUIStore = create((set) => ({
   discoverFiltersOpen: false,
@@ -17,3 +17,4 @@ export const useUIStore = create((set) => ({
       selectedSpotId: null,
     }),
 }))
+

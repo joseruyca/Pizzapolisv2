@@ -1,4 +1,4 @@
-@layer components {
+﻿@layer components {
   .app-shell {
     @apply min-h-screen text-[color:var(--text-primary)];
     background:
@@ -219,3 +219,4 @@
     border-color: rgba(17, 17, 17, 0.08);
   }
 }
+

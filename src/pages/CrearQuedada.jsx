@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+﻿import React, { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { ArrowRight, CalendarDays, CheckCircle2, Clock3, MapPin, Search, Star, Users, Loader2 } from "lucide-react";
+import { ArrowRight, CalendarDays, CheckCircle2, Clock3, Loader2, MapPin, Pizza, Search, Star, Users } from "lucide-react";
 
 const sizeOptions = [2, 4, 6, 8, 10];
 
@@ -20,10 +20,11 @@ function toLocalDateInput(value) {
 
 function defaultTitle(place, time) {
   if (!place) return "Pizza plan";
-  return `${place.name} · ${time || "20:00"}`;
+  return `${place.name} - ${time || "20:00"}`;
 }
 
 async function resolveSpotPhoto(value) {
+  if (!isSupabaseConfigured || !supabase) return null;
   if (!value) return null;
   if (String(value).startsWith("http")) return value;
   const { data } = await supabase.storage.from("spot-photos").createSignedUrl(value, 60 * 60);
@@ -127,6 +128,20 @@ export default function CrearQuedada() {
 
   if (!user) return <div className="min-h-[calc(100vh-64px)] bg-[#070707]" />;
 
+  if (!isSupabaseConfigured || !supabase) {
+    return (
+      <div className="min-h-[calc(100vh-64px)] bg-[#050505] px-4 py-6 text-white">
+        <div className="mx-auto max-w-md rounded-[28px] border border-white/10 bg-[#111111] p-6 text-center">
+          <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-[#efbf3a] text-[#141414]">
+            <Pizza className="h-7 w-7" />
+          </div>
+          <h1 className="mt-5 text-2xl font-black">Plans need Supabase</h1>
+          <p className="mt-3 text-sm leading-7 text-stone-400">Add the Supabase environment variables before creating plans.</p>
+        </div>
+      </div>
+    );
+  }
+
   const publishDisabled = submitting || !selectedPlace || !date || !time || !form.title.trim();
 
   const handleSelectPlace = (place) => {
@@ -176,7 +191,6 @@ export default function CrearQuedada() {
       setCreatedId(createdPlan.id);
       setDone(true);
     } catch (error) {
-      console.error(error);
       setErrorMessage(error?.message || "Could not create the plan.");
     } finally {
       setSubmitting(false);
@@ -200,7 +214,7 @@ export default function CrearQuedada() {
 
           <form onSubmit={submit} className="space-y-5">
             <section className="rounded-[28px] border border-white/10 bg-white/[0.03] p-4">
-              <div className="mb-3 text-xs font-bold uppercase tracking-[0.16em] text-stone-500">1 · Choose the spot</div>
+              <div className="mb-3 text-xs font-bold uppercase tracking-[0.16em] text-stone-500">1 - Choose the spot</div>
               <div className="relative mb-4">
                 <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-stone-500" />
                 <Input
@@ -254,7 +268,7 @@ export default function CrearQuedada() {
             </section>
 
             <section className="rounded-[28px] border border-white/10 bg-white/[0.03] p-4">
-              <div className="mb-3 text-xs font-bold uppercase tracking-[0.16em] text-stone-500">2 · When</div>
+              <div className="mb-3 text-xs font-bold uppercase tracking-[0.16em] text-stone-500">2 - When</div>
               <div className="grid gap-4 sm:grid-cols-2">
                 <div>
                   <Label className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-stone-500"><CalendarDays className="h-3.5 w-3.5" />Date *</Label>
@@ -268,11 +282,11 @@ export default function CrearQuedada() {
             </section>
 
             <section className="rounded-[28px] border border-white/10 bg-white/[0.03] p-4">
-              <div className="mb-3 text-xs font-bold uppercase tracking-[0.16em] text-stone-500">3 · Plan details</div>
+              <div className="mb-3 text-xs font-bold uppercase tracking-[0.16em] text-stone-500">3 - Plan details</div>
               <div className="grid gap-4 sm:grid-cols-2">
                 <div>
                   <Label className="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-stone-500">Title *</Label>
-                  <Input value={form.title} onChange={(e) => setForm((prev) => ({ ...prev, title: e.target.value }))} placeholder="Joe's Pizza · 20:00" className="h-11 border-white/10 bg-white/[0.04] text-white" />
+                  <Input value={form.title} onChange={(e) => setForm((prev) => ({ ...prev, title: e.target.value }))} placeholder="Joe's Pizza - 20:00" className="h-11 border-white/10 bg-white/[0.04] text-white" />
                 </div>
                 <div>
                   <Label className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-stone-500"><Users className="h-3.5 w-3.5" />Max people</Label>
@@ -304,12 +318,12 @@ export default function CrearQuedada() {
             <div className="text-[11px] font-bold uppercase tracking-[0.18em] text-red-300">Preview</div>
             <div className="mt-4 overflow-hidden rounded-[26px] border border-white/10 bg-[#171717]">
               <div className="relative h-52 border-b border-white/10 bg-black">
-                {selectedPlace?.photo_url ? <img src={selectedPlace.photo_url} alt={selectedPlace.name} className="h-full w-full object-cover" /> : <div className="flex h-full items-center justify-center text-6xl">🍕</div>}
+                {selectedPlace?.photo_url ? <img src={selectedPlace.photo_url} alt={selectedPlace.name} className="h-full w-full object-cover" /> : <div className="flex h-full items-center justify-center text-[#efbf3a]"><Pizza className="h-16 w-16" /></div>}
                 <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-black/70" />
                 <div className="absolute left-4 bottom-4 rounded-full bg-[#efbf3a] px-3 py-1 text-xs font-black text-[#141414]">${Number(selectedPlace?.slice_price || 0).toFixed(2)}</div>
               </div>
               <div className="p-5">
-                <div className="text-[11px] font-black uppercase tracking-[0.18em] text-stone-500">{date || "Date"} · {time || "Time"}</div>
+                <div className="text-[11px] font-black uppercase tracking-[0.18em] text-stone-500">{date || "Date"} - {time || "Time"}</div>
                 <h2 className="mt-3 text-3xl font-black leading-none text-white">{form.title?.trim() || (selectedPlace ? defaultTitle(selectedPlace, time) : "Pizza plan")}</h2>
                 <div className="mt-4 flex items-start gap-3 rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-4">
                   <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-red-400" />
@@ -354,3 +368,4 @@ export default function CrearQuedada() {
     </div>
   );
 }
+

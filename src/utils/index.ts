@@ -1,4 +1,4 @@
-export const explicitRoutes: Record<string, string> = {
+﻿export const explicitRoutes: Record<string, string> = {
   Landing: '/landing',
   Home: '/home',
   Descubrir: '/descubrir',
@@ -16,3 +16,4 @@ export const explicitRoutes: Record<string, string> = {
 export function createPageUrl(pageName: string) {
   return explicitRoutes[pageName] || `/${pageName.replace(/\s+/g, '').toLowerCase()}`;
 }
+

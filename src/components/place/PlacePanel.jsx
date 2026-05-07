@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+﻿import React, { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import { MapPin, Clock, ChevronLeft, Coins, Users, MessageCircle, Sparkles, ArrowUpRight, Plus, Star } from "lucide-react";
@@ -257,7 +257,7 @@ export default function PlacePanel({ place, onClose, user }) {
 
             <div className="mb-3 flex flex-wrap items-center gap-2">
               <span className="inline-flex items-center rounded-full border border-red-500/20 bg-red-500/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-red-300">Spot</span>
-              {displayBestSlice ? <span className="inline-flex items-center rounded-full border border-white/15 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-stone-300">Best slice · {displayBestSlice}</span> : null}
+              {displayBestSlice ? <span className="inline-flex items-center rounded-full border border-white/15 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-stone-300">Best slice - {displayBestSlice}</span> : null}
             </div>
 
             <h2 className="text-[2rem] font-black leading-tight text-white">{place.name}</h2>
@@ -298,7 +298,7 @@ export default function PlacePanel({ place, onClose, user }) {
             <div className="flex gap-2 overflow-x-auto no-scrollbar">
               {tabs.map((tab) => (
                 <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`rounded-full px-4 py-2 text-sm font-semibold ${activeTab === tab.id ? 'bg-white text-[#111111]' : 'border border-white/10 bg-white/[0.04] text-stone-300'}`}>
-                  {tab.label}{typeof tab.count === 'number' ? ` · ${tab.count}` : ''}
+                  {tab.label}{typeof tab.count === 'number' ? ` - ${tab.count}` : ''}
                 </button>
               ))}
             </div>
@@ -314,7 +314,7 @@ export default function PlacePanel({ place, onClose, user }) {
                     <span className="text-sm text-stone-400">Tap a star or half-star from 0 to 5.</span>
                   </div>
                   <div className="mt-2 text-xs text-stone-500">Your rating is saved to your account and updates the spot average.</div>
-                  {isSavingRating ? <div className="mt-3 inline-flex rounded-full border border-white/10 bg-white/[0.06] px-3 py-1 text-[11px] font-semibold text-stone-200">Saving rating…</div> : null}
+                  {isSavingRating ? <div className="mt-3 inline-flex rounded-full border border-white/10 bg-white/[0.06] px-3 py-1 text-[11px] font-semibold text-stone-200">Saving rating...</div> : null}
                   {ratingSaved ? <div className="mt-3 inline-flex rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-[11px] font-semibold text-emerald-200">Rating saved</div> : null}
                   {ratingError ? <div className="mt-3 inline-flex rounded-full border border-red-500/20 bg-red-500/10 px-3 py-1 text-[11px] font-semibold text-red-200">{ratingError}</div> : null}
                 </div>
@@ -324,13 +324,13 @@ export default function PlacePanel({ place, onClose, user }) {
                   <div className="mt-2 text-sm leading-6 text-stone-300">{place.address || "No address yet."}</div>
                 </div>
                 <div className="rounded-[24px] border border-white/10 bg-white/[0.03] p-4">
-                  <div className="text-[11px] font-bold uppercase tracking-[0.16em] text-stone-500">Active plans · {relatedPlans.length}</div>
+                  <div className="text-[11px] font-bold uppercase tracking-[0.16em] text-stone-500">Active plans - {relatedPlans.length}</div>
                   {relatedPlans.length ? (
                     <div className="mt-3 space-y-3">
                       {relatedPlans.map((plan) => (
                         <div key={plan.id} className="rounded-2xl border border-white/8 bg-black/20 px-4 py-3">
                           <div className="font-bold text-white">{plan.title}</div>
-                          <div className="mt-1 text-sm text-stone-400">{plan.plan_date} · {String(plan.plan_time).slice(0,5)} · {plan.max_people} people</div>
+                          <div className="mt-1 text-sm text-stone-400">{plan.plan_date} - {String(plan.plan_time).slice(0,5)} - {plan.max_people} people</div>
                         </div>
                       ))}
                     </div>

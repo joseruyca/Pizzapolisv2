@@ -1,16 +1,18 @@
 import React, { useState } from "react";
+import { Link } from "react-router-dom";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { MessageCircle, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Send, MessageCircle } from "lucide-react";
 import { supabase } from "@/lib/supabase";
-import { getPublicUsername, getAvatarLetter } from "@/lib/display-name";
+import { getAvatarLetter, getPublicUsername } from "@/lib/display-name";
 
 function fmtDate(value) {
   if (!value) return "";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "";
-  return date.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' });
+  return date.toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" });
 }
 
 export default function CommentsSection({ placeId, comments, user, onRequireAuth }) {
@@ -30,12 +32,15 @@ export default function CommentsSection({ placeId, comments, user, onRequireAuth
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["spot-comments", placeId] });
       setText("");
-      alert("Comment sent for review.");
+      toast.success("Comment sent for review.");
+    },
+    onError: (error) => {
+      toast.error(error?.message || "Could not send the comment.");
     },
   });
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
+  const handleSubmit = (event) => {
+    event.preventDefault();
     if (!user) {
       onRequireAuth();
       return;
@@ -50,35 +55,43 @@ export default function CommentsSection({ placeId, comments, user, onRequireAuth
         <Textarea
           placeholder={user ? "Share your experience..." : "Sign in to comment..."}
           value={text}
-          onChange={(e) => setText(e.target.value)}
-          onFocus={() => { if (!user) onRequireAuth(); }}
-          className="bg-white/5 border-white/10 text-stone-200 placeholder:text-stone-600 resize-none min-h-[80px]"
+          onChange={(event) => setText(event.target.value)}
+          onFocus={() => {
+            if (!user) onRequireAuth();
+          }}
+          className="min-h-[80px] resize-none border-white/10 bg-white/5 text-stone-200 placeholder:text-stone-600"
         />
-        <Button type="submit" size="sm" disabled={!text.trim() || addComment.isPending} className="bg-red-600 hover:bg-red-500 text-white">
-          <Send className="w-3.5 h-3.5 mr-1.5" />
+        <Button type="submit" size="sm" disabled={!text.trim() || addComment.isPending} className="bg-red-600 text-white hover:bg-red-500">
+          <Send className="mr-1.5 h-3.5 w-3.5" />
           {addComment.isPending ? "Sending..." : "Send for review"}
         </Button>
       </form>
 
       {comments.length === 0 ? (
-        <div className="text-center py-8">
-          <MessageCircle className="w-8 h-8 text-stone-700 mx-auto mb-2" />
-          <p className="text-stone-500 text-sm">No comments yet. Be the first!</p>
+        <div className="py-8 text-center">
+          <MessageCircle className="mx-auto mb-2 h-8 w-8 text-stone-700" />
+          <p className="text-sm text-stone-500">No comments yet. Be the first!</p>
         </div>
       ) : (
         <div className="space-y-4">
           {comments.map((comment) => (
-            <div key={comment.id} className="bg-white/5 rounded-xl p-4">
-              <div className="flex items-center justify-between mb-2">
+            <div key={comment.id} className="rounded-xl bg-white/5 p-4">
+              <div className="mb-2 flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <div className="w-6 h-6 bg-red-600/30 rounded-full flex items-center justify-center">
+                  <div className="flex h-6 w-6 items-center justify-center rounded-full bg-red-600/30">
                     <span className="text-[10px] font-bold text-red-400">{getAvatarLetter(comment.profile, "?")}</span>
                   </div>
-                  <span className="text-sm font-medium text-stone-300">{getPublicUsername(comment.profile)}</span>
+                  {comment.user_id ? (
+                    <Link to={`/profile/${comment.user_id}`} className="text-sm font-medium text-stone-300 hover:text-white">
+                      {getPublicUsername(comment.profile)}
+                    </Link>
+                  ) : (
+                    <span className="text-sm font-medium text-stone-300">{getPublicUsername(comment.profile)}</span>
+                  )}
                 </div>
                 <span className="text-xs text-stone-600">{fmtDate(comment.created_at)}</span>
               </div>
-              <p className="text-stone-400 text-sm leading-relaxed">{comment.content}</p>
+              <p className="text-sm leading-relaxed text-stone-400">{comment.content}</p>
             </div>
           ))}
         </div>

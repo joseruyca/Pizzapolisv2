@@ -1,4 +1,4 @@
-export const appParams = {
+﻿export const appParams = {
   appId: 'pizzapolis-local',
   token: '',
   fromUrl: '',
@@ -9,3 +9,4 @@ export const appParams = {
 export function clearAppParams() {
   return;
 }
+

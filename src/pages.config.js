@@ -1,4 +1,4 @@
-import { lazy } from 'react';
+﻿import { lazy } from 'react';
 import __Layout from './Layout.jsx';
 
 const Landing = lazy(() => import('./pages/Landing'));
@@ -32,3 +32,4 @@ export const pagesConfig = {
   Pages: PAGES,
   Layout: __Layout,
 };
+

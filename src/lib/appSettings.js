@@ -1,4 +1,4 @@
-export const APP_SETTINGS_KEY = 'pizzapolis_app_settings';
+﻿export const APP_SETTINGS_KEY = 'pizzapolis_app_settings';
 export const defaultAppSettings = {
   notifications: { pushEnabled: false, messageAlerts: true, groupAlerts: true },
   language: 'English',
@@ -25,3 +25,4 @@ export function writeAppSettings(next) {
   if (typeof window !== 'undefined') localStorage.setItem(APP_SETTINGS_KEY, JSON.stringify(next));
   return next;
 }
+

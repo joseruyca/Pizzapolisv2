@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js';
+﻿import { createClient } from '@supabase/supabase-js';
 
 const url = import.meta.env.VITE_SUPABASE_URL;
 const anonKey =
@@ -16,3 +16,4 @@ export const supabase = isSupabaseConfigured
       },
     })
   : null;
+

@@ -1,4 +1,4 @@
-import React from "react";
+﻿import React from "react";
 import { Link } from "react-router-dom";
 import { Flame, Heart, User, Plus } from "lucide-react";
 import { createPageUrl } from "@/utils";
@@ -42,3 +42,4 @@ export default function MapBottomNav({ onAddPin }) {
     </nav>
   );
 }
+

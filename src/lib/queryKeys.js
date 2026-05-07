@@ -1,4 +1,4 @@
-export const queryKeys = {
+﻿export const queryKeys = {
   auth: {
     profile: ['auth', 'profile'],
   },
@@ -20,3 +20,4 @@ export const queryKeys = {
     public: ['settings', 'public'],
   },
 }
+

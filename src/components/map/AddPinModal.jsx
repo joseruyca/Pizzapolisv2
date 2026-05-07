@@ -1,10 +1,10 @@
-import React, { useEffect, useMemo, useState } from "react";
+﻿import React, { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import { MapContainer, Marker, TileLayer, useMapEvents, useMap } from "react-leaflet";
 import L from "leaflet";
 import { AlertCircle, CheckCircle, ImagePlus, Loader2, MapPin, Search, X } from "lucide-react";
-import { supabase } from "@/lib/supabase";
+import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -68,6 +68,7 @@ function MapPicker({ value, onChange }) {
 }
 
 async function fetchExistingSpots() {
+  if (!isSupabaseConfigured || !supabase) return [];
   const { data, error } = await supabase
     .from("spots")
     .select("id,name,address,lat,lng,slice_price,best_slice,quick_note,photo_url,status")
@@ -85,12 +86,12 @@ async function reverseGeocode(lat, lng) {
     const result = await response.json();
     return result?.display_name || "Pinned location";
   } catch (error) {
-    console.error(error);
     return "Pinned location";
   }
 }
 
 async function uploadSpotPhoto(file, userId) {
+  if (!isSupabaseConfigured || !supabase) throw new Error("Photo storage is not configured yet.");
   const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
   const fileName = `${Date.now()}.${ext}`;
   const filePath = `${userId}/${fileName}`;
@@ -115,7 +116,7 @@ export default function AddPinModal({ open, onClose, user }) {
   const { data: existingSpots = [] } = useQuery({
     queryKey: ["existing-spots-add-pin"],
     queryFn: fetchExistingSpots,
-    enabled: open,
+    enabled: Boolean(open && isSupabaseConfigured && supabase),
     staleTime: 20_000,
   });
 
@@ -137,7 +138,6 @@ export default function AddPinModal({ open, onClose, user }) {
         setGeoSuggestions(Array.isArray(results) ? results : []);
       } catch (error) {
         if (error?.name !== "AbortError") {
-          console.error(error);
           setGeoSuggestions([]);
         }
       } finally {
@@ -160,6 +160,20 @@ export default function AddPinModal({ open, onClose, user }) {
   }, [existingSpots, locationQuery]);
 
   if (!open) return null;
+  if (!isSupabaseConfigured || !supabase) {
+    return (
+      <div className="fixed inset-0 z-[2100] grid place-items-center bg-black/60 px-4 backdrop-blur-sm">
+        <div className="w-full max-w-md rounded-[28px] border border-white/10 bg-[#111111] p-6 text-center text-white shadow-2xl">
+          <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-[#efbf3a] text-[#141414]">
+            <MapPin className="h-7 w-7" />
+          </div>
+          <h2 className="mt-5 text-2xl font-black">Map editing is not configured</h2>
+          <p className="mt-3 text-sm leading-7 text-stone-400">Add Supabase environment variables before publishing new spots.</p>
+          <button type="button" onClick={onClose} className="mt-5 h-12 w-full rounded-2xl bg-[#df5b43] font-bold text-white">Close</button>
+        </div>
+      </div>
+    );
+  }
   const update = (key, value) => setForm((current) => ({ ...current, [key]: value }));
 
   function handleSelectSuggestion(item) {
@@ -197,7 +211,6 @@ export default function AddPinModal({ open, onClose, user }) {
       setPhotoFile(file);
       setForm((current) => ({ ...current, photoPreview: dataUrl }));
     } catch (error) {
-      console.error(error);
       setErrorMessage('No se pudo cargar la imagen.');
     }
   }
@@ -258,7 +271,7 @@ export default function AddPinModal({ open, onClose, user }) {
             <div className="p-8 text-center">
               <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-[24px] bg-emerald-500/15 text-emerald-300"><CheckCircle className="h-8 w-8" /></div>
               <h3 className="text-2xl font-black text-white">Spot created</h3>
-              <p className="mt-3 text-sm leading-7 text-stone-400">Se ha guardado correctamente y pasa a revisión del admin. Volviendo al mapa…</p>
+              <p className="mt-3 text-sm leading-7 text-stone-400">Se ha guardado correctamente y pasa a revisiÃ³n del admin. Volviendo al mapa...</p>
               <Button onClick={handleClose} className="mt-6 h-11 w-full rounded-2xl bg-red-600 text-white hover:bg-red-500">Volver al mapa</Button>
             </div>
           ) : (
@@ -321,3 +334,4 @@ export default function AddPinModal({ open, onClose, user }) {
     </AnimatePresence>
   );
 }
+

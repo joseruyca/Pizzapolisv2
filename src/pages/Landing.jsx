@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+﻿import React, { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowRight, Flame, Map, Pizza, Users } from 'lucide-react';
@@ -149,3 +149,4 @@ export default function Landing() {
     </div>
   );
 }
+

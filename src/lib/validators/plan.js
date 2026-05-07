@@ -1,4 +1,4 @@
-import { z } from 'zod'
+﻿import { z } from 'zod'
 
 export const createPlanSchema = z.object({
   spot_id: z.string().uuid('Choose a pizza spot.'),
@@ -8,3 +8,4 @@ export const createPlanSchema = z.object({
   plan_date: z.string().min(1, 'Pick a date.'),
   plan_time: z.string().min(1, 'Pick a time.'),
 })
+

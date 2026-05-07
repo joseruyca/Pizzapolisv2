@@ -1,8 +1,8 @@
-import React, { useEffect, useMemo, useState } from 'react'
+﻿import React, { useEffect, useMemo, useState } from 'react'
 import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { ArrowRight, Chrome, Loader2, Lock, Mail, User } from 'lucide-react'
+import { ArrowRight, Chrome, Loader2, Lock, Mail, Pizza, User } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -159,8 +159,8 @@ export default function AuthPage() {
         <div className="grid w-full gap-5 lg:grid-cols-[1.05fr_0.95fr]">
           <section className="hidden rounded-[36px] bg-[#111111] p-8 text-white shadow-[0_30px_90px_rgba(17,17,17,0.18)] lg:flex lg:flex-col lg:justify-between">
             <div>
-              <div className="mb-4 inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-[#f0bf39] text-2xl">🍕</div>
-              <div className="text-[3rem] font-black leading-[0.9] tracking-[-0.06em]">Pizza plans, not profile swipes.</div>
+              <div className="mb-4 inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-[#f0bf39] text-[#111111]"><Pizza className="h-7 w-7" /></div>
+              <div className="text-[3rem] font-black leading-[0.92] tracking-tight">Pizza plans, not profile swipes.</div>
               <p className="mt-4 max-w-md text-base leading-7 text-white/70">
                 Explore the map as a guest. Sign in only when you want to join plans, create your own, rate a spot or chat with the group.
               </p>
@@ -182,9 +182,9 @@ export default function AuthPage() {
 
           <section className="w-full rounded-[34px] border border-black/10 bg-[#fffaf1] p-5 shadow-[0_28px_70px_rgba(34,25,11,0.12)] md:p-6 lg:p-7">
             <div className="mb-6 flex items-center gap-4 lg:hidden">
-              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#f0bf39] text-2xl">🍕</div>
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#f0bf39] text-[#111111]"><Pizza className="h-7 w-7" /></div>
               <div>
-                <div className="text-[2rem] font-black leading-none tracking-[-0.05em]">Pizzapolis</div>
+                <div className="text-[2rem] font-black leading-none tracking-tight">Pizzapolis</div>
                 <div className="mt-1 text-sm text-[#6e6558]">Explore the map as a guest. Sign in to join plans, chat and create your own.</div>
               </div>
             </div>
@@ -213,7 +213,7 @@ export default function AuthPage() {
             </div>
 
             <div className="mb-5">
-              <h1 className="text-[2rem] font-black leading-[0.95] tracking-[-0.05em]">
+              <h1 className="text-[2rem] font-black leading-[0.98] tracking-tight">
                 {mode === authModes.SIGN_IN ? 'Login to your account.' : 'Create your account.'}
               </h1>
               <p className="mt-2 text-sm text-[#9a9182]">
@@ -303,3 +303,4 @@ export default function AuthPage() {
     </div>
   )
 }
+

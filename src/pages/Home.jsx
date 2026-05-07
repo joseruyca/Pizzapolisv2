@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+﻿import React, { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { List, MapPin } from "lucide-react";
 import { useAuth } from "@/lib/AuthContext";
@@ -65,9 +65,6 @@ export default function Home() {
   const [addPinOpen, setAddPinOpen] = useState(false);
   const [loginPrompt, setLoginPrompt] = useState(false);
   const [mapStyle] = useState("dark");
-  const [mapBounds, setMapBounds] = useState(null);
-  const [hasMapMoved, setHasMapMoved] = useState(false);
-  const [useMapArea, setUseMapArea] = useState(false);
   const [userLocation, setUserLocation] = useState(null);
   const [filters, setFilters] = useState({
     search: "",
@@ -140,9 +137,8 @@ export default function Home() {
     if (filters.sortBy === "price_low") result.sort((a, b) => Number(a.standard_slice_price || 0) - Number(b.standard_slice_price || 0));
     if (filters.sortBy === "price_high") result.sort((a, b) => Number(b.standard_slice_price || 0) - Number(a.standard_slice_price || 0));
     if (filters.sortBy === "name") result.sort((a, b) => String(a.name || "").localeCompare(String(b.name || "")));
-    if (useMapArea && mapBounds) result = result.filter((p) => mapBounds.contains([p.latitude, p.longitude]));
     return result;
-  }, [enrichedPlaces, filters, useMapArea, mapBounds]);
+  }, [enrichedPlaces, filters]);
 
   const handleAddPin = () => {
     if (!user) {
@@ -168,8 +164,6 @@ export default function Home() {
                 setPreviewPlace(place);
                 setListOpen(false);
               }}
-              onBoundsChange={setMapBounds}
-              onMapMove={() => setHasMapMoved(true)}
               controlsHidden={Boolean(selectedPlace)}
               mapStyleUrl={currentMapStyle.url}
               userLocation={userLocation}
@@ -207,13 +201,6 @@ export default function Home() {
                   });
                 }
               }}
-            hasMapMoved={hasMapMoved}
-            usingMapArea={useMapArea}
-            onSearchArea={(mode) => {
-              if (mode === "disable") setUseMapArea(false);
-              else if (mode === "enable") setUseMapArea(true);
-              else setUseMapArea((prev) => !prev);
-            }}
           />
 
           <button onClick={() => setListOpen((prev) => !prev)} className="home-map-count md:hidden">
@@ -259,3 +246,4 @@ export default function Home() {
     </>
   );
 }
+

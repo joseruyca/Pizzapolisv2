@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+﻿import React, { useMemo, useState } from "react";
 
 function StarSvg({ fill = 0, className = "" }) {
   const clamped = Math.max(0, Math.min(1, fill));
@@ -100,3 +100,4 @@ export default function StarRating({
     </div>
   );
 }
+

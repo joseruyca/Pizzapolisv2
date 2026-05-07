@@ -1,12 +1,12 @@
-import React from "react";
+﻿import React from "react";
 import { Camera, FileText, Pizza, Star, Tag, Users } from "lucide-react";
 import { motion } from "framer-motion";
 import { ZINDEX } from "@/lib/zindex";
 
 const PRICE_BANDS = [
-  { value: "budget", label: "Budget", desc: "Up to $3", color: "bg-green-500" },
-  { value: "mid", label: "Mid", desc: "$3 to $5", color: "bg-yellow-500" },
-  { value: "premium", label: "Premium", desc: "Above $5", color: "bg-red-500" },
+  { value: "budget", label: "Budget", desc: "Up to $3", color: "bg-emerald-500" },
+  { value: "mid", label: "Mid", desc: "$3 to $5", color: "bg-[#efbf3a]" },
+  { value: "premium", label: "Premium", desc: "Above $5", color: "bg-[#df5b43]" },
 ];
 
 const SORT_OPTIONS = [
@@ -24,7 +24,7 @@ function FilterChip({ active, onClick, children, icon: Icon }) {
   return (
     <button
       onClick={onClick}
-      className={`inline-flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-semibold transition-all duration-150 ${
+      className={`inline-flex min-h-9 items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-semibold transition-all duration-150 ${
         active
           ? "border-[#f1df9c] bg-[#efbf3a] text-[#141414] shadow-sm"
           : "border-black/8 bg-white text-[#6d665b] hover:border-black/12 hover:text-[#141414]"
@@ -73,12 +73,12 @@ export default function FilterPanel({ filters, onFiltersChange, resultCount, onC
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, y: -8, scale: 0.98 }}
       transition={{ duration: 0.18, ease: "easeOut" }}
-      className="relative mt-2 flex max-h-[70vh] flex-col overflow-hidden rounded-[26px] border border-black/8 bg-[#fffaf2] shadow-[0_20px_50px_rgba(39,29,14,0.18)]"
+      className="relative mt-2 flex max-h-[calc(100dvh-12rem)] flex-col overflow-hidden rounded-[24px] border border-black/8 bg-[#fffaf2] shadow-[0_20px_50px_rgba(39,29,14,0.18)] sm:max-h-[68vh]"
       style={{ zIndex: ZINDEX.FILTER_EXPANDED }}
     >
-      <div className="flex-1 space-y-4 overflow-y-auto p-4">
+      <div className="flex-1 space-y-3 overflow-y-auto p-3.5">
         <div>
-          <p className="mb-1.5 text-[10px] font-bold uppercase tracking-[0.12em] text-[#8e8578]">Useful filters</p>
+          <p className="mb-1.5 text-[10px] font-bold uppercase tracking-[0.12em] text-[#8e8578]">Filters</p>
           <div className="flex flex-wrap gap-1.5">
             <FilterChip active={filters.withPhoto} onClick={() => updateFilter("withPhoto", !filters.withPhoto)} icon={Camera}>Has photo</FilterChip>
             <FilterChip active={filters.withActivePlans} onClick={() => updateFilter("withActivePlans", !filters.withActivePlans)} icon={Users}>Active plans</FilterChip>
@@ -96,7 +96,7 @@ export default function FilterPanel({ filters, onFiltersChange, resultCount, onC
                 <button
                   key={p.value}
                   onClick={() => toggleArrayFilter("priceBands", p.value)}
-                  className={`flex flex-col items-center gap-1.5 rounded-xl border px-2 py-3 text-xs font-semibold transition-all ${
+                  className={`flex min-h-[78px] flex-col items-center justify-center gap-1 rounded-xl border px-2 py-2 text-xs font-semibold transition-all ${
                     active ? "border-[#f1df9c] bg-[#fff6de] text-[#141414]" : "border-black/8 bg-white text-[#5f584e] hover:bg-[#fffdf8]"
                   }`}
                 >
@@ -104,7 +104,7 @@ export default function FilterPanel({ filters, onFiltersChange, resultCount, onC
                     <Tag className="h-3 w-3 text-white" />
                   </div>
                   <span>{p.label}</span>
-                  <span className="text-[10px] font-normal text-[#8e8578]">{p.desc}</span>
+                  <span className="text-[10px] font-normal leading-tight text-[#8e8578]">{p.desc}</span>
                 </button>
               );
             })}
@@ -139,15 +139,15 @@ export default function FilterPanel({ filters, onFiltersChange, resultCount, onC
         </div>
       </div>
 
-      <div className="flex items-center justify-between border-t border-black/8 bg-[#f6efe4] px-4 py-3">
+      <div className="flex items-center justify-between gap-3 border-t border-black/8 bg-[#f6efe4] px-4 py-3">
         <span className="text-xs text-[#6d665b]">{resultCount} spot{resultCount !== 1 ? "s" : ""} found</span>
-        <div className="flex gap-3">
+        <div className="flex shrink-0 gap-3">
           {activeFilterCount > 0 && (
             <button onClick={clearAll} className="text-xs font-medium text-[#8e8578] transition-colors hover:text-[#141414]">
               Clear all
             </button>
           )}
-          <button onClick={onClose} className="rounded-lg bg-[#efbf3a] px-3 py-1 text-xs font-semibold text-[#141414] transition-colors hover:bg-[#dbab23]">
+          <button onClick={onClose} className="rounded-xl bg-[#efbf3a] px-3 py-2 text-xs font-semibold text-[#141414] transition-colors hover:bg-[#dbab23]">
             Show results
           </button>
         </div>
@@ -155,3 +155,4 @@ export default function FilterPanel({ filters, onFiltersChange, resultCount, onC
     </motion.div>
   );
 }
+

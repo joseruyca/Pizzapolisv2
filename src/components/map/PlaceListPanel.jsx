@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+﻿import React, { useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Star, MapPin, ChevronUp, Coins, Users, ArrowUpDown } from "lucide-react";
 import { ZINDEX } from "@/lib/zindex";
@@ -80,7 +80,7 @@ export default function PlaceListPanel({
               </div>
               <div className="mt-3 flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
                 <SortChip active={sortMode === "value"} onClick={() => onSortModeChange?.("value")}>Valor</SortChip>
-                <SortChip active={sortMode === "price"} onClick={() => onSortModeChange?.("price")}>Más baratos</SortChip>
+                <SortChip active={sortMode === "price"} onClick={() => onSortModeChange?.("price")}>Mas baratos</SortChip>
                 <SortChip active={sortMode === "rating"} onClick={() => onSortModeChange?.("rating")}>Top rated</SortChip>
                 <SortChip active={sortMode === "hangouts"} onClick={() => onSortModeChange?.("hangouts")}>Planes</SortChip>
               </div>
@@ -131,3 +131,4 @@ export default function PlaceListPanel({
     </AnimatePresence>
   );
 }
+

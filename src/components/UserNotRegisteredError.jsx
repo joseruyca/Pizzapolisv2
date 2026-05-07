@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 
 const UserNotRegisteredError = () => {
   return (
@@ -29,3 +29,4 @@ const UserNotRegisteredError = () => {
 };
 
 export default UserNotRegisteredError;
+
