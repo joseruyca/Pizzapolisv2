@@ -1,5 +1,5 @@
 ﻿export const appParams = {
-  appId: 'pizzapolis-local',
+  appId: 'sozzial-local',
   token: '',
   fromUrl: '',
   functionsVersion: 'local',

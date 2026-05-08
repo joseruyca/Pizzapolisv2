@@ -40,7 +40,7 @@ function ProtectedRoute({ children }) {
   return children;
 }
 
-const PUBLIC_PAGES = new Set(['Landing', 'Home', 'Descubrir']);
+const PUBLIC_PAGES = new Set(['Landing', 'Home', 'Descubrir', 'Rankings', 'ActivityFeed']);
 
 function AdminRoute({ children }) {
   const { role, isLoadingAuth, isProfileReady, isAuthenticated } = useAuth();

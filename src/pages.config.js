@@ -6,6 +6,9 @@ const Home = lazy(() => import('./pages/Home'));
 const Descubrir = lazy(() => import('./pages/Descubrir'));
 const CrearQuedada = lazy(() => import('./pages/CrearQuedada'));
 const MisMatches = lazy(() => import('./pages/MisMatches'));
+const Passport = lazy(() => import('./pages/Passport'));
+const Rankings = lazy(() => import('./pages/Rankings'));
+const ActivityFeed = lazy(() => import('./pages/ActivityFeed'));
 const Profile = lazy(() => import('./pages/Profile'));
 const SettingsPage = lazy(() => import('./pages/SettingsPage'));
 const NotificationsSettings = lazy(() => import('./pages/NotificationsSettings'));
@@ -19,6 +22,9 @@ export const PAGES = {
   Descubrir,
   CrearQuedada,
   MisMatches,
+  Passport,
+  Rankings,
+  ActivityFeed,
   Profile,
   SettingsPage,
   NotificationsSettings,

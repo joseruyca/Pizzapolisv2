@@ -826,7 +826,7 @@ export default function Admin() {
               <div className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-white px-3 py-2 text-[11px] font-black uppercase tracking-[0.18em] text-[#216b33]">
                 <Sparkles className="h-3.5 w-3.5" /> control operativo
               </div>
-              <h1 className="mt-4 text-[clamp(2rem,4vw,3.5rem)] font-black leading-none tracking-[-0.06em]">Admin Pizzapolis</h1>
+              <h1 className="mt-4 text-[clamp(2rem,4vw,3.5rem)] font-black leading-none tracking-[-0.06em]">Admin Sozzial</h1>
               <p className="mt-3 max-w-3xl text-sm leading-7 text-[#6d665b]">
                 Dashboard pensado para resolver en segundos: spots pendientes, planes activos, seÃ±ales de riesgo, usuarios nuevos, mensajes conflictivos y contenido que necesita moderaciÃ³n.
               </p>
@@ -1492,9 +1492,9 @@ export default function Admin() {
               subtitle="Herramientas para administrar una aplicacion grande: volumen, calidad, exportacion y salud de datos."
               actions={
                 <>
-                  <AdminActionButton variant="neutral" onClick={() => downloadCsv('pizzapolis-users.csv', users)}><Download className="mr-2 h-4 w-4" />Usuarios CSV</AdminActionButton>
-                  <AdminActionButton variant="neutral" onClick={() => downloadCsv('pizzapolis-spots.csv', spots)}><Download className="mr-2 h-4 w-4" />Spots CSV</AdminActionButton>
-                  <AdminActionButton variant="neutral" onClick={() => downloadCsv('pizzapolis-plans.csv', plans)}><Download className="mr-2 h-4 w-4" />Planes CSV</AdminActionButton>
+                  <AdminActionButton variant="neutral" onClick={() => downloadCsv('sozzial-users.csv', users)}><Download className="mr-2 h-4 w-4" />Usuarios CSV</AdminActionButton>
+                  <AdminActionButton variant="neutral" onClick={() => downloadCsv('sozzial-spots.csv', spots)}><Download className="mr-2 h-4 w-4" />Spots CSV</AdminActionButton>
+                  <AdminActionButton variant="neutral" onClick={() => downloadCsv('sozzial-plans.csv', plans)}><Download className="mr-2 h-4 w-4" />Planes CSV</AdminActionButton>
                 </>
               }
             >

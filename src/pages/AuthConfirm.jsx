@@ -52,7 +52,7 @@ export default function AuthConfirm() {
         if (existing?.data?.session?.user) {
           if (!active) return;
           setStatus('success');
-          setMessage('Tu cuenta ya estaba confirmada. Entrando en Pizzapolis...');
+          setMessage('Tu cuenta ya estaba confirmada. Entrando en Sozzial...');
           window.history.replaceState({}, document.title, '/auth/confirm');
           window.setTimeout(() => navigate(next, { replace: true }), 900);
           return;
@@ -85,7 +85,7 @@ export default function AuthConfirm() {
             if (retry?.data?.session?.user) {
               if (!active) return;
               setStatus('success');
-              setMessage('Tu cuenta ya quedo confirmada. Entrando en Pizzapolis...');
+              setMessage('Tu cuenta ya quedo confirmada. Entrando en Sozzial...');
               window.history.replaceState({}, document.title, '/auth/confirm');
               window.setTimeout(() => navigate(next, { replace: true }), 900);
               return;
@@ -111,7 +111,7 @@ export default function AuthConfirm() {
     <div className="grid min-h-screen place-items-center bg-[#f4efe6] px-6 text-[#141414]">
       <div className="w-full max-w-md rounded-[34px] border border-black/8 bg-[#fffaf2] p-6 shadow-[0_24px_60px_rgba(39,29,14,0.12)]">
         <div className="mb-5 inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-[#efbf3a] text-[#141414] shadow-[0_18px_38px_rgba(239,191,58,0.24)]"><Pizza className="h-7 w-7" /></div>
-        <h1 className="text-3xl font-black tracking-tight">Pizzapolis</h1>
+        <h1 className="text-3xl font-black tracking-tight">Sozzial</h1>
         <p className="mt-2 text-[#6d665b]">Confirmacion de email</p>
 
         <div className="mt-8 rounded-[28px] border border-black/8 bg-white p-6 text-center">

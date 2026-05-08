@@ -8,7 +8,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { useAuth } from '@/lib/AuthContext'
 import { authModes } from '@/lib/validators/auth'
 
-const EMAIL_STORAGE_KEY = 'pizzapolis_auth_email'
+const EMAIL_STORAGE_KEY = 'sozzial_auth_email'
 
 const initialForm = {
   username: '',
@@ -133,7 +133,7 @@ export default function AuthPage() {
       if (mode === authModes.SIGN_IN) {
         await signIn(cleanEmail(form.email), form.password)
         persistRememberChoice()
-        toast.success('Welcome back to Pizzapolis')
+        toast.success('Welcome back to Sozzial')
         navigate(nextUrl, { replace: true })
         return
       }
@@ -145,7 +145,7 @@ export default function AuthPage() {
       })
       persistRememberChoice()
       if (result?.session?.user) {
-        toast.success('Account created. Welcome to Pizzapolis')
+        toast.success('Account created. Welcome to Sozzial')
         navigate(nextUrl, { replace: true })
         return
       }
@@ -223,7 +223,7 @@ export default function AuthPage() {
             <div className="mb-6 flex items-center gap-4 lg:hidden">
               <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#f0bf39] text-[#111111]"><Pizza className="h-7 w-7" /></div>
               <div>
-                <div className="text-[2rem] font-black leading-none tracking-tight">Pizzapolis</div>
+                <div className="text-[2rem] font-black leading-none tracking-tight">Sozzial</div>
                 <div className="mt-1 text-sm text-[#6e6558]">Explore the map as a guest. Sign in to join plans, chat and create your own.</div>
               </div>
             </div>

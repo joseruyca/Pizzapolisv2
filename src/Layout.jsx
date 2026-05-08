@@ -1,7 +1,7 @@
 ﻿import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
-import { ChevronRight, Flame, LogOut, Map, Menu, Pizza, PlusCircle, Shield, User, Users } from 'lucide-react';
+import { Activity, ChevronRight, Flame, LogOut, Map, Menu, Pizza, PlusCircle, Shield, Trophy, User, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import NotificationCenter from '@/components/NotificationCenter';
@@ -10,15 +10,18 @@ import { useAuth } from '@/lib/AuthContext';
 const publicNavItems = [
   { label: 'Map', page: 'Home', icon: Map },
   { label: 'Discover', page: 'Descubrir', icon: Flame },
+  { label: 'Rankings', page: 'Rankings', icon: Trophy },
+  { label: 'Feed', page: 'ActivityFeed', icon: Activity },
 ];
 
 const privateNavItems = [
+  { label: 'Passport', page: 'Passport', icon: Trophy },
   { label: 'Add plan', page: 'CrearQuedada', icon: PlusCircle, accent: true },
   { label: 'Groups', page: 'MisMatches', icon: Users },
   { label: 'Profile', page: 'Profile', icon: User },
 ];
 
-const publicPages = new Set(['Landing', 'Home', 'Descubrir']);
+const publicPages = new Set(['Landing', 'Home', 'Descubrir', 'Rankings', 'ActivityFeed']);
 const viewportPages = new Set(['Landing']);
 
 function Brand({ compact = false }) {
@@ -28,9 +31,9 @@ function Brand({ compact = false }) {
         <Pizza className="h-5 w-5" />
       </div>
       <div className="min-w-0">
-        <div className={compact ? 'text-2xl font-black' : 'app-brand-title'}>Pizzapolis</div>
+        <div className={compact ? 'text-2xl font-black' : 'app-brand-title'}>Sozzial</div>
         <div className={compact ? 'text-[11px] uppercase tracking-[0.18em] text-[#8a8174]' : 'app-brand-subtitle'}>
-          {compact ? 'Core app only' : 'Real slice plans'}
+          {compact ? 'Pizza social app' : 'Real pizza, real plans'}
         </div>
       </div>
     </div>
@@ -158,7 +161,14 @@ export default function Layout({ children, currentPageName }) {
       {!hideHeader && !hideBottomNav && (
         <nav className="mobile-tabbar">
           <div className="mobile-tabbar-grid">
-            {navItems.map((item) => {
+            {[
+              publicNavItems[0],
+              publicNavItems[1],
+              privateNavItems[0],
+              privateNavItems[1],
+              privateNavItems[2],
+              privateNavItems[3],
+            ].map((item) => {
               const Icon = item.icon;
               const active = currentPageName === item.page;
               return (

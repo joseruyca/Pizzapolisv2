@@ -54,8 +54,8 @@ export default function Landing() {
               <Pizza className="h-6 w-6" />
             </div>
             <div className="min-w-0">
-              <div className="text-[clamp(1.95rem,7vw,2.45rem)] font-black leading-none tracking-tight">Pizzapolis</div>
-              <div className="mt-1 text-[10px] font-black uppercase tracking-[0.22em] text-[#8a8174]">spots, plans and groups</div>
+              <div className="text-[clamp(1.95rem,7vw,2.45rem)] font-black leading-none tracking-tight">Sozzial</div>
+              <div className="mt-1 text-[10px] font-black uppercase tracking-[0.22em] text-[#8a8174]">spots, plans and passport</div>
             </div>
           </div>
         </div>
